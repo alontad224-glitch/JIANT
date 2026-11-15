@@ -1,9 +1,9 @@
 {
-  "source": "0c5880e87aecdb94c1a25f637fc0da347c1e62f3",
-  "version": "V10.7.41",
-  "released_site_run": 43765210762,
-  "previous_public_source": "d7a4598c6ea182754cb6f8b87a31de18ff7cfe71",
-  "audit_source": "0c5880e87aecdb94c1a25f637fc0da347c1e62f3",
+  "source": "bb6fde8826e24305b239a7ed44e9d2866c069772",
+  "version": "V10.7.42",
+  "released_site_run": 43770261590,
+  "previous_public_source": "0c5880e87aecdb94c1a25f637fc0da347c1e62f3",
+  "audit_source": "bb6fde8826e24305b239a7ed44e9d2866c069772",
   "regressions": [
     "loop_song",
     "song_generator",

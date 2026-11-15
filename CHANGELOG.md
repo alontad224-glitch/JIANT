@@ -6,6 +6,7 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.42** | 2026-11-15 | **Public** |
 | **V10.7.41** | 2026-11-15 | **Public** |
 | V10.7.40 | 2026-11-15 | Beta |
 | **V10.7.39** | 2026-11-15 | **Public** |
@@ -30,6 +31,14 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.42 — FREEZE fixed, lighter silence (2026-11-15)
+
+- **FREEZE let go: the tracks back at the full rate.** In V10.7.41, after a FREEZE every track kept playing at half the sample rate (duller highs) until the next punch-in. Fixed.
+- **CPU:** a silent block skips the master chain (idle cost below V10.7.23's), LIFE's followers are lighter and FREEZE no longer divides every sample. The sound is bit for bit the same. Every version since V10.7.23 was measured: the extra cost is BALANCE (on since V10.7.33, +3.3 %) and LIFE (+4.2 %).
+
+**Compatibility notes**
+- Projects, presets and settings load and sound as in V10.7.41.
 
 ## V10.7.41 — FM6 lighter under load, WEST RES fixed, FREEZE lighter (2026-11-15)
 

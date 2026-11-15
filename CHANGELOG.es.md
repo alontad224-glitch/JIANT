@@ -6,6 +6,7 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.42** | 2026-11-15 | **Pública** |
 | **V10.7.41** | 2026-11-15 | **Pública** |
 | V10.7.40 | 2026-11-15 | Beta |
 | **V10.7.39** | 2026-11-15 | **Pública** |
@@ -31,6 +32,14 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.42 — FREEZE arreglado, silencio más liviano (2026-11-15)
+
+- **Al soltar FREEZE las pistas vuelven a la frecuencia completa.** En la V10.7.41, después de un FREEZE todas las pistas seguían a mitad de frecuencia (agudos más apagados) hasta el siguiente punch-in. Arreglado.
+- **CPU:** un bloque en silencio se saltea la cadena del master (en reposo gasta menos que la V10.7.23), los seguidores de LIFE son más livianos y FREEZE ya no divide en cada muestra. El sonido es idéntico bit a bit. Se midieron todas las versiones desde la V10.7.23: lo que sumó es BALANCE (prendido desde la V10.7.33, +3,3 %) y LIFE (+4,2 %).
+
+**Notas de compatibilidad**
+- Proyectos, presets y ajustes cargan y suenan como en la V10.7.41.
 
 ## V10.7.41 — FM6 más liviano bajo carga, WEST con RES arreglado, FREEZE más liviano (2026-11-15)
 
