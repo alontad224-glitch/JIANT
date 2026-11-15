@@ -6,6 +6,8 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.41** | 2026-11-15 | **Pública** |
+| V10.7.40 | 2026-11-15 | Beta |
 | **V10.7.39** | 2026-11-15 | **Pública** |
 | **V10.7.38** | 2026-11-15 | **Pública** |
 | V10.7.24 … V10.7.37 | 2026-11-13 … 11-15 | Beta |
@@ -29,6 +31,17 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.41 — FM6 más liviano bajo carga, WEST con RES arreglado, FREEZE más liviano (2026-11-15)
+
+Incluye la beta V10.7.40.
+
+- **FM6 ya no llega al glitch**: con mucha carga, las voces sostenidas de la pista que más gasta (primero FM6: a mitad de frecuencia gasta el 60 %) pasan a mitad de frecuencia apenas la carga se mantiene arriba del 75 % (ECO: 55 %), y no recién cuando salta el guard al 85 %; vuelven a la frecuencia completa debajo del 55 %. Con poca carga no cambia nada.
+- **WEST con RES alto ya no rompe en los picos**: desde RES ~43 la entrada del gate baja con la resonancia (x0,25 en 127); debajo de eso no cambia nada.
+- **FREEZE más liviano**: mientras congela, las pistas de abajo suenan a mitad de frecuencia donde se puede.
+
+**Notas de compatibilidad**
+- Los proyectos cargan como antes. De los sonidos de fábrica solo WIND, RAIN, HISS PAD, BONGO y RUBBER BASS de WEST (RES alto) suenan un poco distinto.
 
 ## V10.7.39 — GEN dentro del CPU, Bluetooth MIDI más robusto, MIDI BASE CH, voces por pista (2026-11-15)
 

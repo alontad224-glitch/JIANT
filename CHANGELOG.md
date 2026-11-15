@@ -6,6 +6,8 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.41** | 2026-11-15 | **Public** |
+| V10.7.40 | 2026-11-15 | Beta |
 | **V10.7.39** | 2026-11-15 | **Public** |
 | **V10.7.38** | 2026-11-15 | **Public** |
 | V10.7.24 … V10.7.37 | 2026-11-13 … 11-15 | Beta |
@@ -28,6 +30,17 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.41 — FM6 lighter under load, WEST RES fixed, FREEZE lighter (2026-11-15)
+
+Covers the beta V10.7.40.
+
+- **FM6 never reaches a glitch**: under a heavy load the dearest part's held voices (FM6 first: at half the rate it costs 60 %) go to half the sample rate as soon as the load stays past 75 % (ECO: 55 %), no longer only after the guard trips at 85 %; full rate back under 55 %. With a light load nothing changes.
+- **WEST with RES high no longer breaks on the peaks**: past RES ~43 the gate's input is lowered with its resonance (x0.25 at 127); below that nothing changes.
+- **FREEZE lighter**: while it holds, the tracks under it play at half the sample rate where they can.
+
+**Compatibility notes**
+- Projects load as before. Of the factory sounds only WEST's WIND, RAIN, HISS PAD, BONGO and RUBBER BASS (RES high) sound slightly different.
 
 ## V10.7.39 — GEN within the CPU, Bluetooth MIDI hardened, MIDI BASE CH, a track's voices (2026-11-15)
 
