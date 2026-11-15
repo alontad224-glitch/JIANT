@@ -6,6 +6,7 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.39** | 2026-11-15 | **Public** |
 | **V10.7.38** | 2026-11-15 | **Public** |
 | V10.7.24 … V10.7.37 | 2026-11-13 … 11-15 | Beta |
 | **V10.7.23** | 2026-11-13 | **Public** |
@@ -27,6 +28,16 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.39 — GEN within the CPU, Bluetooth MIDI hardened, MIDI BASE CH, a track's voices (2026-11-15)
+
+- **GEN keeps its songs within the FM-1's CPU.** At full ENERGY and amounts, some pieces (two FM6 parts, the CLOUD reverb, EXPLORE) cost up to 23 % more than SAVE › TOOLS › CPU TEST's song and glitched near 90 % CPU. GEN now estimates each piece's cost as it makes it and, only when it is over, makes it again with FM6 on one track (then none) and SHIMR in CLOUD's place; the steps and the mix stay as they were.
+- **Bluetooth MIDI hardened** after a report of crashes with a BLE keyboard: a dense packet of aftertouch, bend or a CC no longer overflows MIDI IN and drops every held note; a Bluetooth link lost with notes held lets them go; a VOICE track whose LANG changes mid-phrase no longer reads past its word template.
+- **MIDI BASE CH** (MENU › SYSTEM, 1–11): track *n* listens and sends on BASE + *n* − 1, so two FM-1s share one MIDI bus (one on 1, the other on 7).
+- **A track's voices, set by hand**: EDIT › VOICES 2 › **VOICES** (KNOB 4): AUTO or 1–8, and the page shows **ALL n/8**.
+
+**Compatibility notes**
+- Projects and settings load as before (VOICES opens on AUTO, MIDI BASE CH on 1). Some GEN results at full settings now come out lighter (FM6 on fewer tracks, SHIMR instead of CLOUD).
 
 ## V10.7.38 — LIFE, WEST COAST, the new HOME, FX punch-ins, EROSION, the emulator talks to the FM-1 (2026-11-15)
 

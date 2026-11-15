@@ -6,6 +6,7 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.39** | 2026-11-15 | **Pública** |
 | **V10.7.38** | 2026-11-15 | **Pública** |
 | V10.7.24 … V10.7.37 | 2026-11-13 … 11-15 | Beta |
 | **V10.7.23** | 2026-11-13 | **Pública** |
@@ -28,6 +29,16 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.39 — GEN dentro del CPU, Bluetooth MIDI más robusto, MIDI BASE CH, voces por pista (2026-11-15)
+
+- **GEN mantiene sus canciones dentro del CPU del FM-1.** Con ENERGY y cantidades al máximo, algunas piezas (dos pistas de FM6, la reverb CLOUD, EXPLORE) gastaban hasta un 23 % más que la canción de SAVE › TOOLS › CPU TEST y hacían glitches cerca del 90 % de CPU. Ahora GEN estima el costo de cada pieza al generarla y, solo si se pasa, la rehace con FM6 en una sola pista (o en ninguna) y SHIMR en lugar de CLOUD; los pasos y la mezcla quedan iguales.
+- **Bluetooth MIDI más robusto**, a partir de un reporte de cuelgues con un teclado BLE: un paquete muy cargado de aftertouch, pitch bend o un CC ya no desborda la entrada MIDI ni corta todas las notas sostenidas; si se corta el Bluetooth con notas apretadas, se sueltan; una pista VOICE que cambia LANG en medio de una frase ya no lee fuera de su plantilla de palabras.
+- **MIDI BASE CH** (MENU › SYSTEM, 1–11): la pista *n* escucha y manda en BASE + *n* − 1, así dos FM-1 comparten un mismo bus MIDI (uno en 1, el otro en 7).
+- **Las voces de cada pista, a mano**: EDIT › VOICES 2 › **VOICES** (KNOB 4): AUTO o de 1 a 8, y la página muestra **ALL n/8**.
+
+**Notas de compatibilidad**
+- Proyectos y ajustes cargan como antes (VOICES abre en AUTO, MIDI BASE CH en 1). Algunos resultados del GEN a full ahora salen más livianos (FM6 en menos pistas, SHIMR en lugar de CLOUD).
 
 ## V10.7.38 — LIFE, WEST COAST, el HOME nuevo, punch-ins de FX, EROSION, el emulador habla con el FM-1 (2026-11-15)
 
