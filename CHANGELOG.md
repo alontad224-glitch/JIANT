@@ -6,6 +6,8 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.38** | 2026-11-15 | **Public** |
+| V10.7.24 … V10.7.37 | 2026-11-13 … 11-15 | Beta |
 | **V10.7.23** | 2026-11-13 | **Public** |
 | **V10.7.22** | 2026-11-13 | **Public** |
 | V10.7.18 … V10.7.21 | 2026-11-11 … 11-12 | Beta |
@@ -25,6 +27,29 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.38 — LIFE, WEST COAST, the new HOME, FX punch-ins, EROSION, the emulator talks to the FM-1 (2026-11-15)
+
+Covers the betas V10.7.24 … V10.7.38.
+
+- **HOME is the song and the band**: LIFE · MACROS · LIVE MIX · TRACKS · TIMELINE · ARRANGE · PARTS · GEN. **LIFE**: the voices alive, the tracks moving each other (LIFE past 25 % keeps growing, up to ×4 at 100 %). **TRACKS**: every track a lane (LEVEL, PAN, REV, mute and solo). **PARTS** is one grid (a column the part, a cell its track). SELECT on MACROS turns the page; HOME + SELECT there dices the macros.
+- **WEST COAST replaces NOISE** (engine 11): a sine core, FM, a wavefolder and a **vactrol low-pass gate** (a quick strike and a long, darkening tail), Buchla / Serge style, drawn on EDIT as its circuit. 20 presets: plucks, BONGO, MARIMBA, bells, FOLD BASS, drones.
+- **FX punch-ins redesigned** (hold FX, press a key): REVERSE, TAPE STOP, WOBBLE, DLY 1/16, COMB; PITCH UP / DN, **FREEZE** (the mix itself held as a drone), REV ALL, DLY ALL, RING, LIFE MAX and a new **GLITCH**. Holding an FX with REC armed says **REC FX AUTOM** (REC + FX clears it).
+- **EDIT, the sound first**: EDIT 1 · EDIT 2 · the engine's pages, then FILTER · **EROSION** (a noise modulator on the cutoff and pitch: SOFT STEP METAL BREAK DUST) · TONE, then VOICES. **ALLOC** is automatic (VOICES 2: UNISON · VEL · IMAGE).
+- **DRUM-X** in twelve pages, with its own EROSION; its sound reviewed (velocity brightens the accents, a drier snare, fuller toms, the kit's DECAY a fifth to five times each sound's).
+- **Filters**: one LP24 with DRIVE (MS20 gone), KEY tracking; distortions fixed.
+- **VOICE sings phonemes** (the web editor's lyrics, consonants early so the vowel lands on the step); **STRING** gets a real bow (VIOLIN, VIOLA, CELLO) and an electric guitar into an amp (FEEDBACK).
+- **DRONE** (VOICES › POLY = DRONE): notes keep sounding after the key; the same note again lets it go.
+- **MATH › RETRIG › TIME**: NOTE (as before) or a tempo rate 1/1 … 1/32 and triplets. **PROX** (Bluetooth): SLEW 0–100 % and SENS 0–7.
+- **GEN**: a structure per seed (FORM SONG and PARTS), darker drums, more of the synth.
+- **UI**: PRESETS opens a list (larger letters), HELP (HOME + OCT+), MENU in four big rows, REC and SAVE held as big tiles, EDIT held draws no map, BPM on MACROS, global SWING on MIXER.
+- **The emulator talks to the FM-1**: SEND TO FM-1, GET FROM FM-1, DOWNLOAD BACKUP and IMPORT BACKUP over USB MIDI.
+
+**Compatibility notes**
+- Back up first (the editor or the installer).
+- NOISE projects open as WEST in a DUST patch (the same PROGRAM CHANGE numbers). MS20 filters open as LP24 set as close as it gets.
+- GLO › KEY SPLIT, ENV › STAGE and ENV › TRACKS are gone; projects that used them still load. ALLOC is ignored. The old key latch opens as DRONE.
+- V10.7.30 projects that used FILTER 2's METAL, BREAK or DUST load with the same values and sound different (they modulate now).
 
 ## V10.7.23 — outlined cards, one skin, cleaner names, AFTERTOUCH 1–10 (2026-11-13)
 

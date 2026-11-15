@@ -6,6 +6,8 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.38** | 2026-11-15 | **Pública** |
+| V10.7.24 … V10.7.37 | 2026-11-13 … 11-15 | Beta |
 | **V10.7.23** | 2026-11-13 | **Pública** |
 | **V10.7.22** | 2026-11-13 | **Pública** |
 | V10.7.18 … V10.7.21 | 2026-11-11 … 11-12 | Beta |
@@ -26,6 +28,29 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.38 — LIFE, WEST COAST, el HOME nuevo, punch-ins de FX, EROSION, el emulador habla con el FM-1 (2026-11-15)
+
+Incluye las betas V10.7.24 … V10.7.38.
+
+- **HOME es la canción y la banda**: LIFE · MACROS · LIVE MIX · TRACKS · TIMELINE · ARRANGE · PARTS · GEN. **LIFE**: las voces vivas, las pistas moviéndose entre sí (pasado el 25 % sigue creciendo, hasta ×4 en 100 %). **TRACKS**: cada pista un carril (LEVEL, PAN, REV, mute y solo). **PARTS** es una sola grilla (una columna la parte, una celda su pista). SELECT en MACROS pasa de página; HOME + SELECT ahí tira los dados de los macros.
+- **WEST COAST reemplaza a NOISE** (motor 11): un núcleo senoidal, FM, un plegador de onda y un **low-pass gate de vactrol** (un golpe rápido y una cola larga que se oscurece), al estilo Buchla / Serge, dibujado en EDIT como su circuito. 20 presets: plucks, BONGO, MARIMBA, campanas, FOLD BASS, drones.
+- **Punch-ins de FX nuevos** (FX apretado + una tecla): REVERSE, TAPE STOP, WOBBLE, DLY 1/16, COMB; PITCH UP / DN, **FREEZE** (congela la mezcla como un drone), REV ALL, DLY ALL, RING, LIFE MAX y un **GLITCH** nuevo. Con REC armado, mantener un FX avisa **REC FX AUTOM** (REC + FX lo borra).
+- **EDIT, primero el sonido**: EDIT 1 · EDIT 2 · las páginas del motor, después FILTER · **EROSION** (un modulador de ruido sobre el corte y la afinación: SOFT STEP METAL BREAK DUST) · TONE, y al final VOICES. **ALLOC** es automático (VOICES 2: UNISON · VEL · IMAGE).
+- **DRUM-X** en doce páginas, con su propio EROSION; su sonido revisado (la velocidad abrillanta los acentos, redoblante más seco, toms con más cuerpo, el DECAY del kit de un quinto a cinco veces el de cada sonido).
+- **Filtros**: un solo LP24 con DRIVE (se fue el MS20), seguimiento de teclado KEY; distorsiones arregladas.
+- **VOICE canta fonemas** (las letras del editor web; las consonantes se adelantan para que la vocal caiga en el paso); **STRING** suma un arco de verdad (VIOLIN, VIOLA, CELLO) y una guitarra eléctrica en un ampli (FEEDBACK).
+- **DRONE** (VOICES › POLY = DRONE): las notas siguen sonando al soltar la tecla; la misma nota otra vez la suelta.
+- **MATH › RETRIG › TIME**: NOTE (como antes) o un valor de tempo de 1/1 a 1/32 y tresillos. **PROX** (Bluetooth): SLEW 0–100 % y SENS 0–7.
+- **GEN**: una estructura por semilla (FORM SONG y PARTS), baterías más oscuras, usa más del sintetizador.
+- **Interfaz**: PRESETS abre una lista (letra más grande), HELP (HOME + OCT+), MENU en cuatro filas grandes, REC y SAVE apretados como baldosas grandes, EDIT apretado sin mapa, BPM en MACROS, SWING global en MIXER.
+- **El emulador habla con el FM-1**: SEND TO FM-1, GET FROM FM-1, DOWNLOAD BACKUP e IMPORT BACKUP por USB MIDI.
+
+**Notas de compatibilidad**
+- Hacé un backup primero (con el editor o el instalador).
+- Los proyectos con NOISE abren como WEST en un patch de DUST (los mismos números de PROGRAM CHANGE). Los filtros MS20 abren como LP24, lo más parecido posible.
+- Ya no están GLO › KEY SPLIT, ENV › STAGE ni ENV › TRACKS; los proyectos que los usaban cargan igual. ALLOC se ignora. El latch de teclas viejo abre como DRONE.
+- Los proyectos de la V10.7.30 que usaban METAL, BREAK o DUST de FILTER 2 cargan con los mismos valores y suenan distinto (ahora modulan).
 
 ## V10.7.23 — tarjetas con contorno, una sola piel, nombres más claros, AFTERTOUCH 1–10 (2026-11-13)
 
