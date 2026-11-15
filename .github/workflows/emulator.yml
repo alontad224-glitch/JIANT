@@ -45,6 +45,8 @@ jobs:
             if [ "$E" = ADDITIVE ]; then
               cp web/emu/additive-api.h /tmp/emusrc/web/emu/additive-api.h
               cat web/emu/additive-api.h >> /tmp/emusrc/web/emu/felucca_web.c
+              cp web/emu/transfer-api.h /tmp/emusrc/web/emu/transfer-api.h
+              cat web/emu/transfer-api.h >> /tmp/emusrc/web/emu/felucca_web.c
             fi
             if (cd /tmp/emusrc && python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()" \
                 && sh web/emu/build.sh); then
@@ -67,6 +69,8 @@ jobs:
           shell = Path(template).read_text().replace("@VERSION@", version).replace("@PREVIEW@", "")
           target.write_text(shell)
           shutil.copy("web/emu/worklet.js", "build/emu/worklet.js")
+          for f in ("transfer.js", "transfer-ui.js", "../fm1backup.js"):   # (emu-transfer) the FM-1 panel
+              shutil.copy("web/emu/" + f, "build/emu/" + Path(f).name)
           PY
           if [ "$E" = ADDITIVE ]; then
             node web/emu/additive-boot-test.mjs build/emu/felucca.wasm
@@ -198,7 +202,7 @@ jobs:
       - name: the front page and the emulator under emu/
         run: |
           mkdir -p build/pages/emu
-          for f in index.html worklet.js fm1backup.js felucca.wasm fonts; do
+          for f in index.html worklet.js fm1backup.js transfer.js transfer-ui.js felucca.wasm fonts; do
             if [ -e "build/emu/$f" ]; then mv "build/emu/$f" build/pages/emu/; fi
           done
           cp -r build/emu/. build/pages/

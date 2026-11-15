@@ -72,6 +72,8 @@ jobs:
           (cd build/emusrc && python3 -c "import sys;sys.path.insert(0,'tools');import build;build.generate()")
           cp web/emu/additive-api.h build/emusrc/web/emu/additive-api.h
           cat web/emu/additive-api.h >> build/emusrc/web/emu/felucca_web.c
+          cp web/emu/transfer-api.h build/emusrc/web/emu/transfer-api.h
+          cat web/emu/transfer-api.h >> build/emusrc/web/emu/felucca_web.c
           (cd build/emusrc && sh web/emu/build.sh)
           node web/emu/additive-boot-test.mjs build/emusrc/build/emu/felucca.wasm
       - name: Replace only emu/
@@ -89,6 +91,7 @@ jobs:
           shell=Path('web/emu/index-additive.html').read_text().replace('@VERSION@',v).replace('@PREVIEW@',' (beta)')
           (compiled/'index.html').write_text(shell)
           shutil.copy('web/emu/worklet.js',compiled/'worklet.js')
+          for f in ('transfer.js','transfer-ui.js'):shutil.copy('web/emu/'+f,compiled/f)   # (emu-transfer) the FM-1 panel
           dest=pages/'emu'
           if dest.exists():shutil.rmtree(dest)
           shutil.copytree(compiled,dest)
