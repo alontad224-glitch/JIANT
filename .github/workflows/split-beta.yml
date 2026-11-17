@@ -33,7 +33,7 @@ jobs:
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','candidate checks failed'
-          assert run['head_sha']==m['source'] and run['head_branch']=='codex/voice-user-lyrics','candidate provenance mismatch'
+          assert run['head_sha']==m['source'] and run['head_branch']=='codex/audio-cpu-v46','candidate provenance mismatch'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
               f.write('run_id='+str(m['run_id'])+'\n')
@@ -49,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: github-pages
-          run-id: 44114286629
+          run-id: 44118975872
           github-token: ${{ github.token }}
           path: build/released
       - name: Published site to start from (the artifact; the live site when it expired or is older)
@@ -108,7 +108,7 @@ jobs:
           editions=json.loads(edition_path.read_text())
           for entry in prior:
               editions.setdefault(entry['version'],{k:entry[k] for k in ('edition','status') if k in entry})
-          editions[m['version']]={'edition':'V10.7.45','status':'beta'}
+          editions[m['version']]={'edition':'V10.7.46','status':'beta'}
           edition_path.write_text(json.dumps(editions))
           shutil.copyfile('build/candidate/web/editor.html','web/editor.html')
           make_site.main('build/candidate/build/felucca.fwsc',m['version'],'build/new-preview',str(fw))
