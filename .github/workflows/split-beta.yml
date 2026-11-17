@@ -33,7 +33,7 @@ jobs:
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','candidate checks failed'
-          assert run['head_sha']==m['source'] and run['head_branch']=='codex/audio-cpu-v46','candidate provenance mismatch'
+          assert run['head_sha']==m['source'] and run['head_branch']=='codex/drum-kits','candidate provenance mismatch'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
               f.write('run_id='+str(m['run_id'])+'\n')
@@ -49,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: github-pages
-          run-id: 44118975872
+          run-id: 44124681336
           github-token: ${{ github.token }}
           path: build/released
       - name: Published site to start from (the artifact; the live site when it expired or is older)
@@ -97,6 +97,7 @@ jobs:
           assert struct.pack('<III',0x544E5742,length,crc) in Path('build/candidate/build/felucca.bin').read_bytes(),'app/segment pairing mismatch'
           pages=Path('build/pages');fw=pages/'preview/firmware'
           def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+          assert digest(Path('build/candidate/build/felucca.fwsc'))==m['sha256'],'candidate package SHA256 mismatch'
           def protected():
               return {p.relative_to(pages).as_posix():digest(p) for p in pages.rglob('*') if p.is_file() and not p.relative_to(pages).as_posix().startswith(('preview/firmware/','preview/webapp/installer/','preview/webapp/editor/','preview/webapp/vel/'))}
           before=protected()
@@ -108,7 +109,7 @@ jobs:
           editions=json.loads(edition_path.read_text())
           for entry in prior:
               editions.setdefault(entry['version'],{k:entry[k] for k in ('edition','status') if k in entry})
-          editions[m['version']]={'edition':'V10.7.46','status':'beta'}
+          editions[m['version']]={'edition':v,'status':'beta'}
           edition_path.write_text(json.dumps(editions))
           shutil.copyfile('build/candidate/web/editor.html','web/editor.html')
           make_site.main('build/candidate/build/felucca.fwsc',m['version'],'build/new-preview',str(fw))
