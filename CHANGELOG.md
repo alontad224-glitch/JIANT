@@ -6,6 +6,7 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.44** | 2026-11-17 | **Public** |
 | **V10.7.43** | 2026-11-17 | **Public** |
 | **V10.7.42** | 2026-11-15 | **Public** |
 | **V10.7.41** | 2026-11-15 | **Public** |
@@ -32,6 +33,22 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.44 — your own punch-ins, mutes back (2026-11-17)
+
+**Playing live**
+- **Choose what each punch-in key does:** hold FX, press a key and turn SELECT to pick its effect: any of today's effects, MUTE T1–T6, LOCK, DEC−/DEC+, LPF/HPF, or nothing.
+- **Three punch-in layouts**, switched with **FX + OCT+**, kept when you power off.
+- **The new default layout brings the mutes back:** T1–T4 MUTE on the keys, FREEZE on G4, REV ALL on D#4.
+- **FX FILTER snaps open:** a quick turn towards the centre (or across it) opens the filter fully at once, for fast transitions.
+- **GLITCH sounds like before** (ratchets, reverse, octaves, gates, skips, a milder crush) and costs less CPU.
+
+**Performance**
+- **DRUM-X voices:** EDIT › VOICES 2 › VOICES now also limits a drum kit's voices to save CPU (kick, snare and clap are never cut).
+- **HOME › TRACKS is lighter:** it only redraws what changes and slows down when the load is high.
+
+**Compatibility**
+- Projects and presets load as in V10.7.43. Your punch-in layouts start on the new default.
 
 ## V10.7.43 — lighter and steadier: more tracks without glitches (2026-11-17)
 

@@ -6,6 +6,7 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.44** | 2026-11-17 | **Pública** |
 | **V10.7.43** | 2026-11-17 | **Pública** |
 | **V10.7.42** | 2026-11-15 | **Pública** |
 | **V10.7.41** | 2026-11-15 | **Pública** |
@@ -33,6 +34,22 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.44 — tus propios punch-ins, vuelven los mutes (2026-11-17)
+
+**Para tocar en vivo**
+- **Elegí qué hace cada tecla de punch-in:** mantené FX, apretá una tecla y girá SELECT para elegir su efecto: cualquiera de los de ahora, MUTE T1–T6, LOCK, DEC−/DEC+, LPF/HPF o nada.
+- **Tres layouts de punch-in**, que cambiás con **FX + OCT+**, y quedan guardados al apagar.
+- **El layout de fábrica trae los mutes de vuelta:** MUTE T1–T4 en las teclas, FREEZE en G4, REV ALL en D#4.
+- **El FILTER de FX se abre de golpe:** un giro rápido hacia el centro (o cruzándolo) abre el filtro del todo al instante, para transiciones rápidas.
+- **GLITCH suena como antes** (ratchets, reverse, octavas, gates, saltos, un crush más suave) y gasta menos procesador.
+
+**Rendimiento**
+- **Voces de DRUM-X:** EDIT › VOICES 2 › VOICES ahora también limita las voces de un kit para ahorrar procesador (nunca corta kick, snare ni clap).
+- **HOME › TRACKS más liviano:** solo redibuja lo que cambia y se frena si la carga es alta.
+
+**Compatibilidad**
+- Proyectos y presets cargan como en la V10.7.43. Los layouts de punch-in arrancan en el nuevo de fábrica.
 
 ## V10.7.43 — más liviana y estable: más pistas sin glitches (2026-11-17)
 
