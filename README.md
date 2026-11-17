@@ -17,9 +17,13 @@ a generator and effects, all inside the little keyboard. It is a fork of [Felucc
 The emulator runs the same code as the FM-1, with sound, played with the computer keyboard or the mouse. The installer
 always offers the current public version first, and the earlier ones under it.
 
-## This release: V10.7.45
+## This release: V10.7.46
 
-A stability release on top of V10.7.43–44's lighter CPU:
+The overload guard, voice admission and animation throttling now count the entire audio deadline, including nested input/USB work. A pending USB resampling job can no longer be overwritten by a mixer job on the second core. Generator sounds and recipes stay the same.
+
+This fixes overload handling; it does not reduce the baseline synthesis cost of every project. See the [validation notes](web/V46_AUDIO_AUDIT.md), including the remaining on-device checks.
+
+Also retained from V10.7.45 and V10.7.43–44's lighter CPU:
 
 - **LIFE is out for now** (it could crash and cost a lot of CPU for little audible change); it comes back reworked in
   a later beta. Saved projects open as before.
@@ -498,6 +502,11 @@ same license.
 ## Changelog
 
 Every update is listed here, newest first. (Since 0.6.80 at the end of the page: what the synth does comes first.)
+
+### V10.7.46 — public (2026-11-17)
+- Count nested input/USB time in the overload guard, voice admission, recovery and UI throttling, so the system does not reopen its CPU budget while the audio deadline remains under pressure.
+- Preserve core-1 mailbox ownership until a pending USB resampler completes; mixing uses the existing serial fallback when needed.
+- No generator recipe, preset or project-format change. [Tests and limitations](web/V46_AUDIO_AUDIT.md).
 
 ### V10.7.45 — public (2026-11-17)
 - **LIFE out of the system for now** (the owner): it could crash and raised the CPU a lot for little audible change.
