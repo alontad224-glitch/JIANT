@@ -17,9 +17,18 @@ a generator and effects, all inside the little keyboard. It is a fork of [Felucc
 The emulator runs the same code as the FM-1, with sound, played with the computer keyboard or the mouse. The installer
 always offers the current public version first, and the earlier ones under it.
 
-## This release: V10.7.17
+## This release: V10.7.45
 
-MY LOOP stability update: retained DRUM-X hits on melodic tracks no longer freeze generation, and TRACKS 4 ignores hidden T5/T6.
+A stability release on top of V10.7.43–44's lighter CPU:
+
+- **LIFE is out for now** (it could crash and cost a lot of CPU for little audible change); it comes back reworked in
+  a later beta. Saved projects open as before.
+- **Copy and paste steps with OCT** (a user, Eugen): hold step keys + **OCT+** copies them, a held step + **OCT−**
+  pastes there; a held step + **SELECT** walks the pages its KNOB 1–4 lock ("LOCK · page").
+- **Punch-in FX you choose** (V10.7.44): hold FX, press a key and turn SELECT; three layouts on **FX + OCT+**; the
+  default brings MUTE T1–T4 back, FREEZE on G4, REV ALL on D#4.
+- **CPU back under V10.7.23** (V10.7.43): BALANCE removed, EROSION reduced to NOISE / METAL, clean note releases,
+  PANIC clears the FX, PRESETS turn sounds as before V10.7.33 (EDIT + PRESETS jumps engines).
 
 What each version changed: [CHANGELOG.md](CHANGELOG.md) · en castellano: [CHANGELOG.es.md](CHANGELOG.es.md).
 
@@ -49,7 +58,8 @@ risk: it is a custom firmware.
 
 - **Songs**: SAVE opens on the song, **TIMELINE** (the song as blocks, each row opened track by track: mutes, FROM
   another part, a variation), **PARTS** (the four parts as cards, one loops with OCT+) and **CLIPS** (six tracks × four
-  parts, launched on the next bar; REC writes the rows). A sound you change while the song plays stays. **SAVE SONG AS**.
+  parts, launched on the next bar; REC writes the rows). A sound you change while the song plays stays. A whole song or
+  just its loop is saved on **PROJECTS** (SONG / LOOP on the NAME screen's KNOB 3).
 - **DRUM-X**: a quality pass, a classic CMOS cowbell, the **EXTENDED** key map (real fills on OCT+1, every sound
   chromatic on OCT−1), the punchy kicks back. **SCENE DRUM GEN**: SCL › SCENE's drum role plays a kit generated for the
   genre.
@@ -63,6 +73,19 @@ risk: it is a custom firmware.
   glides there over steps or bars) replaces JUMP.
 - **SWARM** (EXT's Bluetooth instrument) plays a melody from how near you are, with a FAR / NEAR morph and CHAOS.
 - The **thermal palette** everywhere: the piano roll coloured by pitch class.
+- *(next version)* **Seven palettes, all JIANT's own**: MENU › DISPLAY › COLOR offers JIANT (unchanged, the default),
+  SELVA, CONTRAST, BRASA, ABISAL, HUESO and NEON, each with the thermal ramp on beings, notes and bars and its own four
+  knob colours on the cards (JIANT: each value's heat, as before). The
+  ten palettes inherited from Felucca are gone; a saved one lands on the nearest of the family.
+- *(next version)* **Two skins**: MENU › DISPLAY › SKIN is AIR or COLORS; BOTTOM and HUD are gone (a saved one loads
+  as COLORS).
+- *(next version)* **No STYLE row**: FLAT is the one style, LINE is gone (a saved LINE loads as FLAT).
+- *(next version)* **Bigger small letters**: names, tabs, the header's words and the breadcrumb with 9 px capitals
+  (Chakra Petch; the 5 × 7 pixel face is gone), five tabs at a time, eight menu rows at a time.
+- *(next version)* **Bigger values**: a card's number in 14 px figures (was 11), rolling as before; MENU › LARGE's tall
+  cards on SEQ's, SAVE's and FX's pages too.
+- *(next version)* **COLORS without the panel box**: the picture sits on the background, as in AIR (cards and tiles as
+  before).
 - **VOICE** no longer clips on open vowels; WORDS › CONS sets the consonants' length.
 - **NRPN** for every automatable parameter ([docs/NRPN.md](docs/NRPN.md)); the editor protocol is a versioned
   contract, 1.2 ([web/EDITOR_PROTOCOL.md](web/EDITOR_PROTOCOL.md)).
@@ -74,7 +97,7 @@ Every detail: the [Changelog](#changelog) and the manual's
 ### What's in it
 
 - **Engines**: DRUM-X (synthesized drums with a morph between two sides), ANALOG, FM6 (six operators, 32 algorithms,
-  DX7 banks), PHASE, MATH (bytebeat and floatbeat), VOICE (sings words in Spanish, English and Japanese), WHEEL, NOISE,
+  DX7 banks), PHASE, MATH (bytebeat and floatbeat), VOICE (sings words in Spanish, English and Japanese), WHEEL, WEST (a west-coast voice: folders and a low-pass gate),
   ANIMAL (birds, insects and frogs from physical models), STRING (a plucked, struck or bowed string, and guitar
   feedback), ADD (additive) and EXT (the USB audio input, or SWARM). No samples.
 - **Sequencer**: 64 steps a track, piano roll and drum grid, step components, EUCLID and MODES, MUTATE, PLAYHEADS,
@@ -93,8 +116,8 @@ Every detail: the [Changelog](#changelog) and the manual's
 
 If the FM-1 crashes, the red screen stays **10 seconds** and names the core, the VEC, PC and SP, and the bus master
 that wrote or read where it should not. **Take a photo of it**, then power on and open **MENU › ABOUT**, which keeps
-the CRASH line until power-off. Report both, with the version you installed, in a
-[GitHub issue](https://github.com/juanjiant-bit/JIANT/issues/new/choose).
+the CRASH line until power-off. Report both, with the version you installed, on the JIANT Discord server
+(GitHub issues are closed).
 
 ## Navigation
 
@@ -211,14 +234,13 @@ VOICE singing its lyric, in the COLORS skin, exactly as the firmware draws them 
 
 - **Thermal palette**: values, curves, steps, hits and notes are coloured by intensity (cyan → blue → violet → red →
   orange → yellow → white). Selection is violet and active is orange; on JIANT each card's value and gauge are its
-  amount's heat (0.9.5, as 0.6), the other palettes give each knob its own colour.
-- **Skins** (MENU › DISPLAY › SKIN, 0.8.9): **AIR** (0.9.7, the default of new settings: HUD's floating words on
-  every page, the knob row on top under the tabs, the middle free), **COLORS** (near-black rounded cards on top, a rounded
-  panel), **BOTTOM** (the picture edge to edge, a slim knob row at the foot) and **HUD** (HOME's beings swim under
-  everything, the words float over them). Every skin wears the **LENTE** layout (0.8.5): the
+  amount's heat (0.9.5, as 0.6), the other palettes give each knob a colour of their own.
+- **Skins** (MENU › DISPLAY › SKIN): **AIR** (0.9.7, the default of new settings: floating words on
+  every page, the knob row on top under the tabs, the middle free, HOME's beings over the whole screen) and **COLORS**
+  (near-black rounded cards on top). Every skin wears the **LENTE** layout (0.8.5): the
   section's groups as tabs on top (a dot a page), the breadcrumb **SECTION · GROUP · page n/N** at the foot. Values
-  in [Inter Tight](https://github.com/rsms/inter-tight) SemiBold, names, tabs and the breadcrumb in a crisp 5 × 7
-  pixel face, small captions in [Chakra Petch](https://github.com/m4rc1e/Chakra-Petch).
+  in [Inter Tight](https://github.com/rsms/inter-tight) SemiBold, names, tabs, the breadcrumb and small captions
+  in [Chakra Petch](https://github.com/m4rc1e/Chakra-Petch).
 - **HOME, the ecosystem**: one being per track (its species from its engine, its shape from its four knobs). Each one
   heats up, swells and moves with its own audio; the selected track is drawn bigger; muted ones go dark; in silence
   they all stay still. (0.9.7) Each wears a little face: its eyes shut on a hit, its mouth opens with its level;
@@ -331,7 +353,10 @@ An 8-sound kit (BD SD CP CH OH TM RS CB) generated in real time, Microtonic styl
 
 ### Punch-in FX: effects you play and record
 
-> *In the 0.9.1x line (installer: 0.9.17), not yet in 0.9.9-beta4a:* the sweeps, TAPE STOP, the performance macros and recorded FX lanes below (0.9.15-0.9.17).
+> **Now (V10.7.44+):** each key's effect is yours: hold **FX**, hold a key and turn **SELECT** (any effect, MUTE T1–T6,
+> LOCK, DEC−/DEC+, LPF/HPF or nothing). Three layouts on **FX + OCT+**; the default has T1–T4 MUTE, FREEZE on G4,
+> REV ALL on D#4. The history below tells how they got here.
+
 With FX held the keys become effects that act while hel…8050 tokens truncated…er a pattern of another
   length they drift across the notes (polymeter, as the OP-Z's). The COMP page marks the lane and where it is.
   Automatable. Costs nothing on the audio: a copy of the step once per step.
@@ -344,9 +369,9 @@ With FX held the keys become effects that act while hel…8050 tokens truncated�
   KNOB 1 the row, KNOB 2 its section, KNOB 3 its bars, KNOB 4 the **VAR** of the ALGORITHM track (MUTE, THIN, FILL,
   HALF, REV, SHIFT, OCT±, VAR 1–4); F3–D4 mute T1–T6 in the row, F4–B4 make the track play another section (**FROM**).
   PLAY loops the row; PLAY again lets the song go on.
-- **PARTS** (V10.6o): the four sections as cards, OCT+ loops one, OCT− back to the song. **CLIPS** (V10.6s): six tracks ×
-  four sections, a cell launched on the next bar; with REC each launch becomes a row.
-- **ARRANGE** (SELECT right past PARTS, CLIPS, SECTIONS and PROJECTS, or SAVE + G5): KNOB 2 on **END** picks STOP,
+- **PARTS** (V10.6o): the four parts as cards, OCT+ loops one, OCT− back to the song. **CLIPS** (V10.6s): six tracks ×
+  four parts, a cell launched on the next bar; with REC each launch becomes a row.
+- **ARRANGE** (SELECT right from TIMELINE, or SAVE + G5): KNOB 2 on **END** picks STOP,
   x2–x8 or LOOP; KNOB 4 right stores a **scene** (mutes, macros) in the row.
 - **Play**: PLAY on ARRANGE plays the song from the top; elsewhere SAVE + D5 (SONG mode) first.
   **OCT−** on a row asks **DELETE SONG ROW?** (OCT+ deletes). **SAVE + E5 (SONG REC)** writes the sections you play
@@ -467,11 +492,248 @@ Free software: [GPL-3.0-only](LICENSE), like Felucca. The fonts and the ported D
 FM-1 are trademarks of their owners; JIANT is not affiliated with or endorsed by them.
 
 Copyright (C) 2026 Leo Kuroshita (@kurogedelic), Hügelton Instruments — Felucca.
-JIANT's modifications are distributed under the same license.
+Copyright (C) 2026 Juan Ignacio Antonucci (Juan Jiant) — JIANT FM's modifications and new files, distributed under the
+same license.
 
 ## Changelog
 
 Every update is listed here, newest first. (Since 0.6.80 at the end of the page: what the synth does comes first.)
+
+### V10.7.45 — public (2026-11-17)
+- **LIFE out of the system for now** (the owner): it could crash and raised the CPU a lot for little audible change.
+  HOME has no LIFE page and nothing of it runs in the audio; a project that stored it opens as before. The A#4 punch-in
+  (was LIFE MAX) plays DLY ALL (layout 1), LPF (layout 2) or REV ALL (layout 3); a key set to LIFE MAX goes back to
+  its layout's effect. LIFE comes back reworked in a later beta.
+- **Steps copied and pasted with OCT** (a user, Eugen): step keys held + **OCT+** copy them (one, a range, the bar),
+  a held step + **OCT−** pastes there; the octave does not move. REC on a held step still pastes.
+- **A held step + SELECT walks the lock pages again** (0.9.12's): the pages its KNOB 1–4 lock, "LOCK · page".
+- Crash reports go to the JIANT Discord (GitHub issues are closed).
+
+### V10.7.44 — public (2026-11-17)
+- **Punch-in FX you choose** (Discord users): hold **FX**, hold a key and turn **SELECT**: any of today's effects,
+  MUTE T1–T6, LOCK, DEC−/DEC+, LPF/HPF or nothing. **Three layouts** on **FX + OCT+**, kept at power-off; the default
+  brings T1–T4 MUTE back, FREEZE on G4, REV ALL on D#4.
+- **FX FILTER snaps open:** a quick turn towards the centre (or across it) opens the filter at once.
+- **GLITCH as before V10.7.36** (ratchets, reverse, octaves, gates, skips, a milder crush), lighter on the CPU.
+- **DRUM-X voices:** EDIT › VOICES 2 › VOICES also limits a kit's voices (kick, snare and clap never cut).
+- **HOME › TRACKS lighter:** it redraws only what changes and slows down under a high load.
+
+### V10.7.43 — beta (2026-11-15)
+- **PRESETS as before V10.7.33** (the owner): turning **PRESETS** loads the next / previous sound of the track's
+  engine at once, round within the engine, its name shown, the page staying as it is; **EDIT + PRESETS** jumps to the
+  next / previous engine; a held note or the playing sequencer goes on in each sound. The list is still there:
+  **SAVE held + PRESETS** opens it over the page (or SAVE › PRESETS): every move loads the sound picked (lit), OCT+
+  closes, **OCT−** puts back the sounds the list found; UNDO brings back the sound before a browse.
+- **Clean releases** (the owner: "a little bitcrush in the releases"): the tails of DRUM-X hits and of plucks no longer
+  step down in a soft grain. The mix kept dropping its low bits (before the master, before each track's LEVEL, in
+  MASTER's product, in BALANCE's bands); now they are kept, and the master's 3 bits under 16-bit reach the 24-bit DAC.
+  A tail's step 3.6 → 1.3 dry and 1.1 → 0.35 in a project (tests/release_clean_test.c). Loud sounds are unchanged
+  (a few LSB). Renders: renders/v43-release (LEEME.txt).
+- **LIFE is one knob: the tracks FM each other.** HOME › LIFE KNOB 1 (0–100 %): each sounding track phase-modulates
+  the next in the ring (two tracks: a duet), at audio rate, on every engine (a kit moves, it is never moved); one pair up
+  to 50 %, two above. A logarithmic curve: subtle at the bottom (~1 % of the depth at 25), extreme noise at 100. LIFE
+  moves no pitch, filter or send and drives no parameter. Gone: REACH / X-FM / SWIM, each track's LIFE, the matrix's
+  LIFE and BEING sources and LIFE destination (a project with them loads fine, those routes off). LIFE 0 is bit for bit
+  the sound without LIFE.
+- **BALANCE removed** (FX › BALANCE). A project that stored it loads fine and ignores it.
+- **EROSION minimal**: two MODEs, **NOISE** (a random gliding at RATE, on the cutoff) and **METAL** (a sine at a RATIO of
+  the note, on the pitch, as FM); no DEST. The old SOFT / STEP / BREAK / DUST play as NOISE. At NOISE 0 it costs nothing.
+- **CPU**: CPU TEST 3075 → 2836 instructions a sample (−7.8 %; V10.7.23: 2864); CPU TEST on 6 tracks 2966. CLOUD's
+  grains read and aged in one pass (bit for bit). Renders: renders/v43-life, renders/v43-release (LEEME.txt).
+- **PANIC (PLAY held) silences the FX too** (a user: "all tracks muted and noise I can't stop"): besides every voice
+  and note, the reverb (CLOUD frozen at SIZE 100 % included), the delay (its loop at 100 % too) and the chorus are
+  cleared at once, and a held or latched punch-in (FREEZE …) is let go. Its message then shows the fresh start:
+  **EMPTY SONG: SAVE>TOOLS CLEAR**.
+- **Punch-in FX you choose** (Discord users): hold **FX**, hold a key and turn **SELECT**: that key plays the next /
+  previous effect (today's, plus the ones gone in V10.7.36: MUTE T1–T6, LOCK, DEC− / DEC+, LPF / HPF, or none). Three
+  layouts, **FX + OCT+** steps 1 → 2 → 3: 1 the new default (foalma: FREEZE on G4 where WOBBLE was, T1–T4 MUTE back on
+  F#3 G#3 A#3 C#4, REV ALL one key over on D#4, the rest as before), 2 V10.7.36's, 3 the one before V10.7.36 (LPF HPF,
+  DEC− DEC+, six mutes, G5 LOCK). Kept in the system settings (older settings: the defaults); the FX map shows each
+  key's effect. DEC and LPF / HPF are not written to the punch-in lane.
+- **FX › FILTER snaps open** (KNOB 1 with FX): a quick turn towards the centre, or one across it, opens the filter
+  fully at once (bypass) for a fast transition; a slow turn still steps.
+- **GLITCH as before V10.7.36** (the users: more musical): ratchets of a 1/16 or 1/32 (no 1/64), the 1/16 reversed,
+  an octave up or down, gates, CD skips and a milder crush, in the 2-bar groove of before; V10.7.36's ROLL and
+  tape-stop slivers are gone. Cheaper: no division a sample, the window's gain only on its edges.
+- **A kit's VOICES** (DRUM-X): EDIT › VOICES 2 › VOICES (KNOB 4, as on a synth) caps the kit's hits at 1–8 to cut
+  the load; AUTO (the default) is as before. KICK, SNARE and CLAP stay protected: the kit gives up its other hits
+  first. A project of V10.7.37–42 with an EROSION DEST loads AUTO.
+- **HOME › TRACKS lighter**: it was drawn every other frame while playing; now a lane's change (its playhead, its
+  level's band) draws it and only what changed goes to the screen; under a high audio load at most every 4th tick.
+  67 → 43 draws in 2 s playing (32 under load), a draw ~60 µs on the host.
+- Tests: GEN's CPU check (tests/gen_cpu.c) measures each piece against the FM-1's budget (the old CPU TEST, 3083
+  instructions a sample), not against today's cheaper CPU TEST (2836): it failed at 101.8 % only because CPU TEST got
+  lighter; now the heaviest of 116 pieces is at 93.9 % of the budget.
+
+### V10.7.42 (2026-11-15)
+- **CPU: silence back to half the cost of V10.7.23, the rest of the margin found** (docs/CPU_HISTORY.md). Every version
+  since V10.7.23 was measured: the +7.7 % of CPU TEST is all BALANCE, on since V10.7.33 (+3.3 %), and LIFE (+4.2 %); nothing runs
+  per sample for a feature that is off. Now a silent block skips the master (idle 326 → 181 instructions a sample, V10.7.23:
+  296). LIFE's followers are lighter, and FREEZE no longer divides every sample. The sound is bit for bit the same.
+- **FREEZE let go: the tracks back at the full rate.** Since V10.7.41 they stayed at half the rate after a FREEZE, until
+  the next punch-in.
+
+### V10.7.41 (2026-11-15)
+- **WEST with RES high no longer breaks on the peaks**: past RES ~43 the gate's input is lowered with its resonance
+  (x0.25 at 127), so its ring stays inside the gate's arithmetic (it wrapped around: a crack on every peak). Below RES 43
+  nothing changes; of the factory sounds only WIND, RAIN, HISS PAD, BONGO and RUBBER BASS (RES high) change.
+- **FREEZE lighter**: while it holds, the tracks under it (not heard) play at half the sample rate where they can.
+
+### V10.7.40 — beta (2026-11-15)
+- **FM6 never reaches a glitch**: under a heavy load the dearest part's held voices (FM6 first: it costs 60 % at half the
+  rate) go to half the sample rate as soon as the load stays past **75 %** (ECO: 55 %), no longer only after the guard
+  trips at 85 %; they come back at the full rate under 55 %. With a light load nothing changes: full quality.
+
+### V10.7.39 — beta (2026-11-15)
+- **A track's voices, set by hand**: EDIT › VOICES 2 is now **UNISON · VEL · IMAGE · VOICES**. **VOICES** (KNOB 4) caps
+  how many of the 8 shared voices a track may hold (AUTO, as before, or 1 to 8; POLY, DRONE and the UNISON stack), and
+  the page shows **ALL n/8**, every track's voices against the 8, so the whole system's polyphony is set on purpose
+  instead of overloading. Old projects open on AUTO.
+- **GEN keeps its songs within the FM-1's CPU**: at full ENERGY and amounts some pieces (two FM6 parts, the CLOUD reverb,
+  EXPLORE) cost up to 23 % more than SAVE › TOOLS › CPU TEST's song and glitched near 90 % CPU; GEN now estimates each
+  piece's cost as it makes it and, only when it is over, makes it again with FM6 on one track (then none) and SHIMR in
+  CLOUD's place, the steps and the mix as they were (TRACKS 4: ~2 % of the pieces at the default settings change, ~8 %
+  at full; `tests/gen_cpu.c` measures every genre against CPU TEST in `run_tests.sh`).
+- **MIDI BASE CH** (MENU › SYSTEM, 1–11, default 1): track *n* listens and sends on channel BASE + *n* − 1, so two
+  FM-1s share one MIDI bus (one on 1, the other on 7). Kept with the settings; older settings load as 1.
+- **Bluetooth MIDI hardened** after a crash report with a BLE keyboard: a dense packet of aftertouch, bend or a CC
+  (up to 240 messages in one) no longer overflows MIDI IN and drops every held note (poly pressure, which nothing
+  plays, is ignored; repeats of one controller keep their last value), and a Bluetooth link lost with notes held
+  lets them go. A VOICE track whose LANG changed mid-phrase no longer reads past its word template.
+
+### V10.7.38 — beta (2026-11-15)
+- **WEST drawn as its circuit** on EDIT: the two sine cores, the folder and the vactrol gate, each moving with its knob.
+- **FILTER 2 is now EROSION** on every synth, and **DRUM-X** has it too: its pages go from fifteen to **twelve** (the drum
+  VOICES page is gone). The kit's sound was reviewed: velocity brightens only the accents (above 100), and the kit's
+  DECAY ranges from a fifth to five times each sound's own.
+- **ALLOC is automatic**: VOICES 2 is now **UNISON · VEL · IMAGE**.
+- **MATH › RETRIG › TIME** (KNOB 2): **NOTE** (as before, each note restarts the formula's time) or a tempo rate,
+  1/1 to 1/32 and the triplets 1/4T 1/8T 1/16T, so the formula's slow time follows the transport across notes.
+- **PROX** (the Bluetooth proximity control): **SLEW** 0–100 % (how slowly it follows: 30 ms to 770 ms to reach 90 %) and
+  **SENS** 0–7 (up to ×4.5 around the middle), on KNOB 3 and KNOB 4 of its page.
+- **The emulator talks to the FM-1**: SEND TO FM-1, GET FROM FM-1, DOWNLOAD BACKUP and IMPORT BACKUP move the projects
+  between the emulator and the keyboard over USB MIDI.
+
+### V10.7.37 — beta (2026-11-15)
+- **WEST remade, with Buchla and Serge character.** Its low-pass gate is a **vactrol** model (an LED lighting a light-dependent resistor): a quick but not instant attack and a slow, nonlinear decay, fast at first then a long tail that lasts longer as it darkens, so a short strike rings like a struck bongo and long DECAYs sustain. The cores go from sine (Buchla) to triangle (Serge), folded smoothly; the presets revoiced.
+- **FREEZE holds the audio itself:** the last moment of the mix sustained as a seamless drone (overlapping crossfaded grains) while held, instead of freezing the reverb.
+
+### V10.7.36 — beta (2026-11-15)
+- **WEST COAST replaces NOISE** (engine 11, the same PROGRAM CHANGE numbers): a sine core, FM from a second sine, a **wavefolder** and a **low-pass gate** (filter and VCA on one vactrol-like envelope: a fast strike, a late close). EDIT 1 **FOLD · SYMM · MOD · RATIO**, EDIT 2 **GATE · DECAY · RES · DUST**. Velocity folds more and opens the gate. 20 presets (plucks, BONGO, MARIMBA, bells, GAMELAN, folded basses, leads, drones) and NOISE's eight remade with DUST at their old numbers. A project or user sound with NOISE opens as WEST in a DUST patch (NOISE's TRK, DRIFT and CRUSH have no match).
+- **FX punch-ins redesigned** (hold FX, press a key): **B3 REVERSE, C4 TAPE STOP, G4 WOBBLE, A4 DLY 1/16, G5 COMB; F#3 PITCH UP, G#3 PITCH DN, A#3 FREEZE, C#4 REV ALL, D#4 DLY ALL (full wet), F#4 RING, A#4 LIFE MAX**, and a new **GLITCH** (ratchets to 1/64, rolls, reverse, octave slices, dropouts, CD skips, crush bursts, tape-stop slivers, on a 4-bar phrase). The repeats, OCT±, 1/2 TEMPO, STUT, ATK+, ARP, RANDOM and LOOP 3/5/7 stay. Gone: the LPF/HPF keys (FX + KNOB 1 FILTER stays), MUTE T1–T6 (mute lives on GLO), the TRK ALL/SYN/DRM selector (the note effects act on every track), DEC−/DEC+, and the CLR AUTO key: the lane is cleared only with **REC + FX** or **FX + PRESETS, KNOB 4 CLEAR**.
+- **HOME:** LIFE · MACROS · **LIVE MIX** · TRACKS · TIMELINE · ARRANGE · PARTS · GEN. **HOME + SELECT on MACROS** dices the macros (elsewhere it opens GEN).
+- **SAVE:** TOOLS · PROJECTS · **PART SLOTS** · USER · PRESETS.
+- **EDIT held** draws no map: its knobs are MOMENTARY on the page you see, its keys work as before.
+- **MENU:** four large rows a page.
+- **REC and SAVE held:** only the keys that act, as large tiles, with a line saying what the layer is for.
+
+### V10.7.35 — beta (2026-11-14)
+- **SELECT on HOME › MACROS turns the page** like everywhere: SELECT alone reaches LIVE MIX. The macros' dice: **HOME + SELECT on MACROS** (elsewhere HOME + SELECT opens GEN, as before).
+- **EDIT, the sound first:** EDIT 1 · EDIT 2 · the engine's page (MORPH, ROTOR, WORDS…) · FILTER · FILTER 2 · **TONE** · VOICES · VOICES 2 · AUTO KNOBS last. TONE gathers what had a page of one or two knobs: **KEY TRK** (was FILTER 3's KEY: how much the filter follows the note), **CRUSH**, **LIFE**. FM6: its operators before the filter. A kit and EXT keep CRUSH and LIFE on VOICES 3.
+- **LIFE past 25 % keeps growing, up to x4 at 100 %:** the tracks' pull on each other's filter, pitch (a sag up to ~2 semitones) and sends, each voice's wander, bloom and breath. LIFE 0 and 25 sound as before.
+- **PRESETS' list** in larger letters (fewer names a screen).
+
+### V10.7.34 — beta (2026-11-14), with V10.7.33
+- **HOME › LIFE**, HOME's first page: every voice breathes on its own (a few cents, its filter, its level), a held note has an arc, and the tracks move each other before the effects (a kit ducks the others' filters, a pad opens them, at the top of PITCH a cross-FM between tracks). **KNOB 1 LIFE** (0: the still synth, exactly as before), **2 FILTER**, **3 PITCH**, **4 FX**. The screen: one being per track, a line from each track to the one it moves. On by default (25 %).
+- Each track's own LIFE: **EDIT › VOICES 3, KNOB 2**. In the MOD matrix: sources **LIFE** and **BEING**, destination **LIFE**.
+- **HOME › TRACKS**, after MACROS: every track as a lane (its pattern in the notes' heat, the playheads, a glow as it sounds). **KNOB 1** the track, **2–4** LEVEL PAN REV; **GLO + black key** mutes, **GLO + white key** held solos.
+- HOME's order: **LIFE · MACROS · TRACKS · TIMELINE · ARRANGE · PARTS · LIVE MIX · GEN**. Power-on still opens on MACROS.
+- **DRONE** (EDIT › VOICES, POLY = DRONE): notes keep sounding after the key; the same note again lets it go, MUTE lets them all go, the held notes' keys stay lit. ARP's HOLD is the arp's only (the old key latch opens as DRONE).
+- **VOICE sings phonemes:** the editor turns lyrics into phonemes (English from a dictionary in the editor, Spanish by rule); the device keeps no dictionary. Each language its vowels.
+- **BALANCE** (the master's dynamic EQ) and **DIST NOISE** back. **CRUSH** has its own page: EDIT › VOICES 3, DIST on or off.
+- **UI:** PRESETS opens a list on its first turn (knobs: track, engine, favourites, user); SEQ + PRESETS moves the step; BPM on MACROS (HOME + PRESETS anywhere); global SWING on MIXER; **HELP** with HOME + OCT+ (a line saying what the page's keys do); SELECT on MACROS rolls the macros' dice (V10.7.35: it turns the page); FOCUS is **AUTO KNOBS**; pages renamed (EDIT's PLAY is VOICES, SCOPE is LIVE MIX).
+- **FX automation is said as it records:** holding an FX with REC armed and playing shows **REC FX AUTOM — REC+FX: CLEAR** (REC + FX clears the FX automation and the punch-in lane; FX + PRESETS, KNOB 4, the lane alone). (A tester's request.)
+
+### V10.7.32 — beta (2026-11-14)
+- **HOME is the song.** HOME's pages: MACROS, TIMELINE, ARRANGE, PARTS, SCOPE, GENE. The song left SAVE.
+- **PARTS is one grid** (PARTS and CLIPS together): tracks by parts A–D. A column's head plays the whole part (OCT+ loops it, OCT− plays the song from it); a cell plays that track only (OCT− stops the track). REC is SONG REC.
+- **SAVE only saves and loads:** TOOLS · PROJECTS · USER · PRESETS · PART SLOTS (last).
+- **LOCKS** (was AUTOMATION and AUTO LIST): on top whether they play and how many; below every record, marked **LOCK** (a step held and a knob turned) or **REC** (recorded with REC), edited as before.
+- **Punch-in where you play it:** hold FX and the recorded lane runs along the bottom with its playhead; the layer switches its knobs to LEN · RES · CLEAR. The held layer's footer says **FX KNOBS** (was MACROS). FX > PUNCH IN left the FX chain.
+- **Gone:** GLO > KEY SPLIT, ENV > STAGE and ENV > TRACKS (projects that used them still load).
+- **FX > SENDS** draws DIST's bar again beside CHOR, DLY and REV.
+- Still out for room: the master BALANCE and DIST NOISE.
+
+### V10.7.31 — beta (2026-11-14)
+- **FILTER 2 modulates, it never replaces.** NOISE is the depth (0: the sound untouched; 100: the cutoff about ±3.5 octaves). MODE is the movement: **SOFT** glides, **STEP** jumps, **METAL** moves the cutoff at audio rate in tune with the note (RATE becomes RATIO: x0.5 .. x4 and the bell ratios x1.41, x2.76), **BREAK** jumps in time (RATE becomes DIV: 1/8 .. 1/32), **DUST** sparks. **DEST** sends it to the filter, the pitch or both (FILT · F75 · MIX · P75 · PITCH; on PITCH, METAL is an FM in tune). **KEY** moved to its own page, FILTER 3.
+- **F.NOISE**, the same modulator as a MOD matrix source, with its own amount (it runs even with NOISE at 0): send it to PITCH or anywhere.
+- **LP24 with more power** when DRIVE is up: up to x6 into the clip, the level kept when you close the filter or raise RES, and it self-oscillates near the top of RES while the part plays. At DRIVE 0 it is the LP24 it was.
+- V10.7.30 projects that used METAL, BREAK or DUST load with the same values and sound different (they modulate now).
+
+### V10.7.30 — beta (2026-11-13)
+- **Filters: one LP24 with range.** MS20 is gone: projects that used it open with LP24 set as close as it gets. LP24 gains **DRIVE** (clean to aggressive). A new **FILTER 2** page: **KEY** (keyboard tracking), a **noise modulator** on the cutoff (from grit to broken) and **textures** (metallic, broken, noise).
+- **Distortions fixed.** **CRUSH** no longer leaves a pedal note at its reduction rate (the rate jitters, a smoother hold). **FOLD** folds smoothly and progressively instead of harshly. **AMP** loses its boxy mid peak.
+- **GEN uses more of the synth**: per section and genre, the sequencer's own tools (ramps, stutters and conditions on fills, automation into drops, FX throws at phrase ends, chord stabs where the genre has them), and the chords leave room for the bass and lead.
+- **GLOBAL opens on MIXER**: KEYS and RAILS are gone (the DJ FILTER is on HOME > SCOPE). A TRACKS page on HOME comes in a later beta.
+- Not in this image (built, back in the next beta when there is room): the master **BALANCE** and DIST **NOISE**.
+
+### V10.7.29 — beta (2026-11-13)
+- **STRING FEEDBACK: GAIN is the amount.** The feedback holds from GAIN 1 (it used to need ~64), louder and stronger the higher, up to +6 dB past 64, with a soft limiter after the amp's cab so no bloom spikes. The same in the lows and the highs: within ~2 dB from C2 to C7 (C6 and up used to die). FEEDBACK, SHOEGAZE, SQUEAL and EBOW sustain at their own GAIN now.
+- **GEN: darker drums.** Every throw's drum TONE starts 13 lower (a third of the seeds 25 lower), where you used to turn it down by hand.
+
+### V10.7.28 — beta (2026-11-13)
+- **GEN FORM PARTS: a structure per seed too.** PARTS still gave one fixed plan; it now throws its structure from the same templates as SONG (by the genre's family, optional sections, ENERGY), every row at half its length for a shorter piece.
+
+### V10.7.27 — beta (2026-11-13)
+- **STRING: the electric guitar into an amp.** FDBK is now a picked string, a pickup, a tube that sags on loud notes and a speaker cab, its feedback held at its level (it never runs away). GAIN is how close you stand to the amp, SPEAKR the harmonic it blooms into (the note, its octave, its twelfth), BLOOM the swell, DIST the tube's drive. In FEEDBACK the mod wheel walks you toward the amp. Letting go mutes the string (palm mutes); in LEGATO hammer-ons, pull-offs and bends keep the feedback in tune.
+- **STRING: a real bow.** BOW grips the string and lets it slip, in tune from C2 to C7, with a little rosin and a body that follows the register (violin high, cello low). New presets **VIOLIN, VIOLA, CELLO** (aftertouch the bow's pressure, mod wheel the vibrato); BOWED plays all three by register. PROGRAM CHANGE keeps its numbers.
+
+### V10.7.26 — beta (2026-11-13)
+- **GEN FORM SONG: a structure per seed.** It used to be one fixed plan for every genre. Now each seed picks from templates of the genre's family (club: classic, DJ, drop after drop, groove; song: verse, pre-chorus, chorus, bridge; hip hop: hook and verse; arc: ambient, IDM, kraut; FUGA), with optional sections (a second break and drop, a bridge, a last chorus again, an intro without the kick) and lengths of 4 to 32 bars; ENERGY gives longer drops and more of them, or longer intros and breaks; every song 2–5 minutes. The same seed still makes the same song; LOOP, PARTS and MY LOOP unchanged.
+
+### V10.7.25 — beta (2026-11-13)
+- **VOICE like a singer**, after a real voice measured: pitch that is never still, notes that enter slightly off and settle, legato landings with a small overshoot, vibrato (~5.6 Hz) only on long notes and growing in, notes that swell and fade, phrases that fall, creaky phrase ends.
+- **Consonants**: N, M, Ñ a quiet nasal murmur; Spanish R a tap and RR a trill; English r a dark glide.
+- **Fix**: a MONO VOICE note retriggered by the sequencer (GATE 127, ties) lost a syllable; it sings each one now.
+
+### V10.7.24 — beta (2026-11-13)
+- **HOME is two pages, then GENE**: **MACROS** (M1–M4 over the six beings; a turned macro shows where it goes) and **SCOPE** (the scope big, and four knobs on the whole mix: **FILTER** the DJ filter, **SPACE** the delay's mix and the reverb's size together, **DRIVE** the master's clipper, **DUCK** the kick's pumping). ECO, BEING and ROUTES are gone; the sound's knobs are on EDIT.
+- **VOICE sings on the step**: with the sequencer the consonants start early so the vowel lands on the step (no negative MICRO needed: set it back to 0 on old VOICE steps); live keys and MIDI squeeze the consonants so the vowel comes within ~10–20 ms. Smoother formant glides and syllable joins (a click after a burst fixed), a source that follows the level (breathier when soft), a small pitch scoop into each syllable, a smooth fry at phrase ends.
+- **FX › SENDS** is DIST · CHORUS · DLY · REV again; FX › DIST is TYPE · TONE.
+- **White text everywhere**: every label, name, crumb, tab, hint, menu and list row is white (the palette's TEXT) for the most contrast; grey is kept only where it means a state (empty, off, unavailable, muted).
+
+### V10.7.23 — beta (2026-11-13)
+- **Cards outlined, no grey box**: every knob card sits on the background, its shape drawn as a thin line in its value's colour (the knob just turned: 2 px); labels in grey.
+- **COLORS is the one skin**: AIR and MENU > DISPLAY > SKIN are gone (a saved AIR loads as COLORS).
+- **Names and pages cleaned**: the parts A–D are PART everywhere (SECTIONS is PART SLOTS, beside PROJECTS); FX's punch-in is PUNCH IN; SENDS holds only sends; MENU's INIT SYSTEM is gone (SAVE > TOOLS > CLEAR PROJECT); SEQ's RHYTHM keeps SPAN and FIT (the group is PATTERN; GENERATE is TRACK GEN); EDIT's VOICE / VOICE 2 are PLAY / PLAY 2 (POLY, GL MODE, UNISON; IMAGE moved there, the one-knob STEREO page gone); FM6's DETUNEs named apart; GLO's MANO / RIELES are KEYS / RAILS; MIXER's KNOB 3 is MUTE; COMPS is G.COMP. Every parameter is where the manual says; projects and presets unchanged.
+- **AFTERTOUCH 1 … 10** (MENU > CONTROL): how little pressure reaches the full aftertouch; the old LOW / MID / HIGH read as 3 / 5 / 8.
+
+### V10.7.22 — beta (2026-11-12)
+- **Animations move by the clock**: under load the beings, creatures and scope keep their speed with fewer frames (and less detail, faded in) instead of freezing; they freeze only past 85 % CPU. Only what changed is sent to the screen.
+- **OCT+ / OCT− are MOD sources**: unrouted they bend and vibrate the pitch as before; routed, OCT+ sweeps and OCT− vibrates the destination instead.
+- **The matrix's VEL follows the velocity as played**, whatever EDIT > VOICE 2's VEL is (0 %: every note at one level, VEL still modulates).
+- **SAVE > TOOLS first, with CLEAR PROJECT**: the music back to power-on (steps, automation, sounds, effects, rows, sections A–D, name); the saved project stays. ERASE of the open project clears its music too.
+- **PRESETS LIST USER**: only your own presets, kept at power-off.
+- **PRESETS loads sounds on GEN too** (every page but SEQ's); the GENRE is GEN 1's KNOB 1.
+- **ANALOG SAW3 / PLS3**: EDIT 1 is WAVE · INT · INT 3 · DETUNE (MIX on FOCUS).
+- **Bluetooth part missing**: said on a full screen at power-on (and on GEN), and reported to the installer, which checks it after installing.
+
+### V10.7.21 — beta (2026-11-12)
+- **Fewer voices cut under load**: when the voice budget is nearly full, released notes hurry their release once they are 20 dB down (the start of the release sounds as set), and FM6 patches whose release never ended no longer hold a voice forever. ANALOG and FM6 tails then play at half the sample rate, interpolated (about 40 % cheaper, a little darker above 11 kHz); held notes of the dearest track only when the load stays high. With voices to spare nothing changes.
+- **KICK, SNARE and CLAP are never cut**: when voices run out, a kit's kick, snare and clap hits are never taken for another note, nor by the overload guard (hats, toms and the rest may still give way).
+- **Animations under load**: from 60 % CPU they slow down instead of freezing; they freeze only from 75 %.
+- **ANALOG: one filter page.** EDIT 1 is WAVE · DETUNE · MIX · INT; EDIT 2 is gone (FILTER has TYPE · CUT · RES · DRIVE); NOISE (on SAW3 / PLS3: INT 3) on FOCUS.
+- Installer: the firmware download button is gone (another tool leaves the FM-1 without its Bluetooth part: GEN, song saving, USB HOST).
+
+### V10.7.20 — beta (2026-11-12)
+- **SAVE has nine pages**: SAVE SONG AS is gone. On **PROJECTS**, KNOB 1 picks a project without opening it; LOAD opens it, ERASE empties it, SAVE writes there. The NAME screen's **KNOB 3** chooses the whole SONG or the LOOP alone (it starts at SONG every time).
+
+### V10.7.19 — beta (2026-11-12)
+- **Seven palettes of JIANT's own**: JIANT, SELVA, CONTRAST, BRASA, ABISAL, HUESO, NEON (the inherited ones are gone); the cards' values take each palette's colours.
+- **Two skins**: AIR and COLORS (BOTTOM and HUD retired); **STYLE** retired (FLAT is the one style); COLORS without the grey panel box.
+- **Bigger type**: card numbers at 14 px, the small face at 9 px, LARGE tall on the FX and SEQ pages too; less repeated text on each screen.
+- **PRESETS**: a sound-type LIST (SAVE > PRESETS, KNOB 4) goes back to ALL at power-on, FAV is kept (users left on VOX found "no presets").
+- AIR's HOME: the beings start under the knob row (they covered the header and values at power-on).
+- SAVE FORMAT ERROR now says which check refused the save (a digit, and the track).
+
+### V10.7.18 — public (2026-11-11)
+
+- Reverb ROOM rebuilt: dense, smooth tails that end in real silence (no grain, no leftover hum). Same SIZE and DAMP feel; the top of the tail is a little darker, and long pads sit slightly lower in the reverb. SHIMMER and CLOUD use the new tank too; SPRING is unchanged.
+- Copyright notices corrected across the source (no change to the firmware itself).
+
+### V10.7.17 — public (2026-11-10)
+
+- MY LOOP: a loop with no notes no longer hangs; hidden tracks are left out of the analysis.
 
 ### V10.7.16 — public (2026-11-10)
 

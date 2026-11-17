@@ -47,6 +47,7 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 
 **Compatibility**
 - Projects and presets load as in V10.7.44. A punch-in set to LIFE MAX goes back to its layout's effect.
+- Crash reports now go to the JIANT Discord (GitHub issues are closed); the README says so.
 
 ## V10.7.44 — your own punch-ins, mutes back (2026-11-17)
 

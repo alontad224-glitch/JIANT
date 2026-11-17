@@ -48,6 +48,7 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 
 **Compatibilidad**
 - Proyectos y presets cargan como en la V10.7.44. Un punch-in que tenía LIFE MAX vuelve al efecto de su layout.
+- Los reportes de cuelgues ahora van al Discord de JIANT (los issues de GitHub están cerrados); el README lo dice.
 
 ## V10.7.44 — tus propios punch-ins, vuelven los mutes (2026-11-17)
 
