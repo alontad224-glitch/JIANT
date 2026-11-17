@@ -6,6 +6,7 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.45** | 2026-11-17 | **Pública** |
 | **V10.7.44** | 2026-11-17 | **Pública** |
 | **V10.7.43** | 2026-11-17 | **Pública** |
 | **V10.7.42** | 2026-11-15 | **Pública** |
@@ -34,6 +35,19 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.45 — chau LIFE, copiar y pegar pasos con OCT (2026-11-17)
+
+**Estabilidad y procesador**
+- **LIFE sale por ahora:** podía colgar el equipo y subía mucho el procesador sin un cambio que se note. HOME ya no tiene su página y no corre nada de LIFE en el audio. Vuelve rehecho en una próxima beta. Los proyectos guardados abren igual.
+- **El punch-in de A#4 (era LIFE MAX)** ahora toca DLY ALL (layout 1), LPF (layout 2) o REV ALL (layout 3).
+
+**Secuenciador** (un usuario, Eugen)
+- **Mantené teclas de paso y apretá OCT+ para copiarlas; mantené un paso y apretá OCT− para pegar ahí.** La octava no cambia. REC con un paso apretado sigue pegando.
+- **Mantené un paso y girá SELECT** para recorrer las páginas que bloquean sus KNOB 1–4 ("LOCK · página"), como en la 0.9.12.
+
+**Compatibilidad**
+- Proyectos y presets cargan como en la V10.7.44. Un punch-in que tenía LIFE MAX vuelve al efecto de su layout.
 
 ## V10.7.44 — tus propios punch-ins, vuelven los mutes (2026-11-17)
 

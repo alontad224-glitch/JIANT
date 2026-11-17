@@ -6,6 +6,7 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.45** | 2026-11-17 | **Public** |
 | **V10.7.44** | 2026-11-17 | **Public** |
 | **V10.7.43** | 2026-11-17 | **Public** |
 | **V10.7.42** | 2026-11-15 | **Public** |
@@ -33,6 +34,19 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.45 — LIFE out, copy and paste steps with OCT (2026-11-17)
+
+**Stability and CPU**
+- **LIFE is out for now:** it could crash and raised the CPU a lot for little audible change. HOME no longer has its page and nothing of it runs in the audio. It comes back reworked in a later beta. Saved projects open as before.
+- **The A#4 punch-in (was LIFE MAX)** now plays DLY ALL (layout 1), LPF (layout 2) or REV ALL (layout 3).
+
+**Sequencer** (a user, Eugen)
+- **Hold step keys and press OCT+ to copy them; hold a step and press OCT− to paste there.** The octave does not change. REC on a held step still pastes.
+- **Hold a step and turn SELECT** to walk the pages its KNOB 1–4 lock ("LOCK · page"), as in 0.9.12.
+
+**Compatibility**
+- Projects and presets load as in V10.7.44. A punch-in set to LIFE MAX goes back to its layout's effect.
 
 ## V10.7.44 — your own punch-ins, mutes back (2026-11-17)
 
