@@ -6,5 +6,9 @@
   "V10.61-6c48e2a-preview": {
     "edition": "BETA",
     "status": "beta"
+  },
+  "V10.7.48": {
+    "edition": "V10.7.48",
+    "status": "stable"
   }
 }

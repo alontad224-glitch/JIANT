@@ -1,9 +1,11 @@
 {
-  "source": "f44f81ce0ebbf6a94f37abbbc99125163e69585f",
-  "version": "V10.7.46",
-  "released_site_run": 44123762035,
-  "previous_public_source": "6ebc1b73521b831a8cbfdfcbbe272f2c88d8d63b",
-  "audit_source": "f44f81ce0ebbf6a94f37abbbc99125163e69585f",
+  "source": "a6d52c302d816064053f40fb642ff97eb505390e",
+  "version": "V10.7.48",
+  "released_site_run": 44161085536,
+  "previous_public_source": "f44f81ce0ebbf6a94f37abbbc99125163e69585f",
+  "audit_source": "a6d52c302d816064053f40fb642ff97eb505390e",
+  "candidate_run_id": 44177551026,
+  "sha256": "0247495792720e519dffc3148f0f9fee2e2579c7681e02d432ee41b45cea7209",
   "regressions": [
     "loop_song",
     "song_generator",
@@ -12,7 +14,12 @@
     "audio",
     "realtime_regression",
     "overload_stress",
-    "anim"
+    "six_budget",
+    "perform",
+    "record_phase",
+    "ui",
+    "mc_thread",
+    "emulator_native"
   ],
   "publication_revision": 1
 }
