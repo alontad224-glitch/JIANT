@@ -15,9 +15,9 @@ function render(e,ms){
 }
 const e=await boot();assert.equal(e.web_additive_edition(),1,'not ADD without SAMPLE');render(e,5000);assert.ok(e.web_screen_draws()>0,'fresh boot did not draw');
 const oct=()=>{e.web_buttons(1<<13);render(e,100);e.web_buttons(0);render(e,150);};
-// (V10.7.33: PRESETS' first turn opens its list, KNOB 2 the engine before, OCT+ loads)
-e.web_enc(2,1);render(e,150);e.web_enc(4,-1);render(e,100);oct();assert.equal(e.web_selected_engine(),15,'PRESETS list/KNOB2 did not load INPUT (V10.54: last)');
-e.web_enc(2,1);render(e,150);e.web_enc(4,-1);render(e,100);oct();assert.equal(e.web_selected_engine(),13,'PRESETS list/KNOB2 did not load ADD');
+// (V10.7.43: PRESETS as before V10.7.33: each turn loads the engine's next sound at once; EDIT + PRESETS the next engine)
+{const e0=e.web_selected_engine();e.web_enc(2,1);render(e,300);e.web_enc(2,1);render(e,300);
+ assert.equal(e.web_selected_engine(),e0,'PRESETS turn left the engine');}
 e.web_gen(0,12345,64,0);render(e,100);e.web_play(1);assert.ok(render(e,3000)>0.00001,'generated scene silent');
 e.web_play(0);render(e,100);
 // (V10.2: SAVE opens TIMELINE; PRESETS is the chain's last page, SELECT to the end)
