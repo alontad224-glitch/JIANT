@@ -34,10 +34,11 @@ jobs:
           b=json.loads(Path('web/SPLIT_BETA.json').read_text())
           assert re.fullmatch('[0-9a-f]{40}',m['source']) and m['source']==b['source'],'emulator must be the beta source'
           assert Path('web/EMULATOR').read_text().strip()==m['source'],'web/EMULATOR pin mismatch'
+          if m.get('channel')=='public':assert Path('web/STABLE').read_text().strip()==m['source'],'public emulator must match stable firmware'
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["site_run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','site run did not deploy'
-          assert run['name'] in ('Publish verified ADD beta','Publish beta emulator'),'site run is not a beta publish'
+          assert run['name'] in ('Publish verified ADD beta','Publish beta emulator','Publish public firmware release'),'site run is not a verified publish'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
               f.write('site_run_id='+str(m['site_run_id'])+'\n')
@@ -88,7 +89,7 @@ jobs:
           before=tree()
           v=re.search(r'^#define FELUCCA_VERSION "([^"]+)"',Path('build/emusrc/firmware/src/felucca.c').read_text(),re.M).group(1)
           assert m['version']==v,'version label mismatch'
-          shell=Path('web/emu/index-additive.html').read_text().replace('@VERSION@',v).replace('@PREVIEW@',' (beta)')
+          shell=Path('web/emu/index-additive.html').read_text().replace('@VERSION@',v).replace('@PREVIEW@','' if m.get('channel')=='public' else ' (beta)')
           (compiled/'index.html').write_text(shell)
           shutil.copy('web/emu/worklet.js',compiled/'worklet.js')
           for f in ('transfer.js','transfer-ui.js'):shutil.copy('web/emu/'+f,compiled/f)   # (emu-transfer) the FM-1 panel
