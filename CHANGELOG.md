@@ -6,6 +6,7 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.43** | 2026-11-17 | **Public** |
 | **V10.7.42** | 2026-11-15 | **Public** |
 | **V10.7.41** | 2026-11-15 | **Public** |
 | V10.7.40 | 2026-11-15 | Beta |
@@ -31,6 +32,30 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.43 — lighter and steadier: more tracks without glitches (2026-11-17)
+
+**Performance**
+- **Much lighter on the CPU.** A busy 4-track song now costs less than in V10.7.23, the version many of you remember as the smoothest; 6 tracks play with margin again. Projects that glitched on V10.7.38–42 should play cleanly.
+- Silence costs almost nothing, so the FM-1 has more headroom when you add parts live.
+
+**Sound**
+- **Cleaner endings:** drum hits and plucked sounds fade out smoothly; the slight "bitcrushed" grit in the tails is gone.
+- **LIFE is now one knob:** the tracks modulate each other (FM between tracks). Low values add subtle movement, high values turn into a wild, noisy wash. At 0 it is off.
+- **EROSION is simpler:** two modes, NOISE and METAL, and it costs nothing when it is at 0.
+- **BALANCE removed** (the automatic mix EQ). It used a lot of CPU; a lighter version may come back later.
+
+**Playing**
+- **Presets like before:** turn PRESETS and each sound loads right away, no confirmation needed. **EDIT + PRESETS** jumps to the next engine. The list is still in SAVE › PRESETS.
+- **PANIC** (hold PLAY) now also silences the reverb, delay, chorus, FREEZE and any stuck punch-in, and reminds you how to start an empty song (SAVE › TOOLS › CLEAR PROJECT).
+
+**Fixes**
+- A click that LIFE could make on loud attacks.
+- Old projects with LIFE routes in the mod matrix load correctly.
+- Small display and message fixes.
+
+**Compatibility**
+- Projects and presets load as before. Projects that used BALANCE, the old LIFE options or EROSION's SOFT/STEP/BREAK/DUST modes load fine; those settings are ignored or mapped to the closest new one.
 
 ## V10.7.42 — FREEZE fixed, lighter silence (2026-11-15)
 

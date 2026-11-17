@@ -6,6 +6,7 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.43** | 2026-11-17 | **Pública** |
 | **V10.7.42** | 2026-11-15 | **Pública** |
 | **V10.7.41** | 2026-11-15 | **Pública** |
 | V10.7.40 | 2026-11-15 | Beta |
@@ -32,6 +33,30 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.43 — más liviana y estable: más pistas sin glitches (2026-11-17)
+
+**Rendimiento**
+- **Mucho más liviana para el procesador.** Una canción cargada de 4 pistas ahora gasta menos que en la V10.7.23, la versión que muchos recuerdan como la más estable; con 6 pistas vuelve a haber margen. Los proyectos que glitcheaban en la V10.7.38–42 deberían sonar limpios.
+- El silencio casi no gasta nada, así que queda más margen para sumar partes en vivo.
+
+**Sonido**
+- **Finales más limpios:** los golpes de batería y los sonidos punteados se apagan suaves; se fue el granito tipo "bitcrush" de las colas.
+- **LIFE ahora es una sola perilla:** las pistas se modulan entre sí (FM entre pistas). En valores bajos suma movimiento sutil; arriba se vuelve un lavado salvaje y ruidoso. En 0 está apagado.
+- **EROSION más simple:** dos modos, NOISE y METAL, y no gasta nada en 0.
+- **Se sacó BALANCE** (el EQ automático de la mezcla). Gastaba mucho procesador; más adelante puede volver una versión liviana.
+
+**Al tocar**
+- **Presets como antes:** girás PRESETS y cada sonido carga al toque, sin confirmar. **EDIT + PRESETS** salta al siguiente motor. La lista sigue en SAVE › PRESETS.
+- **PANIC** (mantener PLAY) ahora también corta la reverb, el delay, el chorus, el FREEZE y cualquier punch-in trabado, y te recuerda cómo empezar una canción vacía (SAVE › TOOLS › CLEAR PROJECT).
+
+**Arreglos**
+- Un click que LIFE podía hacer en ataques fuertes.
+- Los proyectos viejos con rutas de LIFE en la matriz cargan bien.
+- Arreglos chicos de pantalla y mensajes.
+
+**Compatibilidad**
+- Proyectos y presets cargan como antes. Los que usaban BALANCE, las opciones viejas de LIFE o los modos SOFT/STEP/BREAK/DUST de EROSION cargan bien; esos ajustes se ignoran o pasan al más parecido.
 
 ## V10.7.42 — FREEZE arreglado, silencio más liviano (2026-11-15)
 
