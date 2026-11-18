@@ -1,11 +1,11 @@
 {
-  "source": "a6d52c302d816064053f40fb642ff97eb505390e",
-  "version": "V10.7.48",
-  "released_site_run": 44161085536,
-  "previous_public_source": "f44f81ce0ebbf6a94f37abbbc99125163e69585f",
-  "audit_source": "a6d52c302d816064053f40fb642ff97eb505390e",
-  "candidate_run_id": 44177551026,
-  "sha256": "0247495792720e519dffc3148f0f9fee2e2579c7681e02d432ee41b45cea7209",
+  "source": "b575adedcae74edf92f56ab4e896036f13e6026d",
+  "version": "V10.7.50",
+  "released_site_run": 44209323287,
+  "previous_public_source": "a6d52c302d816064053f40fb642ff97eb505390e",
+  "audit_source": "b575adedcae74edf92f56ab4e896036f13e6026d",
+  "candidate_run_id": 44206920488,
+  "sha256": "7fe7f4e2e1e4b9b9ca43f49ac0d45576d03b7273495347d71f39993409129a43",
   "regressions": [
     "loop_song",
     "song_generator",
@@ -19,7 +19,12 @@
     "record_phase",
     "ui",
     "mc_thread",
-    "emulator_native"
+    "emulator_native",
+    "kit_continuity",
+    "adaptive_rate",
+    "home_engine",
+    "live"
   ],
-  "publication_revision": 1
+  "publication_revision": 1,
+  "emulator_sha256": "9222a14b315b670371ca7d6a4bf0185ab70a7b6596a3316b833d60f8a8a59101"
 }

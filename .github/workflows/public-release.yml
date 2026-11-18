@@ -33,9 +33,10 @@ jobs:
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["candidate_run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','candidate checks failed'
-          assert run['head_sha']==m['source'] and run['head_branch']=='codex/punch-cpu','candidate provenance mismatch'
+          assert run['head_sha']==m['source'] and run['head_branch']=='codex/kit-continuity','candidate provenance mismatch'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
+              f.write('run_id='+str(m['candidate_run_id'])+'\n')
               f.write('released_site_run='+str(m['released_site_run'])+'\n')
           PY
       - uses: actions/checkout@v4
@@ -59,38 +60,30 @@ jobs:
         run: |
           [ "${{ steps.site.outcome }}" = success ] || rm -rf build/released
           python3 tools/fetch_live_site.py restore --artifact build/released/artifact.tar
-      - name: JieLi toolchain cache
-        uses: actions/cache@v4
+      - name: Exact tested firmware
+        uses: actions/download-artifact@v4
         with:
-          path: |
-            ~/.jieli
-            ~/fw-AC79_AIoT_SDK/cpu/wl82/tools
-          key: jieli-ac79-v1.2.1
-      - name: Toolchain and SDK
-        run: |
-          retry() { for d in 0 5 15 30; do sleep $d; "$@" && return 0; done; return 1; }
-          T=$HOME/fw-AC79_AIoT_SDK/cpu/wl82/tools
-          [ -e "$HOME/.jieli/toolchain" ] || retry sh tools/get_toolchain.sh "$HOME/.jieli"
-          if [ ! -s "$T/uboot.boot" ] || [ ! -s "$T/cfg_tool.bin" ] || [ ! -s "$T/cfg/eq_cfg_hw.bin" ]; then
-            retry git clone --filter=blob:none --no-checkout https://gitee.com/Jieli-Tech/fw-AC79_AIoT_SDK.git "$HOME/fw-AC79_AIoT_SDK"
-            cd "$HOME/fw-AC79_AIoT_SDK"
-            git sparse-checkout set --no-cone /cpu/wl82/tools/uboot.boot /cpu/wl82/tools/cfg_tool.bin /cpu/wl82/tools/cfg/eq_cfg_hw.bin
-            retry git checkout d179b4484759423312073f5fbb232501aa491047
-          fi
-          test -s "$T/uboot.boot" && test -s "$T/cfg_tool.bin" && test -s "$T/cfg/eq_cfg_hw.bin"
-      - name: USB input regressions and target build
-        env:
-          AC79_SDK: /home/runner/fw-AC79_AIoT_SDK
-          JIELI_TOOLCHAIN: /home/runner/.jieli/toolchain
+          name: voice-user-candidate
+          run-id: ${{ steps.pin.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: build/candidate
+      - name: Exact tested emulator
+        uses: actions/download-artifact@v4
+        with:
+          name: drum-kits-emulator-candidate
+          run-id: ${{ steps.pin.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: build/public-emulator
+      - name: USB input regressions
         run: |
           pip install Pillow==12.3.0 numpy==2.3.5 fonttools==4.61.1
           cd build/candidate
+          python3 -c "import sys;sys.path.insert(0,'tools');import build;build.generate()"
           python3 tests/uac_input_irq_test.py
           for CDC in 0 1; do
             cc -O2 -w -DHALF_FRAMES=128 -DT_CDC="$CDC" tests/uac_test.c -lm -o "/tmp/uac-$CDC"
             "/tmp/uac-$CDC"
           done
-          python3 tools/build.py
       - name: MY LOOP and song regressions (publication gate)
         run: |
           set -euo pipefail
@@ -147,7 +140,7 @@ jobs:
           pages=Path('build/pages');fw=pages/'firmware'
           def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
           def protected():
-              return {p.relative_to(pages).as_posix():digest(p) for p in pages.rglob('*') if p.is_file() and p.relative_to(pages).parts[0] not in ('firmware','webapp')}
+              return {p.relative_to(pages).as_posix():digest(p) for p in pages.rglob('*') if p.is_file() and p.relative_to(pages).parts[0] not in ('firmware','webapp','emu')}
           before=protected()
           prior=json.loads((fw/'versions.json').read_text())
           old={v['file']:digest(fw/v['file']) for v in prior}
@@ -167,8 +160,21 @@ jobs:
           for name,h in old.items():assert digest(fw/name)==h,'previous public package changed'
           (fw/'SOURCE_COMMIT').write_text(m['source']+'\n')
           (fw/'SHA256SUMS').write_text(''.join(digest(p)+'  '+p.name+'\n' for p in sorted(fw.glob('felucca-*.fwsc'))))
-          assert before==protected(),'a beta, emulator or unrelated file changed'
-          print('PASS previous public packages preserved; beta, emulator and unrelated files preserved')
+          emu=Path('build/public-emulator');wasm=emu/'felucca.wasm'
+          assert digest(wasm)==m['emulator_sha256'],'candidate emulator SHA256 mismatch'
+          assert wasm.read_bytes()[:8]==b'\x00asm\x01\x00\x00\x00','invalid WebAssembly'
+          html=(emu/'index.html').read_text()
+          label='<small class="version">'+v+' (preview)</small>'
+          assert label in html,'emulator version mismatch'
+          (emu/'index.html').write_text(html.replace(label,'<small class="version">'+v+'</small>'))
+          target=pages/'emu'
+          if target.exists():shutil.rmtree(target)
+          shutil.copytree(emu,target)
+          (target/'SOURCE_COMMIT').write_text(m['source']+'\n')
+          (target/'SHA256SUMS').write_text(''.join(digest(p)+'  '+p.relative_to(target).as_posix()+'\n' for p in sorted(target.rglob('*')) if p.is_file()))
+          assert before==protected(),'a beta or unrelated file changed'
+          print('PASS exact tested public emulator')
+          print('PASS previous public packages preserved; beta and unrelated files preserved')
           print('Published versions:',[x['version'] for x in versions])
           print('New package SHA256:',digest(fw/versions[0]['file']))
           PY
