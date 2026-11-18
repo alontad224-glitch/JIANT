@@ -33,7 +33,7 @@ jobs:
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','candidate checks failed'
-          assert run['head_sha']==m['source'] and run['head_branch']=='codex/six-phrases','candidate provenance mismatch'
+          assert run['head_sha']==m['source'] and run['head_branch']=='codex/kit-continuity','candidate provenance mismatch'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
               f.write('run_id='+str(m['run_id'])+'\n')
@@ -49,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: github-pages
-          run-id: 44180906599
+          run-id: 44198190074
           github-token: ${{ github.token }}
           path: build/released
       - name: Published site to start from (the artifact; the live site when it expired or is older)
@@ -66,6 +66,13 @@ jobs:
           run-id: ${{ steps.pin.outputs.run_id }}
           github-token: ${{ github.token }}
           path: build/candidate
+      - name: Exact tested beta emulator
+        uses: actions/download-artifact@v4
+        with:
+          name: drum-kits-emulator-candidate
+          run-id: ${{ steps.pin.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: build/beta-emulator
       - name: Exact package and beta only
         run: |
           mkdir -p build/pages
@@ -99,7 +106,7 @@ jobs:
           def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
           assert digest(Path('build/candidate/build/felucca.fwsc'))==m['sha256'],'candidate package SHA256 mismatch'
           def protected():
-              return {p.relative_to(pages).as_posix():digest(p) for p in pages.rglob('*') if p.is_file() and not p.relative_to(pages).as_posix().startswith(('preview/firmware/','preview/webapp/installer/','preview/webapp/editor/','preview/webapp/vel/'))}
+              return {p.relative_to(pages).as_posix():digest(p) for p in pages.rglob('*') if p.is_file() and not p.relative_to(pages).as_posix().startswith(('preview/firmware/','preview/webapp/installer/','preview/webapp/editor/','preview/webapp/vel/','preview/emu/'))}
           before=protected()
           prior=json.loads((fw/'versions.json').read_text())
           old={v['file']:digest(fw/v['file']) for v in prior}
@@ -125,7 +132,19 @@ jobs:
           assert all((fw/v['file']).exists() for v in versions),'a listed package is missing'
           (fw/'SOURCE_COMMIT').write_text(m['source']+'\n')
           (fw/'SHA256SUMS').write_text(''.join(digest(p)+'  '+p.name+'\n' for p in sorted(fw.glob('felucca-*.fwsc'))))
-          assert before==protected(),'a public, emulator or non-preview editor file changed'
+          emu=Path('build/beta-emulator');wasm=emu/'felucca.wasm'
+          assert digest(wasm)==m['emulator_sha256'],'candidate emulator SHA256 mismatch'
+          assert wasm.read_bytes()[:8]==b'\x00asm\x01\x00\x00\x00','invalid WebAssembly'
+          html=(emu/'index.html').read_text()
+          assert '<small class="version">'+v+' (preview)</small>' in html,'emulator version mismatch'
+          (emu/'index.html').write_text(html.replace('Installer (approved version)','Installer (beta)'))
+          target=pages/'preview/emu'
+          if target.exists():shutil.rmtree(target)
+          shutil.copytree(emu,target)
+          (target/'SOURCE_COMMIT').write_text(m['source']+'\n')
+          (target/'SHA256SUMS').write_text(''.join(digest(p)+'  '+p.relative_to(target).as_posix()+'\n' for p in sorted(target.rglob('*')) if p.is_file()))
+          assert before==protected(),'a public, public-emulator or non-preview editor file changed'
+          print('PASS exact beta emulator; public emulator unchanged')
           print('PASS previous beta bytes preserved; public site and all non-beta files preserved')
           print('Published versions:',[x['version'] for x in versions])
           print('New package SHA256:',digest(fw/versions[0]['file']))
