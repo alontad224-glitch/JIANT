@@ -49,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: github-pages
-          run-id: 44226056830
+          run-id: 44322226409
           github-token: ${{ github.token }}
           path: build/released
       - name: Published site to start from (the artifact; the live site when it expired or is older)
@@ -103,6 +103,10 @@ jobs:
           assert magic==0x3154424A and length==len(seg)-32 and crc==zlib.crc32(seg[32:]),'invalid segment CRC'
           assert struct.pack('<III',0x544E5742,length,crc) in Path('build/candidate/build/felucca.bin').read_bytes(),'app/segment pairing mismatch'
           pages=Path('build/pages');fw=pages/'preview/firmware'
+          policy=Path('web/PUBLIC_CHANNEL.json')
+          if policy.exists() and json.loads(policy.read_text()).get('mode')=='stable-only':
+              allowed=[v['version'] for v in json.loads(policy.read_text())['versions']]
+              assert [v['version'] for v in json.loads((pages/'firmware/versions.json').read_text())]==allowed,'Refusing to restore quarantined public versions'
           def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
           assert digest(Path('build/candidate/build/felucca.fwsc'))==m['sha256'],'candidate package SHA256 mismatch'
           def protected():
