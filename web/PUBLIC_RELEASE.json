@@ -1,11 +1,11 @@
 {
-  "source": "b575adedcae74edf92f56ab4e896036f13e6026d",
-  "version": "V10.7.50",
-  "released_site_run": 44209323287,
-  "previous_public_source": "a6d52c302d816064053f40fb642ff97eb505390e",
-  "audit_source": "b575adedcae74edf92f56ab4e896036f13e6026d",
-  "candidate_run_id": 44206920488,
-  "sha256": "7fe7f4e2e1e4b9b9ca43f49ac0d45576d03b7273495347d71f39993409129a43",
+  "source": "82f0a47adcb90beb240d91ee47469b35d78861bd",
+  "version": "V10.7.51",
+  "released_site_run": 44218810175,
+  "previous_public_source": "b575adedcae74edf92f56ab4e896036f13e6026d",
+  "audit_source": "82f0a47adcb90beb240d91ee47469b35d78861bd",
+  "candidate_run_id": 44217393609,
+  "sha256": "e5d314e8a14107c9ab256817ad955f20ed37cdd2eba86200e73d0e89f399d467",
   "regressions": [
     "loop_song",
     "song_generator",
@@ -23,8 +23,11 @@
     "kit_continuity",
     "adaptive_rate",
     "home_engine",
-    "live"
+    "live",
+    "two_track_admission",
+    "chord_entry",
+    "web_polyphony"
   ],
   "publication_revision": 1,
-  "emulator_sha256": "9222a14b315b670371ca7d6a4bf0185ab70a7b6596a3316b833d60f8a8a59101"
+  "emulator_sha256": "288b26774647d60fca9ab4335f82276d52a5fee50102d75ef26c2d35ae8d46e1"
 }

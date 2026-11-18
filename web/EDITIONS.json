@@ -14,5 +14,9 @@
   "V10.7.50": {
     "edition": "V10.7.50",
     "status": "stable"
+  },
+  "V10.7.51": {
+    "edition": "V10.7.51",
+    "status": "stable"
   }
 }
