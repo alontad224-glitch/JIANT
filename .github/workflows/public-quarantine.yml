@@ -41,6 +41,7 @@ jobs:
       - name: V10.7.23 emulator and native audio agreement
         run: |
           pip install Pillow==12.3.0 numpy==2.3.5 fonttools==4.61.1
+          python3 tools/reference_emu_test.py
           cd build/stable-source
           python3 -c "import sys;sys.path.insert(0,'tools');import build;build.generate()"
           EMU_PREVIEW=0 sh web/emu/build.sh
