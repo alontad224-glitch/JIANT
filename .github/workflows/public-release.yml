@@ -27,6 +27,8 @@ jobs:
           python3 - <<'PY'
           import json,os,re,urllib.request
           from pathlib import Path
+          policy=Path('web/PUBLIC_CHANNEL.json')
+          assert not policy.exists() or json.loads(policy.read_text()).get('mode')!='stable-only','Public releases frozen: work stays in beta'
           m=json.loads(Path('web/PUBLIC_RELEASE.json').read_text())
           assert re.fullmatch('[0-9a-f]{40}',m['source'])
           assert Path('web/STABLE').read_text().strip()==m['source']

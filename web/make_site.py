@@ -110,6 +110,12 @@ def installable_versions(versions, preview):
     quarantined after a tester reported a non-booting FM-1."""
     versions = [e for e in versions if e.get("status") != "withdrawn" and
                 not re.match(r"^v?0\.9\.9-par14(?:-|$)", e["version"])]
+    policy = HERE / "PUBLIC_CHANNEL.json"
+    if not preview and policy.exists():
+        channel = json.loads(policy.read_text())
+        if channel.get("mode") == "stable-only":
+            allowed = {e["version"] for e in channel["versions"]}
+            versions = [e for e in versions if e["version"] in allowed]
     if not versions:
         raise SystemExit("no installable firmware remains")
     if not preview and any(e.get("status") == "beta" for e in versions):

@@ -1,0 +1,16 @@
+{
+  "mode": "stable-only",
+  "site_run_id": 44305507235,
+  "default": "V10.7.23",
+  "source": "841f7dd90cf733c50942ae9292d2e2cb52619bd8",
+  "versions": [
+    {
+      "version": "V10.7.23",
+      "sha256": "a806547e2f735a336faa1e8bd318e75629f6c19a287c48c3d5d794b75feb98f0"
+    },
+    {
+      "version": "v0.9.9-par12-527c7e4",
+      "sha256": "c338c5bd32a2e79192fc15ff916e8d074ca2a3187f719881b7a4769b92af311c"
+    }
+  ]
+}

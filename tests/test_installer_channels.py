@@ -8,17 +8,18 @@ site = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(site)
 
 class InstallerChannels(unittest.TestCase):
-    def test_public_stable_first_then_classic_order(self):
-        # (2026-10-30) the stable one (web/STABLE) stays the default; the others follow in web/CLASSIC's order
-        entries = [{'version':'V10-4b5f5c6','edition':'','status':'stable'},
-                   {'version':'v0.9.9-par11-3d5566f','edition':'','status':'public'}]
-        result = site.installable_versions(entries, False)
-        self.assertEqual([e['version'] for e in result], ['V10-4b5f5c6','v0.9.9-par11-3d5566f'])
+    def test_only_two_public_references(self):
+        entries = [{'version':v} for v in ['V10.7.23','V10.7.53','v0.9.9-par12-527c7e4','V10.7.52']]
+        self.assertEqual([e['version'] for e in site.installable_versions(entries,False)],
+                         ['V10.7.23','v0.9.9-par12-527c7e4'])
 
-    def test_v10_alone(self):
-        # (2026-10-30) JIANT FM V10 is the new base: web/CLASSIC offers nothing else
-        result = site.installable_versions([{'version':'V10-4b5f5c6','edition':'','status':'stable'}], False)
-        self.assertEqual([e['version'] for e in result], ['V10-4b5f5c6'])
+    def test_new_public_release_fails_closed(self):
+        with self.assertRaises(SystemExit):
+            site.installable_versions([{'version':'V10.7.54'}],False)
+
+    def test_beta_keeps_candidate(self):
+        entries=[{'version':'V10.7.54-abcdef0-preview','status':'beta'}]
+        self.assertEqual(site.installable_versions(entries,True),entries)
 
     def test_all_par14_variants_blocked_even_if_mislabeled(self):
         add = {'version':'v0.9.9-par10d-beta2-42947e9-preview','edition':'ADDITIVE + CONTROLS','status':'beta'}

@@ -1,0 +1,69 @@
+name: Restore stable public references
+on:
+  push:
+    branches: [main]
+    paths: [web/PUBLIC_CHANNEL.json]
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Validate restricted public channel
+        run: python3 tests/test_installer_channels.py
+      - uses: actions/download-artifact@v4
+        with:
+          name: github-pages
+          run-id: 44305507235
+          github-token: ${{ github.token }}
+          path: build/released
+      - uses: actions/checkout@v4
+        with:
+          ref: 841f7dd90cf733c50942ae9292d2e2cb52619bd8
+          path: build/stable-source
+          persist-credentials: false
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: V10.7.23 emulator and native audio agreement
+        run: |
+          pip install Pillow==12.3.0 numpy==2.3.5 fonttools==4.61.1
+          cd build/stable-source
+          python3 -c "import sys;sys.path.insert(0,'tools');import build;build.generate()"
+          EMU_PREVIEW=0 sh web/emu/build.sh
+          cc -O2 -ffp-contract=off -w -Wno-implicit-function-declaration -Wno-incompatible-pointer-types -Ibuild/gen -Ifirmware/src web/emu/native_check.c -lm -o build/emu/native-check
+          build/emu/native-check build/emu/native.f32
+          node web/emu/emu_test.mjs build/emu/felucca.wasm build/emu/native.f32
+          rm build/emu/native-check build/emu/native.f32
+      - name: Restore two public references and preserve beta
+        run: |
+          mkdir -p build/pages
+          tar -xf build/released/artifact.tar -C build/pages
+          python3 tools/public_quarantine.py
+          python3 tools/fetch_live_site.py manifest build/pages
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/pages
+          retention-days: 90
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
