@@ -6,6 +6,8 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.58** | 2026-11-19 | **Public** |
+| V10.7.57 | 2026-11-19 | Beta |
 | **V10.7.56** | 2026-11-19 | **Public** |
 | **V10.7.45** | 2026-11-17 | **Public** |
 | **V10.7.44** | 2026-11-17 | **Public** |
@@ -35,6 +37,20 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.58 — more engines at half rate, lighter reverbs (2026-11-19)
+
+Includes V10.7.57 (beta).
+
+**Voices**
+- **STRING, WEST and VOICE (vowels)** also go to half the sample rate (22 kHz) when the CPU runs short, instead of cutting notes. VOICE's WORDS and ANIMAL stay at the full rate for now.
+- The half rate is decided **when a note starts** if the predicted load passes 80 %, without waiting for the processor to overrun: fewer peaks when a chord comes in.
+
+**Lighter reverbs**
+- **ROOM with MOD or WIDE** and **CLOUD** at 22 kHz: ROOM with MOD/WIDE costs about half, CLOUD a quarter less. The tail loses what is above 11 kHz, as the plain ROOM already did.
+- CLOUD's grains work out their window once when born (no divide per sample).
+
+Tested on the FM-1: 6 tracks with full CLOUD on DRUM-X, 60 % CPU.
 
 ## V10.7.56 — six tracks without glitches or lost notes, back on V10.7.23's base (2026-11-19)
 

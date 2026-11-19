@@ -6,6 +6,8 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.58** | 2026-11-19 | **Pública** |
+| V10.7.57 | 2026-11-19 | Beta |
 | **V10.7.56** | 2026-11-19 | **Pública** |
 | **V10.7.45** | 2026-11-17 | **Pública** |
 | **V10.7.44** | 2026-11-17 | **Pública** |
@@ -36,6 +38,20 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.58 — más motores a media frecuencia, reverbs más livianas (2026-11-19)
+
+Incluye la V10.7.57 (beta).
+
+**Voces**
+- **STRING, WEST y VOICE (vocales)** también bajan a media frecuencia (22 kHz) cuando falta CPU, en vez de cortar notas. VOICE con palabras (WORDS) y ANIMAL siguen a frecuencia completa por ahora.
+- La media frecuencia se decide **al empezar la nota** cuando la carga prevista pasa el 80 %, sin esperar a que el procesador se sature: menos picos cuando entra un acorde.
+
+**Reverbs más livianas**
+- **ROOM con MOD o WIDE** y **CLOUD** a 22 kHz: ROOM con MOD/WIDE gasta casi la mitad, CLOUD un cuarto menos. Se pierde lo que está por encima de 11 kHz de la cola, como en el ROOM simple.
+- Los granos de CLOUD calculan su ventana una vez al nacer (sin una división por muestra).
+
+Probada en el FM-1: 6 pistas con CLOUD a fondo en DRUM-X, 60 % de CPU.
 
 ## V10.7.56 — seis pistas sin glitches ni notas perdidas, de vuelta sobre la base de la V10.7.23 (2026-11-19)
 
