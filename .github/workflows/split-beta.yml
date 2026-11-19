@@ -33,7 +33,7 @@ jobs:
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','candidate checks failed'
-          assert run['head_sha']==m['source'] and run['head_branch']=='codex/beta-bass-continuity','candidate provenance mismatch'
+          assert run['head_sha']==m['source'] and run['head_branch'] in ('codex/beta-bass-continuity','codex/v56-fm'),'candidate provenance mismatch'   # (V10.7.56: the V10.7.23-based line)
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
               f.write('run_id='+str(m['run_id'])+'\n')
@@ -49,7 +49,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: github-pages
-          run-id: 44322226409
+          run-id: 44336664317
           github-token: ${{ github.token }}
           path: build/released
       - name: Published site to start from (the artifact; the live site when it expired or is older)
