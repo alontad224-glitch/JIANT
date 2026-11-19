@@ -6,6 +6,7 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.56** | 2026-11-19 | **Public** |
 | **V10.7.45** | 2026-11-17 | **Public** |
 | **V10.7.44** | 2026-11-17 | **Public** |
 | **V10.7.43** | 2026-11-17 | **Public** |
@@ -34,6 +35,24 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.56 — six tracks without glitches or lost notes, back on V10.7.23's base (2026-11-19)
+
+Built on V10.7.23, the steadiest version, with WEST and V10.7.55's editing (preview of a step's note while stopped, larger menus).
+
+**Voices: no track takes another's**
+- A track never loses a note to another track any more. The rules: the **chord track** (found by itself: the one whose sequence has steps of three notes or more, or the first that holds three notes) and the **track you play** keep their polyphony; the **other melodic tracks are single lines** (the note and the last one's tail); DRUM-X keeps its whole kit. Up to 16 voices together.
+- When the CPU runs short, nothing is cut: the voices go to **half the sample rate** (22 kHz, interpolated) first the tails, then track by track, and **FM6 down to a quarter** (11 kHz) if still needed. ANALOG, FM6, PHASE, WHEEL, ADD and MATH do it in tune; STRING, WEST, VOICE and ANIMAL not yet.
+- Tails leave no noise floor: those at half the rate low-passed, those under -60 dB faded out.
+- LOAD ECO keeps its shared budget of 6 voices, as before.
+
+**Lighter**
+- **ROOM** reverb always at 22 kHz: the same size and decay, half its CPU.
+- **GEN** keeps its songs within the CPU (FM6 once, CLOUD to SHIMMER, shorter chord tails when a song is too heavy).
+
+**Other**
+- VOICE sings English by its letter rules (the English dictionary out, for the room these changes needed).
+- WEST's CC74 / CC71: FOLD and RES.
 
 ## V10.7.45 — LIFE out, copy and paste steps with OCT (2026-11-17)
 

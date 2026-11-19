@@ -6,6 +6,7 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.56** | 2026-11-19 | **Pública** |
 | **V10.7.45** | 2026-11-17 | **Pública** |
 | **V10.7.44** | 2026-11-17 | **Pública** |
 | **V10.7.43** | 2026-11-17 | **Pública** |
@@ -35,6 +36,24 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.56 — seis pistas sin glitches ni notas perdidas, de vuelta sobre la base de la V10.7.23 (2026-11-19)
+
+Hecha sobre la V10.7.23, la versión más estable, con WEST y la edición de la V10.7.55 (escuchar la nota de un paso con todo parado, menús más grandes).
+
+**Voces: ninguna pista le saca a otra**
+- Una pista ya no pierde notas por culpa de otra. Las reglas: la **pista de acordes** (se detecta sola: la que tiene pasos de tres notas o más en su secuencia, o la primera que sostiene tres notas) y la **pista que tocás** mantienen su polifonía; las **demás pistas melódicas son mono** (la nota y la cola de la anterior); DRUM-X mantiene su kit completo. Hasta 16 voces juntas.
+- Cuando falta CPU no se corta nada: las voces bajan a **media frecuencia de muestreo** (22 kHz, interpolada), primero las colas y después pista por pista, y **FM6 hasta un cuarto** (11 kHz) si hace falta. ANALOG, FM6, PHASE, WHEEL, ADD y MATH lo hacen afinados; STRING, WEST, VOICE y ANIMAL todavía no.
+- Las colas no dejan piso de ruido: las de media frecuencia van con un pasabajos, y las que bajan de -60 dB se apagan con un fade.
+- LOAD ECO sigue con su presupuesto compartido de 6 voces, como antes.
+
+**Más liviana**
+- La reverb **ROOM** siempre a 22 kHz: mismo tamaño y caída, la mitad de CPU.
+- **GEN** arma canciones dentro de la CPU (FM6 una vez, CLOUD pasa a SHIMMER, colas de acordes más cortas cuando una canción pesa demasiado).
+
+**Otros**
+- VOICE canta el inglés con sus reglas de letras (se sacó el diccionario de inglés para hacer lugar a estos cambios).
+- CC74 / CC71 de WEST: FOLD y RES.
 
 ## V10.7.45 — chau LIFE, copiar y pegar pasos con OCT (2026-11-17)
 
