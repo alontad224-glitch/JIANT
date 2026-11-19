@@ -115,7 +115,8 @@ def installable_versions(versions, preview):
         channel = json.loads(policy.read_text())
         if channel.get("mode") == "stable-only":
             allowed = {e["version"] for e in channel["versions"]}
-            versions = [e for e in versions if e["version"] in allowed]
+            versions = [e for e in versions if e["version"] in allowed or e["version"] == version]   # (V10.7.56: the release
+                                                         # itself on top of the stable references)
     if not versions:
         raise SystemExit("no installable firmware remains")
     if not preview and any(e.get("status") == "beta" for e in versions):
