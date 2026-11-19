@@ -105,7 +105,7 @@ def manual(out):
     print(f"site: {dst}: the manual, {len(names)} screens")
 
 
-def installable_versions(versions, preview, current=None):
+def installable_versions(versions, preview, current=None, published=()):
     """(2026-10-30) the current one first (web/STABLE, or web/PREVIEW for the beta), then web/CLASSIC's order; par14 is
     quarantined after a tester reported a non-booting FM-1."""
     versions = [e for e in versions if e.get("status") != "withdrawn" and
@@ -115,8 +115,9 @@ def installable_versions(versions, preview, current=None):
         channel = json.loads(policy.read_text())
         if channel.get("mode") == "stable-only":
             allowed = {e["version"] for e in channel["versions"]}
-            versions = [e for e in versions if e["version"] in allowed or e["version"] == current]   # (V10.7.56: the release
-                                                         # itself on top of the stable references)
+            versions = [e for e in versions if e["version"] in allowed or e["version"] == current or
+                        e["version"] in published]      # (V10.7.56: the release itself on top of the stable references;
+                                                         # V10.7.58: and every release already public, the rollback history)
     if not versions:
         raise SystemExit("no installable firmware remains")
     if not preview and any(e.get("status") == "beta" for e in versions):
@@ -144,7 +145,7 @@ def main(pkg, version, out, prev=None):
     editions = json.loads((HERE / "EDITIONS.json").read_text(encoding="utf-8"))
     for entry in versions:
         entry.update(editions.get(entry["version"], {}))
-    versions = installable_versions(versions, version.endswith("-preview"), version)
+    versions = installable_versions(versions, version.endswith("-preview"), version, {e["version"] for e, _ in old})
     selected = versions[0]
     meta = json.dumps({"version": selected["version"], "product": selected["product"],
                        "pkg": "../../firmware/" + selected["file"],
