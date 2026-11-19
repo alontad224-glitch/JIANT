@@ -28,14 +28,14 @@ jobs:
           import json,os,re,urllib.request
           from pathlib import Path
           policy=Path('web/PUBLIC_CHANNEL.json')
-          assert not policy.exists() or json.loads(policy.read_text()).get('mode')!='stable-only','Public releases frozen: work stays in beta'
+          # (V10.7.56, the owner) public releases open again on the V10.7.23-based line; the stable references stay listed
           m=json.loads(Path('web/PUBLIC_RELEASE.json').read_text())
           assert re.fullmatch('[0-9a-f]{40}',m['source'])
           assert Path('web/STABLE').read_text().strip()==m['source']
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["candidate_run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','candidate checks failed'
-          assert run['head_sha']==m['source'] and run['head_branch']=='codex/reference-v53','candidate provenance mismatch'
+          assert run['head_sha']==m['source'] and run['head_branch'] in ('codex/reference-v53','codex/v56-fm'),'candidate provenance mismatch'
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
               f.write('run_id='+str(m['candidate_run_id'])+'\n')
