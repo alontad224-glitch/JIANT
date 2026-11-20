@@ -95,7 +95,7 @@ jobs:
             build/juce-plugin/editor.png
   plugin-macos:
     needs: core-and-plugin
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -124,7 +124,7 @@ jobs:
           path: JIANT-FM-macOS-*.zip
   plugin-ios:
     needs: core-and-plugin
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4

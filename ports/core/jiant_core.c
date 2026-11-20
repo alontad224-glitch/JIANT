@@ -10,13 +10,19 @@
 #include <stdint.h>
 #include <time.h>
 #if defined(_WIN32)
-#include <windows.h>
+/* Windows: no clock_gettime (the host tests use it too) and no <windows.h> here (its macros meet the firmware's names):
+ * C11's timespec_get */
+#define CLOCK_MONOTONIC 1
+static int clock_gettime(int id, struct timespec *ts)
+{
+    (void)id;
+    return timespec_get(ts, TIME_UTC) ? 0 : -1;
+}
 uint32_t jiant_host_us(void)
 {
-    LARGE_INTEGER f, c;
-    QueryPerformanceFrequency(&f);
-    QueryPerformanceCounter(&c);
-    return (uint32_t)((uint64_t)c.QuadPart * 1000000u / (uint64_t)f.QuadPart);
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint32_t)((uint64_t)ts.tv_sec * 1000000u + (uint64_t)ts.tv_nsec / 1000u);
 }
 #else
 uint32_t jiant_host_us(void)
