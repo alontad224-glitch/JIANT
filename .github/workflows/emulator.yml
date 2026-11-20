@@ -69,6 +69,7 @@ jobs:
           shell = Path(template).read_text().replace("@VERSION@", version).replace("@PREVIEW@", "")
           target.write_text(shell)
           shutil.copy("web/emu/worklet.js", "build/emu/worklet.js")
+          shutil.copy("web/emu/devices.html", "build/emu/devices.html")   # (ports) every device's panel, one page
           for f in ("transfer.js", "transfer-ui.js", "../fm1backup.js"):   # (emu-transfer) the FM-1 panel
               shutil.copy("web/emu/" + f, "build/emu/" + Path(f).name)
           PY
