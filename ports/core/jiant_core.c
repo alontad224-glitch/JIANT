@@ -9,12 +9,33 @@
 #define JIANT_REAL_LOAD 1
 #include <stdint.h>
 #include <time.h>
+#if defined(_WIN32)
+#include <windows.h>
+uint32_t jiant_host_us(void)
+{
+    LARGE_INTEGER f, c;
+    QueryPerformanceFrequency(&f);
+    QueryPerformanceCounter(&c);
+    return (uint32_t)((uint64_t)c.QuadPart * 1000000u / (uint64_t)f.QuadPart);
+}
+#else
 uint32_t jiant_host_us(void)
 {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (uint32_t)((uint64_t)ts.tv_sec * 1000000u + (uint64_t)ts.tv_nsec / 1000u);
 }
+#endif
+/* the host tests' main (tests/hostsim.c, never called here) forks its renders: where a process may not fork (iOS) or
+ * has no POSIX (Windows), those calls are stubbed (ports/core/compat for Windows' headers) */
+#if defined(__APPLE__)
+#include <TargetConditionals.h>
+#if TARGET_OS_IPHONE
+#include <unistd.h>
+#include <sys/wait.h>
+#define fork() (-1)
+#endif
+#endif
 #include "../../web/emu/felucca_web.c"
 #include "jiant_core.h"
 
