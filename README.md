@@ -17,22 +17,31 @@ a generator and effects, all inside the little keyboard. It is a fork of [Felucc
 The emulator runs the same code as the FM-1, with sound, played with the computer keyboard or the mouse. The installer
 always offers the current public version first, and the earlier ones under it.
 
-## This release: V10.7.46
+## This release: V10.7.58 · beta V10.7.63
 
-The overload guard, voice admission and animation throttling now count the entire audio deadline, including nested input/USB work. A pending USB resampling job can no longer be overwritten by a mixer job on the second core. Generator sounds and recipes stay the same.
+The installer offers **V10.7.58**, the public version (six tracks without glitches or lost notes; STRING, WEST and
+VOICE at half rate before anything is cut; lighter ROOM and CLOUD reverbs). **V10.7.63** is the beta, in the
+[emulator](https://juanjiant-bit.github.io/JIANT/emu/) first. What it brings (V10.7.59 to V10.7.63):
 
-This fixes overload handling; it does not reduce the baseline synthesis cost of every project. See the [validation notes](web/V46_AUDIO_AUDIT.md), including the remaining on-device checks.
-
-Also retained from V10.7.45 and V10.7.43–44's lighter CPU:
-
-- **LIFE is out for now** (it could crash and cost a lot of CPU for little audible change); it comes back reworked in
-  a later beta. Saved projects open as before.
-- **Copy and paste steps with OCT** (a user, Eugen): hold step keys + **OCT+** copies them, a held step + **OCT−**
-  pastes there; a held step + **SELECT** walks the pages its KNOB 1–4 lock ("LOCK · page").
-- **Punch-in FX you choose** (V10.7.44): hold FX, press a key and turn SELECT; three layouts on **FX + OCT+**; the
-  default brings MUTE T1–T4 back, FREEZE on G4, REV ALL on D#4.
-- **CPU back under V10.7.23** (V10.7.43): BALANCE removed, EROSION reduced to NOISE / METAL, clean note releases,
-  PANIC clears the FX, PRESETS turn sounds as before V10.7.33 (EDIT + PRESETS jumps engines).
+- **LIFE is back, light** (HOME › LIFE): the tracks move each other (FILTER, TIMBRE, PUMP, FX), about 1 % of the CPU.
+- **The song lives on HOME**: ECO, LIFE, BEING, ROUTES, then SONG (TIMELINE, ARRANGE, PARTS, CLIPS: parts with tracks
+  muted, taken from another part or varied), then GENE. **SAVE** only saves and loads (TOOLS, PART SLOTS, PROJECTS,
+  USER, PRESETS).
+- **GENE**: **DUBSTEP**, **SHOEGAZE** and **METALCORE**, and each genre its **FX style** (the distortion where it
+  belongs: GRIT, FUZZ, GROWL, METAL, LOFI, WARM).
+- **Chord sets** (SCL › CHORD): POP, JAZZ, SOUL, DREAM, QUART, each degree of the scale its own colour.
+- **SCENE** (SCL › SCENE): **LEADER** picks who plays the roles: the keys, or a track's sequence (T1–T6); each role
+  explained in words. GEN is no longer a SCENE role.
+- **DRUM-X in 8 pages** (was 13): KIT (MORPH ATTACK TONE DECAY), KIT 2 (NOISE **BODY** GLUE **GAIN**), SOUND
+  (PITCH DECAY LEVEL), SOUND 2 (NOISE COLOR PMOD; HANDS on the clap), SOUND 3 (WAVE FILTER P.ENV), SOUND 4 (SIDE SEND
+  KEY MAP), CROSS MOD, FILTER. **BODY**, a resonator tuned to each sound (the shell ringing after the hit), replaces
+  FOLD; **GAIN** up to +12 dB, clean. FEEDBACK (it squealed), the bus BP, LAYER and PLAY are gone from the panel; kits
+  that used FOLD, FEEDBACK or BP sound a little different.
+- **Performance**: FX + OCT+ **DICE** (a random punch-in each beat); punch-ins REVERSE, FREEZE, TAPE STOP, PITCH UP /
+  DOWN, STRETCH; the FX layer's knobs are four MACROS; step component **FILL** (LOCK's place); RAMP ends BACK, HOLD or
+  PING; OCT− on SEQ › STEP FX clears a track's step components.
+- **Clearer screens**: EDIT pages named by what they do, a knob's meaning in the header (MENU › HELP), FX › SENDS with
+  DIST, IMAGE on PLAY (a mono part spread), GLO › SYSTEM's oscilloscope, labels that fit their cards.
 
 What each version changed: [CHANGELOG.md](CHANGELOG.md) · en castellano: [CHANGELOG.es.md](CHANGELOG.es.md).
 
@@ -502,6 +511,37 @@ same license.
 ## Changelog
 
 Every update is listed here, newest first. (Since 0.6.80 at the end of the page: what the synth does comes first.)
+
+### V10.7.63 — beta (2026-11-20)
+- **DRUM-X in 8 pages**: KIT (MORPH ATTACK TONE DECAY; ATTACK is FM ENV, TUNE off the panel), KIT 2 (NOISE BODY GLUE
+  GAIN), SOUND (PITCH DECAY LEVEL), SOUND 2 (NOISE COLOR PMOD; HANDS on the clap, SCRAPE on the guiro), SOUND 3 (WAVE,
+  FILTER LP / BP / HP / GUIRO with or without SNAP, P.ENV), SOUND 4 (SIDE SEND KEY MAP), CROSS MOD, FILTER (with IMAGE).
+  **BODY** replaces FOLD: the shell's resonator tuned to each sound. **GAIN** 0..+12 dB, clean. FEEDBACK and the bus BP
+  are gone from the sound; BUS, PLAY, LEVELS and STEREO from the panel; LAYER and TUNE kept where a kit has them.
+- **GENE**: DUBSTEP, SHOEGAZE, METALCORE; each genre its FX style (GRIT FUZZ GROWL METAL LOFI WARM).
+- **Chord sets** on SCL › CHORD: POP JAZZ SOUL DREAM QUART.
+- **SCENE's LEADER**: OFF, KEYS or a track (T1–T6) whose notes lead the roles; GEN out of SCENE.
+- **The song on HOME** (SONG: TIMELINE ARRANGE PARTS CLIPS); SAVE saves and loads.
+- GLO › SYSTEM shows the oscilloscope; KIT 4 gone (KEY MAP on SOUND 4).
+
+### V10.7.62 — beta (2026-11-19)
+- **LIFE** (HOME › LIFE): the tracks move each other (FILTER TIMBRE PUMP FX, a block late, ~1 % of the CPU).
+- RAMP's END: BACK, HOLD, PING. SEQ › STEP FX: OCT− clears the track's step components. FX + OCT+: **DICE**. The
+  matrix's STEP source is MSEQ.
+
+### V10.7.59 – V10.7.61 — betas (2026-11-19)
+- EDIT redesigned: the engine's pages by their names, its extras and UNISON on one MORE page; a knob's meaning in the
+  header (MENU › HELP); PRESETS a bar at a time on SEQ; IMAGE on PLAY and on a mono part.
+- FX › SENDS with DIST again; GLO LIVE one page, KEYS as RAILS; punch-ins REVERSE FREEZE TAPE STOP PITCH UP / DOWN
+  STRETCH; the FX layer's knobs the MACROS; step component FILL in LOCK's place.
+
+### V10.7.58 — public (2026-11-19)
+- STRING, WEST and VOICE (vowels) go to half rate when the CPU runs short, decided when a note starts; ROOM with MOD /
+  WIDE and CLOUD at 22 kHz. Details: [CHANGELOG.md](CHANGELOG.md).
+
+### V10.7.56 — public (2026-11-19)
+- Back on V10.7.23's base with WEST: no track takes another's notes; when the CPU runs short the voices go to half
+  rate instead of being cut; ROOM at 22 kHz. Details: [CHANGELOG.md](CHANGELOG.md).
 
 ### V10.7.46 — public (2026-11-17)
 - Count nested input/USB time in the overload guard, voice admission, recovery and UI throttling, so the system does not reopen its CPU budget while the audio deadline remains under pressure.
