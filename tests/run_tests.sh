@@ -386,6 +386,19 @@ else
     echo "== skip CPU under valgrind (no valgrind, or not Linux x86-64)"
 fi
 
+# (SMK-37, docs/SMK37.md) the SMK-37 packages, when built (./build.sh --board smk37 [--model elite]); a stock M-VAVE
+# v016 package for the region table's bytes: SMK_STOCK=folder with SMK37-Pro-V16.fwsc / SMK37-Elite-V16.fwsc (read only)
+for m in pro elite; do
+    P=build/smk37-$m/felucca-smk37-$m.fwsc
+    [ -f "$P" ] || { echo "== skip SMK-37 $m package (./build.sh --board smk37 --model $m)"; continue; }
+    [ $m = pro ] && N="SMK-37 Pro" || N="SMK-37 Elite"
+    [ $m = pro ] && S=SMK37-Pro-V16.fwsc || S=SMK37-Elite-V16.fwsc
+    STOCK=""
+    [ -n "${SMK_STOCK:-}" ] && [ -f "$SMK_STOCK/$S" ] && STOCK="$SMK_STOCK/$S"
+    run "SMK-37 $m package: identity, flash.bin 0x9D000, the stock v016 region table${STOCK:+ (= $S's bytes)}" \
+        python3 tests/smk_pkg_test.py "$P" "${N}_900" "build/smk37-$m/felucca.bin" $STOCK
+done
+
 run "installer CLI (fm1_install.py) against a simulated FM-1" python3 tests/install_test.py
 run "published installers' patch (tools/patch_installer_downloads.py) on pages as built and as patched before" \
     python3 tests/patch_installer_test.py
