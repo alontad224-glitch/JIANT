@@ -4,6 +4,17 @@
  * stable API. Nothing of the firmware or of the emulator changes for this file.
  *   cc -O2 -ffp-contract=off -std=gnu99 -w -Ibuild/gen -Ifirmware/src -c ports/core/jiant_core.c
  * (after the generated headers: python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()") */
+/* a computer's CPU (core.h FELUCCA_HOST_POWER), its real time in the load (felucca_web.c JIANT_REAL_LOAD) */
+#define FELUCCA_HOST_POWER 1
+#define JIANT_REAL_LOAD 1
+#include <stdint.h>
+#include <time.h>
+uint32_t jiant_host_us(void)
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint32_t)((uint64_t)ts.tv_sec * 1000000u + (uint64_t)ts.tv_nsec / 1000u);
+}
 #include "../../web/emu/felucca_web.c"
 #include "jiant_core.h"
 
@@ -98,6 +109,14 @@ JC_API void jiant_clock_external(int on) { song.g[G_CLOCK] = (uint8_t)(on ? 1u :
 JC_API void jiant_play(int on) { web_play((uint32_t)on); }
 JC_API int jiant_playing(void) { return (int)song.playing; }
 JC_API uint32_t jiant_bpm(void) { return (uint32_t)song.g[G_BPM]; }
+
+JC_API uint32_t jiant_cpu_percent(void) { return song.cpu_q8 * 100u / 256u; }
+JC_API uint32_t jiant_cpu_peak_percent(void) { return load_diag.peak; }
+JC_API uint32_t jiant_voices_shed(void) { return load_diag.shed; }
+JC_API int jiant_load_governed(void) { return gov_lite || gov_cap < VOICES_ALL || load_tight; }
+JC_API uint32_t jiant_voices_sounding(void) { return voices_busy(); }
+
+JC_API void jiant_test_heavy(void) { web_test_heavy(); }
 
 JC_API void jiant_buttons(uint32_t held) { web_buttons(held); }
 JC_API void jiant_keys(uint32_t held) { web_keys(held); }

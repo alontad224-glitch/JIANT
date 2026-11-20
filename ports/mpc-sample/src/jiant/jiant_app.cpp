@@ -222,6 +222,12 @@ void JiantApp::render(const AudioBlock&, AudioBlock& output)
     meter_.store(mask, std::memory_order_relaxed);
 
     playing_.store(jiant_playing() != 0, std::memory_order_relaxed);
+    cpu_.store(jiant_cpu_percent(), std::memory_order_relaxed);
+    cpuPeak_.store(jiant_cpu_peak_percent(), std::memory_order_relaxed);
+    shed_.store(jiant_voices_shed(), std::memory_order_relaxed);
+    governed_.store(jiant_load_governed() != 0, std::memory_order_relaxed);
+    if (jiant_voices_sounding() > voicesMost_.load(std::memory_order_relaxed))
+        voicesMost_.store(jiant_voices_sounding(), std::memory_order_relaxed);
     ledButtons_.store(jiant_led_buttons(), std::memory_order_relaxed);
     ledKeys_.store(jiant_led_keys(), std::memory_order_relaxed);
     publish_screen();
@@ -321,7 +327,10 @@ void JiantApp::service(Hardware& hardware)
 std::string JiantApp::status() const
 {
     return "jiant=" + std::string(jiant_version()) + " saves=" + std::to_string(flashSaves_.load()) +
-           " window=" + std::to_string(window_.load());
+           " window=" + std::to_string(window_.load()) + " jiant_cpu=" + std::to_string(cpu_.load()) +
+           " jiant_cpu_peak=" + std::to_string(cpuPeak_.load()) + " jiant_voices_most=" +
+           std::to_string(voicesMost_.load()) + " jiant_shed=" + std::to_string(shed_.load()) +
+           " jiant_governed=" + std::to_string(int(governed_.load()));
 }
 
 std::string JiantApp::command(const std::string& action, const std::string&, Hardware&)
@@ -380,4 +389,7 @@ void JiantApp::paint(juce::Graphics& g)
     if (shift_.load(std::memory_order_relaxed))
         text("SHIFT", 0, 210, 40, 10, orange);
     text("JIANT", 280, 8, 40, 11, orange);
+    text("CPU", 280, 196, 40, 10, grey);           // the real load of the MPC's processor
+    text(juce::String(int(cpu_.load(std::memory_order_relaxed))) + "%", 280, 210, 40, 12,
+         governed_.load(std::memory_order_relaxed) ? juce::Colour(0xffff4040) : orange);
 }

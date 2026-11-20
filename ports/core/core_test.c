@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static int fails;
 #define CHECK(c, ...) do { if (c) printf("  ok    " __VA_ARGS__); else { printf("  FAIL  " __VA_ARGS__); fails++; } \
@@ -84,6 +85,28 @@ int main(void)
     a[na / 2] ^= 0x55;
     CHECK(jiant_state_load(a, na) == 2, "a damaged state is refused");
     CHECK(jiant_state_load((const uint8_t *)"nope", 4) == 1, "and one that is not a state");
+
+    {                                          /* a computer's CPU: every part its own voices (core.h FELUCCA_HOST_POWER) */
+        uint32_t most = 0;
+        struct timespec t0, t1;
+        double secs;
+        jiant_test_heavy();
+        jiant_play(1);
+        clock_gettime(CLOCK_MONOTONIC, &t0);
+        for (i = 0; i < 40u; i++) {
+            rms(4410);
+            if (jiant_voices_sounding() > most)
+                most = jiant_voices_sounding();
+        }
+        clock_gettime(CLOCK_MONOTONIC, &t1);
+        secs = (double)(t1.tv_sec - t0.tv_sec) + (double)(t1.tv_nsec - t0.tv_nsec) * 1e-9;
+        CHECK(most > 8u, "the heavy song sounds %u voices at once (the FM-1: 8 between all parts)", most);
+        CHECK(!jiant_voices_shed() && !jiant_load_governed(),
+              "on this CPU nothing given way: %.0fx real time, load %u %% (worst half %u %%)", 4.0 / secs,
+              jiant_cpu_percent(), jiant_cpu_peak_percent());
+        jiant_play(0);
+        rms(4410);
+    }
 
     jiant_clock_external(1);
     rms(128);

@@ -74,6 +74,11 @@ private:
     std::atomic<uint32_t> flashSaves_ {0};
     std::string folder_;                           // service thread (and the constructor)
 
+    // audio -> screen, status: the real load on the MPC's CPU (the firmware's meter), the most voices sounding, and
+    // whether anything gave way (voices faded by the guard, the governor's lighter sound)
+    std::atomic<uint32_t> cpu_ {0}, cpuPeak_ {0}, voicesMost_ {0}, shed_ {0};
+    std::atomic<bool> governed_ {false};
+
     float level_ = 0.0f;                           // audio: for the meters
     std::atomic<uint8_t> meter_ {0};
     juce::Typeface::Ptr font_;

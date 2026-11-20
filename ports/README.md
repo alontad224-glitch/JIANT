@@ -24,6 +24,23 @@ firmware sources (`firmware/src`), so a song sounds the same everywhere.
 | [`mpc-sample/`](mpc-sample/) | JIANT as the MPC Sample's whole instrument, its own screen, the MPC's pads, buttons and knobs as the FM-1's panel, started from the microSD card (on keremimo's sample-base). | Builds for ARM64; runs and passes its tests on Linux; not yet tried on an MPC Sample |
 | SMK-37 | JIANT on the SMK-37 Pro / Elite, bare metal like the FM-1 (same AC791N chip, same screen and audio format). | Next |
 
+## Full power on a bigger CPU
+
+The FM-1's chip is small, and JIANT lives within it: when the load runs high it gives way (STRING, WEST and VOICE at
+half the rate, FM6 at a quarter, the heavy reverbs as lighter ones, voices faded), all parts share 8 voices, and
+EXPLORE keeps its pieces light. The ports run on far bigger CPUs, so the core builds with `FELUCCA_HOST_POWER`
+(`firmware/src/core.h`; the FM-1, the browser emulator and the host tests are untouched by it):
+
+- **Every track its own 8 voices** (48 in all), not 8 between all of them.
+- **EXPLORE at full size**: no lighter pieces for the FM-1's CPU.
+- **The load measured in real time on that CPU** (`web/emu/felucca_web.c` `JIANT_REAL_LOAD`): the firmware's own
+  governor and overload guard stay, so the sound gives way only if that CPU itself runs short; on one with room it
+  never does. `jiant_cpu_percent()` and friends report it; the MPC Sample app shows it on the screen (CPU, red when
+  anything gave way), in `status`, and `jiant --bench` measures the bench song on the MPC's own CPU.
+
+On this computer (x86) the bench song renders at ~37x real time; on the MPC Sample's Cortex-A55 a share of one of
+its four cores, to be measured with `--bench` on the hardware.
+
 ## The core
 
 ```sh

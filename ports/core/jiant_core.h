@@ -67,6 +67,18 @@ void jiant_play(int on);                   /* PLAY / STOP, as the button does */
 int jiant_playing(void);
 uint32_t jiant_bpm(void);                  /* the tempo, BPM (its own, or the last the clock gave) */
 
+/* the load, measured on this computer's CPU in real time (the firmware's own meter: a half's render against its
+ * 2.9 ms): now (averaged over ~93 ms) and the worst half since boot, in %; the voices the overload guard faded and
+ * whether the load governor has the sound lighter now (fewer voices shared, or LOAD LITE): 0 on a CPU with room */
+uint32_t jiant_cpu_percent(void);
+uint32_t jiant_cpu_peak_percent(void);
+uint32_t jiant_voices_shed(void);
+int jiant_load_governed(void);
+uint32_t jiant_voices_sounding(void);
+/* the emulator's bench song into the tracks (web/emu felucca_web.c web_test_heavy): FM6 PAD, TRIO and VOICE CHOIR
+ * holding 4-note chords on every step, and a drum track; PLAY is the caller's. For the tests and --bench */
+void jiant_test_heavy(void);
+
 /* the panel: the buttons held now (bits by enum jiant_button), the keys held now (bit k = key k), detents turned */
 void jiant_buttons(uint32_t held);
 void jiant_keys(uint32_t held);

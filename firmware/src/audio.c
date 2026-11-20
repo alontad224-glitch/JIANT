@@ -134,10 +134,11 @@ static uint8_t tight_calm;                             /* halves in a row under 
 #define GOV_HOT_ECO ((HALF_FRAMES * 1000000u / FS) * 62u / 100u * FM1_TICKS_PER_US)
 #define GOV_HOT_1C ((HALF_FRAMES * 1000000u / FS) * 70u / 100u * FM1_TICKS_PER_US)
 static uint16_t gov_hot, gov_calm, gov_win, gov_lcalm;
+#define GOV_MAX (FELUCCA_HOST_POWER ? VOICES_ALL : NVOICE + 4u)   /* (ports/: every part's voices) */
 static uint8_t gov_sheds, gov_floor;
 static void gov_tick(int over, int hot, int under, int shed)
 {
-    uint32_t c = gov_cap > NVOICE + 4u ? NVOICE + 4u : gov_cap;
+    uint32_t c = gov_cap > GOV_MAX ? GOV_MAX : gov_cap;
     if (shed) {
         c = c > 6u ? c - 2u : 4u;
         if (!gov_win) gov_sheds = 0;
@@ -155,7 +156,7 @@ static void gov_tick(int over, int hot, int under, int shed)
         }
     } else {
         gov_hot = 0;
-        if (under && ++gov_calm >= 172u) { gov_calm = 0; if (c < NVOICE + 4u) c++; }
+        if (under && ++gov_calm >= 172u) { gov_calm = 0; if (c < GOV_MAX) c++; }
     }
     if (gov_lite && (under ? ++gov_lcalm >= 1720u : (gov_lcalm = 0, 0))) gov_lite = 0;
     gov_cap = (uint8_t)c;

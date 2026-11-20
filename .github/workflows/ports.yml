@@ -51,6 +51,7 @@ jobs:
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           ports/mpc-sample/build.sh test
+          ports/mpc-sample/build/jiant --bench
       - name: the SD card zip
         run: |
           strip -o ports/mpc-sample/build/jiant.release ports/mpc-sample/build/jiant

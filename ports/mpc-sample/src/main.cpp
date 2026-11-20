@@ -5,6 +5,7 @@
 // SD boot and the build run without the hardware:
 //   jiant --self-test FILE.wav     a note through the whole firmware, written out; 0 when it sounded and stopped
 //   jiant --preview FILE.png       the screen after a few seconds of a generated song
+//   jiant --bench                  the bench song as fast as the CPU goes: how much of the MPC's CPU JIANT takes
 #include "runtime/app.h"
 #include "runtime/control_socket.h"
 #include "runtime/inventory.h"
@@ -14,6 +15,7 @@
 #include "jiant/jiant_app.h"
 #include "jiant_core.h"
 #include <sys/stat.h>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <exception>
@@ -149,8 +151,27 @@ int persist(const char* dir, bool write)
     return 0;
 }
 
+// how much of the MPC's CPU JIANT takes: the emulator's bench song (FM6 PAD, TRIO, VOICE CHOIR in 4-note chords, a
+// drum track) with the busiest reverb, as fast as the CPU goes; then real time against the firmware's own meter
+int bench(double seconds)
+{
+    auto app = std::make_unique<JiantApp>("-", 1);
+    jiant_test_heavy();
+    jiant_play(1);
+    auto t0 = std::chrono::steady_clock::now();
+    render_take(*app, seconds, nullptr, -1);
+    double took = std::chrono::duration<double>(std::chrono::steady_clock::now() - t0).count();
+    std::cout << "BENCH jiant=" << jiant_version() << " audio=" << seconds << "s took=" << took << "s realtime_x="
+              << seconds / took << " cpu_pct_of_one_core=" << 100.0 * took / seconds << " worst_half_pct="
+              << jiant_cpu_peak_percent() << " voices_now=" << jiant_voices_sounding() << " shed="
+              << jiant_voices_shed() << " governed=" << jiant_load_governed() << '\n';
+    return 0;
+}
+
 std::optional<int> run_tool(int argc, char** argv)
 {
+    if (argc == 2 && std::strcmp(argv[1], "--bench") == 0)
+        return bench(20.0);
     if (argc == 3 && std::strcmp(argv[1], "--persist-write") == 0)
         return persist(argv[2], true);
     if (argc == 3 && std::strcmp(argv[1], "--persist-read") == 0)
