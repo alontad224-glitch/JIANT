@@ -12,7 +12,12 @@
 #define FELUCCA_OTA 1
 #define FELUCCA_OTA_DRYRUN 0
 #define FELUCCA_USB_PID 0x0002
+#include "fm1_cc.h"                             /* BOARD_SMK37, SMK_MODEL */
+#if BOARD_SMK37
+#define FELUCCA_ID "ota-" SMK_MODEL "_900"           /* (SMK-37, after Melodee) e.g. "ota-SMK-37 Pro_900" */
+#else
 #define FELUCCA_ID "ota-FM-1_900"
+#endif
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "fm1_time.h"
 #include "fm1_sys.h"

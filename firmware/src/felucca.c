@@ -26,13 +26,23 @@
 #define FELUCCA_UAC_TONE 0       /* bench: the USB input sends test triangles instead of the music */
 #endif
 #ifndef FELUCCA_UART
+#if BOARD_SMK37
+#define FELUCCA_UART 0           /* (SMK-37, after Melodee) PH8 is key-matrix row 6 there: no TRS MIDI IN */
+#else
 #define FELUCCA_UART 1           /* TRS MIDI IN on UART1 / PH8 */
+#endif
+#endif
+#if BOARD_SMK37 && FELUCCA_UART
+#error "SMK-37: PH8 is a key-matrix row; FELUCCA_UART must be 0"
 #endif
 #ifndef FELUCCA_DUAL_CORE
 #define FELUCCA_DUAL_CORE 1      /* (JIANT 0.6.71) the second core renders some synth tracks (hal/fm1_multicore.h) */
 #endif
 #ifndef FELUCCA_HOTRAM
 #define FELUCCA_HOTRAM 1         /* (JIANT 0.6.78, experimental) core 0's hottest audio code in RAM (core.h) */
+#endif
+#if BOARD_SMK37 && !defined FELUCCA_ID
+#define FELUCCA_ID SMK_MODEL "_900"  /* (SMK-37) e.g. "SMK-37 Pro_900"; build.py passes the identity anyway */
 #endif
 #ifndef FELUCCA_ID
 #define FELUCCA_ID "FM-1_900"    /* package identity (build.py: the .fwsc marker string) */

@@ -22,6 +22,13 @@
  *   ota_show(step, code)       progress / result for the screen
  *   ota_commit(parm)           write RAM record + reset (never returns on hardware)
  */
+#if BOARD_SMK37
+/* (SMK-37, after Melodee's ota.c) the stock app's parm identity (Pro 18 B, Elite 20 B) */
+#define OTA_PARM_ID "ota-" SMK_MODEL "_016"
+_Static_assert(sizeof OTA_PARM_ID - 1u <= 20u, "SMK: the parm identity ends before +0x1C");
+#else
+#define OTA_PARM_ID "ota-FM-1_015"
+#endif
 #define OTA_AREA 0x000E0000u                     /* staged loader, 5 x 4 KiB */
 #define OTA_AREA_LEN 0x5000u
 #define OTA_RES (OTA_AREA + OTA_AREA_LEN - 0x100u)  /* 0xE4F00 = 4K boundary - 256: SPL scan */
@@ -355,8 +362,8 @@ static int ota_session(void)
     ota_wr16(parm + 2, 0x5A0Du);
     ota_wr16(parm + 4, 0x5A01u);
     ota_wr16(parm + 6, 0x5441u);
-    for (i = 0; i < 12u; i++)
-        parm[8 + i] = (uint8_t)"ota-FM-1_015"[i];    /* the loader's own USB identity */
+    for (i = 0; i < sizeof OTA_PARM_ID - 1u; i++)  /* FM-1 12 B, SMK 18 / 20 B (zero up to +0x27) */
+        parm[8 + i] = (uint8_t)OTA_PARM_ID[i];    /* the loader's own USB identity */
     ota_wr32(parm + 72, OTA_AREA);
     ota_wr16(parm, ota_crc16(parm + 2, 78, 0));
 #if FELUCCA_OTA_DRYRUN
