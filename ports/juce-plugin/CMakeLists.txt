@@ -85,7 +85,10 @@ if(JIANT_CHECK)
         JUCE_USE_CURL=0 JUCE_PLUGINHOST_LV2=0)
     target_link_libraries(plugin_check PRIVATE juce::juce_audio_processors juce::juce_gui_basics
         PUBLIC juce::juce_recommended_config_flags)
-    # the editor's picture from the plugin's own code (tests/editor_shot.cpp)
+    # the editor's picture from the plugin's own code (tests/editor_shot.cpp); not on Windows (its linker meets JUCE
+    # twice, in the plugin's shared code and in the tool)
+endif()
+if(JIANT_CHECK AND NOT WIN32)
     juce_add_console_app(editor_shot PRODUCT_NAME "editor_shot")
     target_sources(editor_shot PRIVATE tests/editor_shot.cpp)
     target_compile_definitions(editor_shot PRIVATE JUCE_MODAL_LOOPS_PERMITTED=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0)

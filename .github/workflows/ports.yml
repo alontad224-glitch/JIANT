@@ -94,6 +94,8 @@ jobs:
             JIANT-FM-Linux.zip
             build/juce-plugin/editor.png
   plugin-macos:
+    # macOS runners: set the repository variable MACOS_RUNNERS to true once the account can use them
+    if: vars.MACOS_RUNNERS == 'true'
     needs: core-and-plugin
     runs-on: macos-14
     steps:
@@ -123,6 +125,7 @@ jobs:
           name: JIANT-FM-macOS
           path: JIANT-FM-macOS-*.zip
   plugin-ios:
+    if: vars.MACOS_RUNNERS == 'true'
     needs: core-and-plugin
     runs-on: macos-14
     steps:
