@@ -386,7 +386,27 @@ else
     echo "== skip CPU under valgrind (no valgrind, or not Linux x86-64)"
 fi
 
-# (SMK-37, docs/SMK37.md) the SMK-37 packages, when built (./build.sh --board smk37 [--model elite]); a stock M-VAVE
+# (SMK-37, docs/SMK37.md) the flash map and its guards, the store on it, the board check, the loader
+$CC -DBOARD_SMK37=1 -Ifirmware/hal -o "$OUT/smk_flash_test" tests/smk_flash_test.c
+run "SMK-37 flash map + store: never the head, BTIF/USRTRIM, USR, 0xFE000, key_mac; the stock marker only released" \
+    "$OUT/smk_flash_test"
+smk_driver_guard() {                              # the RAM driver checks FL_GUARD (FL_PROTECTED on the SMK) itself
+    [ "$(grep -c '!FL_GUARD(off, 0x1000u)\|!FL_GUARD(off, n)' firmware/hal/fm1_flash.h)" = 2 ] &&
+        ! grep -q 'FL_RANGE_OK(off, 0x1000u) ||\|!FL_RANGE_OK(off, n) ||' firmware/hal/fm1_flash.h
+}
+run "SMK-37 flash driver: fl_erase4k_ram / fl_prog_ram refuse what FL_GUARD refuses" smk_driver_guard
+if [ -f build/smk37-pro/felucca-smk37-pro.fwsc ]; then
+    $CC -w -DOWN_PKG=1 -DBOARD_SMK37=1 -Ifirmware/hal -o "$OUT/ota_test_smk" tests/ota_test.c
+    run "SMK-37 M-UPGRADE entry: staging 0xBB000, the model's record, the board check (-15 FM-1 package, -16 table)" \
+        "$OUT/ota_test_smk" build/smk37-pro/felucca-smk37-pro.fwsc build/felucca.fwsc
+    head -c 200000 build/smk37-pro/felucca.bin > "$OUT/smk_old_app.bin"
+    python3 tools/fm1pkg_make.py --board smk37 --product "SMK-37 Pro_900" "$OUT/smk_old_app.bin" \
+        build/smk37-pro/loader/ota.bin "$OUT/smk_old.fwsc" >/dev/null
+    $CC -DBOARD_SMK37=1 -Ifirmware/hal -o "$OUT/smk_ldr_test" tests/smk_ldr_test.c
+    run "SMK-37 update loader: the app area 0x4000-0x9CFFF only, the record at 0xBFF00, the FM-1's package refused" \
+        "$OUT/smk_ldr_test" "$OUT/smk_old.fwsc" build/smk37-pro/felucca-smk37-pro.fwsc build/felucca.fwsc
+fi
+# the SMK-37 packages, when built (./build.sh --board smk37 [--model elite]); a stock M-VAVE
 # v016 package for the region table's bytes: SMK_STOCK=folder with SMK37-Pro-V16.fwsc / SMK37-Elite-V16.fwsc (read only)
 for m in pro elite; do
     P=build/smk37-$m/felucca-smk37-$m.fwsc

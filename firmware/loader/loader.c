@@ -21,9 +21,16 @@
 #define RING_PUBLISH() __asm__ volatile("" ::: "memory")
 #include "fm1_time.h"
 #include "fm1_sys.h"
+#if BOARD_SMK37
+/* (SMK-37) the loader may write the app area [0x4000, 0x9D000) and erase update records in the OTA area
+ * [0xBB000, 0xC0000) only (hal/fm1_flash_map.h FL_LDR_RANGE_OK); the RAM driver's FL_PROTECTED refuses the head,
+ * BTIF / USRTRIM, USR and key_mac on top of it */
+#define FL_RANGE_OK(off, n) FL_LDR_RANGE_OK(off, n)
+#else
 /* the loader may write the app area and erase update records; never the head, nor Felucca's store
  * [0x97000, 0xE0000) (user data, never a record: ldr_core.c) */
 #define FL_RANGE_OK(off, n) (FL_IN(off, n, 0x4000u, 0x97000u) || FL_IN(off, n, 0xE0000u, 0xFC000u))
+#endif
 #include "fm1_flash.h"
 #include "../src/libc.c"
 #include "../src/usb.c"

@@ -50,6 +50,13 @@
 #ifndef FELUCCA_VERSION
 #define FELUCCA_VERSION "v0.9.18" /* JIANT's (based on Felucca 1.1.5.1): the splash, the menu, the console, the editor */
 #endif
+#ifndef FELUCCA_SMK_FLASH
+#define FELUCCA_SMK_FLASH 0      /* (SMK-37, docs/SMK37.md) 1: settings / projects / updates on the SMK's flash (its
+                                  * own part 0xEB6014 only, the SMK map); 0: RAM-only, nothing is ever written */
+#endif
+#if FELUCCA_SMK_FLASH && !BOARD_SMK37
+#error "FELUCCA_SMK_FLASH is the SMK-37's"
+#endif
 #if FELUCCA_OTA && !FELUCCA_FLASH
 #error "FELUCCA_OTA needs FELUCCA_FLASH"
 #endif
