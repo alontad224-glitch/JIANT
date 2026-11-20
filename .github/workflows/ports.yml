@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# JIANT beyond the FM-1 (ports/): the core's test, the MPC plugin (desktop, ARM32, ARM64; the SDK's host simulator and
+# validator) and the MPC Sample app (ARM64 in Debian bookworm, as the MPC runs it: its tests and the SD card zip).
+# The zips are this run's artifacts.
+name: ports
+on:
+  workflow_dispatch:
+  push:
+    paths: ["ports/**", ".github/workflows/ports.yml"]
+permissions:
+  contents: read
+jobs:
+  core-and-plugin:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: pip install Pillow==12.3.0 numpy==2.3.5 fonttools==4.61.1 ziglang
+      - name: generated headers
+        run: python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gen
+          path: build/gen
+      - name: the core
+        run: ports/core/build.sh test
+      - name: the MPC plugin
+        run: python3 ports/mpc-plugin/build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JIANT-FM-MPC-plugin
+          path: build/mpc-plugin/*.zip
+  mpc-sample:
+    needs: core-and-plugin
+    runs-on: ubuntu-24.04-arm
+    container: debian:bookworm
+    steps:
+      - name: build tools (sample-base's image)
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends g++ make git ca-certificates pkg-config python3 patch \
+            libasound2-dev libsystemd-dev dbus libdrm-dev libfreetype6-dev libfontconfig1-dev fonts-liberation
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: gen
+          path: build/gen
+      - name: the app and its tests
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          ports/mpc-sample/build.sh test
+      - name: the SD card zip
+        run: |
+          strip -o ports/mpc-sample/build/jiant.release ports/mpc-sample/build/jiant
+          python3 ports/mpc-sample/tools/make_release.py "v0.0-ci${GITHUB_RUN_NUMBER}" \
+            --binary ports/mpc-sample/build/jiant.release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: JIANT-FM-MPC-Sample
+          path: |
+            ports/mpc-sample/dist/*.zip
+            ports/mpc-sample/build/preview.png

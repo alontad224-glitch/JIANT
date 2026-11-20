@@ -43,6 +43,16 @@ const char *jiant_version(void);
 /* power on: an erased flash (the power-on parts), this session's seed (the macros' dice); skip_splash 1 runs the
  * splash's ~1.7 s here so the first rendered audio already answers the keys. Once per process. 0 = booted. */
 int jiant_boot(uint32_t seed, int skip_splash);
+/* the device's own flash (1 MiB NOR: settings, songs, projects, user presets), for a port that keeps it in a file:
+ * jiant_flash_restore before jiant_boot gives back a saved image (it boots from it, as the FM-1 does from its flash;
+ * 0 done, 1 too late or the wrong size); jiant_flash is the image now, jiant_flash_writes counts what the firmware
+ * wrote to it (a change: time to save it, once the firmware is done, as the browser emulator does) */
+int jiant_flash_restore(const uint8_t *image, size_t size);
+const uint8_t *jiant_flash(size_t *size);
+uint32_t jiant_flash_writes(void);
+/* the autosave (project.c, MENU > SYSTEM > RESTORE LAST) written now when the music changed since the last one, not
+ * after its 10 s of quiet: for a port about to close (the transport is stopped first). 1 written, 0 nothing to do. */
+int jiant_autosave_now(void);
 int jiant_booted(void);
 
 /* n frames at JIANT_RATE into l and r (any n, either pointer may be 0 to drop the channel) */

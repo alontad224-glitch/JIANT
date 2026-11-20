@@ -31,8 +31,17 @@ int main(void)
     double quiet, note, after;
 
     printf("JIANT core %s\n", jiant_version());
+    {
+        size_t fs = 0;
+        static uint8_t img[1u << 20];
+        jiant_flash(&fs);
+        memset(img, 0xFF, sizeof img);
+        CHECK(fs == sizeof img && jiant_flash_restore(img, 5) == 1 && jiant_flash_restore(img, fs) == 0,
+              "a flash image is taken before boot (%zu bytes)", fs);
+    }
     CHECK(jiant_boot(1, 1) == 0 && jiant_booted(), "boots (splash skipped)");
     CHECK(jiant_boot(1, 1) == 1, "a second boot is refused");
+    CHECK(jiant_flash_restore(jiant_flash(NULL), 1u << 20) == 1, "and a flash image after it");
 
     quiet = rms(4410);
     jiant_midi(0x90, 60, 100);
@@ -64,7 +73,11 @@ int main(void)
     b = malloc(nb > na ? nb : na);
     jiant_state_save(b, nb);
     CHECK(nb != na || memcmp(a, b, na), "another song changes it");
-    CHECK(jiant_state_load(a, na) == 0, "the first loads back");
+    {
+        uint32_t w = jiant_flash_writes();
+        CHECK(jiant_state_load(a, na) == 0, "the first loads back");
+        CHECK(jiant_flash_writes() != w, "into the flash (%u writes)", jiant_flash_writes() - w);
+    }
     rms(4410);
     nc = jiant_state_save(b, nb > na ? nb : na);
     CHECK(nc == na && !memcmp(a, b, na), "and saves the same bytes");

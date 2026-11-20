@@ -21,7 +21,7 @@ firmware sources (`firmware/src`), so a song sounds the same everywhere.
 | --- | --- | --- |
 | [`core/`](core/) | The whole firmware as one C library: boot, audio, MIDI, the panel, the screen, the music saved and restored. The browser emulator's host layer behind a stable API ([`jiant_core.h`](core/jiant_core.h)). | Works, tested |
 | [`mpc-plugin/`](mpc-plugin/) | JIANT FM as an instrument plugin: MPC standalones (MPC OS 3.10.1+), and desktop VST2 hosts. | Builds for ARM32, ARM64 and desktop; passes the SDK's host simulator; not yet tried on an MPC |
-| MPC Sample app | JIANT as the MPC Sample's whole system, its own screen and controls, started from the microSD card. | Next |
+| [`mpc-sample/`](mpc-sample/) | JIANT as the MPC Sample's whole instrument, its own screen, the MPC's pads, buttons and knobs as the FM-1's panel, started from the microSD card (on keremimo's sample-base). | Builds for ARM64; runs and passes its tests on Linux; not yet tried on an MPC Sample |
 | SMK-37 | JIANT on the SMK-37 Pro / Elite, bare metal like the FM-1 (same AC791N chip, same screen and audio format). | Next |
 
 ## The core
@@ -65,7 +65,7 @@ What the plugin does:
 Limits, today:
 
 - **No JIANT screen inside an MPC**: MPC plugins show only the MPC's parameter page. The full JIANT, its screen and
-  its UI, is the MPC Sample app's job (next), not the plugin's.
+  its UI, is the MPC Sample app's job ([`mpc-sample/`](mpc-sample/)), not the plugin's.
 - **One JIANT per project**: a second instance stays silent (the firmware is one device).
 - Tried in the SDK's host simulator, not yet on MPC hardware.
 

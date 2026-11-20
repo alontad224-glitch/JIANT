@@ -15,11 +15,51 @@
 
 JC_API const char *jiant_version(void) { return FELUCCA_VERSION; }
 
+static int jc_restored;
+JC_API int jiant_flash_restore(const uint8_t *image, size_t size)
+{
+    if (web_booted || !image || size != sizeof nor)
+        return 1;
+    memcpy(nor, image, sizeof nor);
+    jc_restored = 1;
+    return 0;
+}
+JC_API const uint8_t *jiant_flash(size_t *size)
+{
+    if (size)
+        *size = sizeof nor;
+    return nor;
+}
+JC_API uint32_t jiant_flash_writes(void) { return web_flash_writes; }
+
+JC_API int jiant_autosave_now(void)
+{
+    uint32_t sig;
+    if (!web_booted || !flash_ok || !(ui_prefs & PREF_RESTORE_ON))
+        return 0;
+    if (song.playing)
+        seq_stop();
+    sig = autosave_sig();
+    if (sig == as.saved)
+        return 0;
+    project_capture(&proj_scratch);                       /* (project.c autosave_poll's write) */
+    proj_wire_gen++;
+    as.last = fm1_ms;
+    as.wrote = 1;
+    as.err = !proj_pack(&proj_wire, &proj_scratch) || st_save(OBJ_AUTOSAVE, &proj_wire, sizeof proj_wire) != 0;
+    if (as.err)
+        return 0;
+    as.saved = as.seen = sig;
+    as.writes++;
+    return 1;
+}
+
 JC_API int jiant_boot(uint32_t seed, int skip_splash)
 {
     if (web_booted)
         return 1;
-    web_nor_erase();
+    if (!jc_restored)
+        web_nor_erase();
     web_seed(seed ? seed : 1u);
     web_boot();
     if (skip_splash) {                    /* the splash and the boot's 30 ms, rendered and dropped */
