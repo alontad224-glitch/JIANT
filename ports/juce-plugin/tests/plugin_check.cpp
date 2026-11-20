@@ -53,7 +53,7 @@ int main(int argc, char** argv)
     juce::OwnedArray<juce::PluginDescription> found;
     for (auto* f : fm.getFormats())
         f->findAllTypesForFile(found, argv[1]);
-    check(found.size() == 1, "the plugin found (" + juce::String(found.size()) + " in " + argv[1] + ")");
+    check(found.size() == 1, "the plugin found (" + juce::String(found.size()) + " in " + juce::String(argv[1]) + ")");
     if (found.isEmpty()) return 1;
     const auto& d = *found[0];
     check(d.name == "JIANT FM" && d.manufacturerName == "Juan Jiant" && d.isInstrument,
