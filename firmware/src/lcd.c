@@ -177,8 +177,8 @@ static void lcd_wake_now(void)
  * only sends when a colour changed. Untested on hardware in JIANT. */
 #define PADLED_N 16u
 #define PADLED_LATCH 250u
-static uint8_t padled_buf[PADLED_LATCH + PADLED_N * 24u] __attribute__((section(".pool"), aligned(4)));   /* (zeroed
-                                                * at boot: the latch) */
+static uint8_t padled_buf[PADLED_LATCH + PADLED_N * 24u] __attribute__((aligned(4)));   /* (.bss, zeroed at boot:
+                                                * the latch; the pool keeps its 8 KiB spare) */
 static uint32_t padled_rgb[PADLED_N];
 static uint8_t padled_dirty = 1;
 /* pad (0..7 the top row, 8..15 the bottom row, left to right) -> its place in the chain (the stock table) */

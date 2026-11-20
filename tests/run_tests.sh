@@ -395,6 +395,11 @@ smk_driver_guard() {                              # the RAM driver checks FL_GUA
         ! grep -q 'FL_RANGE_OK(off, 0x1000u) ||\|!FL_RANGE_OK(off, n) ||' firmware/hal/fm1_flash.h
 }
 run "SMK-37 flash driver: fl_erase4k_ram / fl_prog_ram refuse what FL_GUARD refuses" smk_driver_guard
+$CC -w -DBOARD_SMK37=1 -Ifirmware/hal -o "$OUT/smk_map_test" tests/smk_map_test.c
+run "SMK-37 controls: the printed buttons, K1-K8, the 27 middle keys, the pads as the 16 white keys" "$OUT/smk_map_test"
+$CC -w -DBOARD_SMK37=1 -Ifirmware/hal -o "$OUT/smk_keys_test" tests/smk_keys_test.c
+run "SMK-37 keybed (hal/smk_input.h, Melodee's test): two contacts, bounces, re-strikes, outer keys, pads, curves" \
+    "$OUT/smk_keys_test"
 if [ -f build/smk37-pro/felucca-smk37-pro.fwsc ]; then
     $CC -w -DOWN_PKG=1 -DBOARD_SMK37=1 -Ifirmware/hal -o "$OUT/ota_test_smk" tests/ota_test.c
     run "SMK-37 M-UPGRADE entry: staging 0xBB000, the model's record, the board check (-15 FM-1 package, -16 table)" \

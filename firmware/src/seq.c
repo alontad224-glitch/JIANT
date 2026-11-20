@@ -1139,6 +1139,17 @@ static void keyboard_block(void)
 {
     uint32_t cur = fm1_in.notes, ch, k;
     uint32_t lay, fx;
+#if BOARD_SMK37
+    {   /* (SMK-37) a key struck again before a full lift (hal/smk_input.h notes_retrig): its bit in notes never
+         * dropped, so this block lets it go and the next one (~1.5 ms on) strikes it again. (Only the TIMER5 scan sets
+         * the bits: one taken here is cleared; one set between the read and the clear waits for the next block.) */
+        uint32_t rt = fm1_in.notes_retrig;
+        if (rt) {
+            fm1_in.notes_retrig &= ~rt;
+            cur &= ~(rt & kb_prev);
+        }
+    }
+#endif
     keys_strum(CTL);                              /* (0.6.81) the chords' strums */
     ch = cur ^ kb_prev;                           /* keys also sound while entering steps */
     if (!ch)
