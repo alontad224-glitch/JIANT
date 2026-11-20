@@ -78,7 +78,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ninja-build libasound2-dev libfreetype-dev libfontconfig1-dev \
-            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libgl1-mesa-dev xvfb
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev libxi-dev libgl1-mesa-dev xvfb
       - name: VST3, LV2, standalone, and the checks
         run: ports/juce-plugin/build.sh -DJIANT_CHECK=ON
       - name: the plugin loaded as a host loads it; the editor's picture
@@ -156,7 +156,7 @@ jobs:
       - name: VST3 and standalone, and the check
         shell: bash
         run: |
-          cmake -S ports/juce-plugin -B build/juce-plugin -DJIANT_CHECK=ON
+          cmake -S ports/juce-plugin -B build/juce-plugin -T ClangCL -DJIANT_CHECK=ON   # (clang-cl: the firmware's GNU C)
           cmake --build build/juce-plugin --config Release --parallel
           A=build/juce-plugin/JiantFM_artefacts/Release
           build/juce-plugin/plugin_check_artefacts/Release/plugin_check.exe "$A/VST3/JIANT FM.vst3"

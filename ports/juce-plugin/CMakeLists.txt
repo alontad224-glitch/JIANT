@@ -60,8 +60,8 @@ target_sources(JiantFM PRIVATE Source/JiantProcessor.cpp Source/JiantEditor.cpp 
 target_include_directories(JiantFM PRIVATE "${REPO}/ports/core" "${REPO}/build/gen" "${REPO}/firmware/src")
 # the firmware's C, as the emulator and the host tests build it: no fused multiply-adds, its own warnings off
 set(CORE_FLAGS -ffp-contract=off -w)
-if(MSVC)
-    set(CORE_FLAGS /w /fp:precise)
+if(MSVC)                                                 # Windows: clang-cl (-T ClangCL), MSVC does not take GNU C
+    set(CORE_FLAGS /w /clang:-ffp-contract=off /clang:-std=gnu99)
 endif()
 set_source_files_properties("${REPO}/ports/core/jiant_core.c" PROPERTIES
     COMPILE_OPTIONS "${CORE_FLAGS}"
