@@ -1037,14 +1037,21 @@ static void latch_drop(track_t *t)
 /* key k plays kb_note[k] on track t. A note another key holds already sounds: it is not started again (nor sent
  * to MIDI OUT); the key keeps its note */
 /* (0.6.81) the next note of key k's chord in (a note another key holds already sounds: not started again) */
+#if BOARD_SMK37
+/* (SMK-37, after Melodee's seq.c KEY_VEL) the velocity key k (0 = F3) was struck with: the keybed's two-contact time
+ * through the curves, or a pad's peak (hal/smk_input.h key_vel, 1..127). The FM-1's keys: 100 */
+#define KEY_VEL(k) ((uint32_t)fm1_in.key_vel[SMK_KEY_F3 + (k)])
+#else
+#define KEY_VEL(k) 100u
+#endif
 static void key_next(uint32_t k, track_t *t)
 {
     uint32_t x = kb_snd[k][kb_on[k]], mc = trk_midi_ch(trk_index(t));
     if (!midi_local_held(t, x)) {
         in_norec = kb_sn[k] > 1u;                   /* (0.6.84: the chord's notes recorded at once, key_on) */
-        dxo_on(t, x, kb_oct[k], 100, DXO_KEY + k);  /* (0.8.5: a kit's octave; else input_on) */
+        dxo_on(t, x, kb_oct[k], KEY_VEL(k), DXO_KEY + k);  /* (0.8.5: a kit's octave; else input_on) */
         in_norec = 0;
-        mo_key(t, 0x09u | (0x90u | mc) << 8 | drum_oct_note(x, kb_oct[k]) << 16 | 100u << 24);
+        mo_key(t, 0x09u | (0x90u | mc) << 8 | drum_oct_note(x, kb_oct[k]) << 16 | KEY_VEL(k) << 24);
     }
     kb_on[k]++;
 }
@@ -1069,7 +1076,7 @@ static void key_on(uint32_t k, track_t *t)
                                                      * key went down (the strum's later notes would fall into the next
                                                      * step); the sequencer strums it back as it plays (seq_step) */
         for (i = 0; i < n; i++)
-            rec_note(t, kb_snd[k][i], 100);
+            rec_note(t, kb_snd[k][i], KEY_VEL(k));
     for (i = 0; i < n && (!gap || !i); i++)        /* (STRUM: the first now, the others by keys_strum) */
         key_next(k, t);
     kb_sdue[k] = (uint16_t)(gap < 65535u ? gap : 65535u);

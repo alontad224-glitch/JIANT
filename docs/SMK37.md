@@ -75,7 +75,7 @@ Other behaviour:
 - OCTAVE- + OCTAVE+ held at power-on opens HARDWARE CALIBRATION. It asks for each FM-1 function by its printed SMK
   name, and for the knobs by K6, K7, K8 and K1..K4. The table's magic is `PNS5`, so an FM-1 table is never taken.
 - OCTAVE- + OCTAVE+ held for 5 s enters UBOOT, as on the FM-1.
-- Keys play at velocity 100, as on the FM-1. The HAL measures each key's velocity, but JIANT does not use it yet.
+- Keys and pads play at the velocity the HAL measures (the keybed's two-contact time, a pad's peak); notes sent to MIDI OUT carry it. The FM-1 still plays at 100. *Untested on hardware.*
 - A key struck again before a full lift sounds again (`notes_retrig`).
 - Button LEDs are on or off. What breathes on the FM-1 blinks at about 1 Hz here. The FM-1's dim idle glow has no
   level on the SMK, so idle buttons are dark, as with MENU > LEDS OFF. MENU > LEDS INV lights the idle buttons, as
@@ -176,7 +176,6 @@ Everything that touches the SMK. In particular:
 
 ## Not done yet
 
-- Using the measured velocity on the keys and pads.
 - TRS MIDI out on PC7, the faders, the wheels and the sustain pedal.
 - KNOB BANK and FADER BANK, and the outer 10 keys.
 - The factory velocity curves from USRTRIM (read-only).
