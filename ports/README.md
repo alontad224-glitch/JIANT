@@ -39,6 +39,16 @@ EXPLORE keeps its pieces light. The ports run on far bigger CPUs, so the core bu
   never does. `jiant_cpu_percent()` and friends report it; the MPC Sample app shows it on the screen (CPU, red when
   anything gave way), in `status`, and `jiant --bench` measures the bench song on the MPC's own CPU.
 
+- **Samples** (`firmware/src/smp_slots.c`, the API in [`jiant_core.h`](core/jiant_core.h)): 16 slots of up to 60 s,
+  mono or stereo, loaded from the host's PCM at any rate (made and resampled on the host's own thread, handed to the
+  audio thread by pointer, freed by `jiant_service` on the host's service thread), recorded from the device's input
+  (`jiant_input`), JIANT's master or a track, and played by two engines in the FM-1's retired slots, **SAMPLE** (4:
+  one shot with experimental modes and triggers, a feedback comb, DESTROY, REC) and **GRAIN** (8: granular, on a slot
+  or LIVE on the input or the master, time-stretch, feedback and shimmer), and by a sample layer on every **DRUM-X**
+  sound (SMORPH and its blends). The controls: [`mpc-sample/README.md`](mpc-sample/README.md#samples-sample-grain-and-drum-xs-sample-layer).
+  On the FM-1 none of it exists: a project made with them plays SAMPLE and GRAIN as ANALOG there (the retired engines'
+  way) and DRUM-X as its synthesized kit (the layer's values sit in slots a DRUM track there never reads).
+
 On this computer (x86) the bench song renders at ~37x real time; on the MPC Sample's Cortex-A55 a share of one of
 its four cores, to be measured with `--bench` on the hardware.
 
@@ -49,8 +59,11 @@ ports/core/build.sh test      # build/core/libjiant_core.a, then its test
 ```
 
 One device per process (the firmware keeps its state in globals), not thread safe; see the header. The test boots it,
-plays a MIDI note, draws the screen, plays a generated song, saves and restores the music, and follows an external
-MIDI clock.
+plays a MIDI note, draws the screen, plays a generated song, saves and restores the music, follows an external MIDI
+clock, loads and records sample slots. `sample_test` drives the sample engines with the firmware's internals at hand:
+every SAMPLE mode and trigger, GRAIN's travel modes, time-stretch, feedback and LIVE input, DRUM-X's blends (and with
+SMORPH 0 bit for bit the FM-1's DRUM-X), REC from the master, the bounds at the engines' tops and their cost; then
+`fm1_load_test`, the core built as the FM-1 is, loads the project it saved.
 
 ## The MPC plugin
 
