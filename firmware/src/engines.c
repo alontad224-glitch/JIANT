@@ -18,6 +18,7 @@
 #include "smp_slots.c"          /* (ports/) the sample slots, the recorder, the LIVE buffers */
 static void voice_kill(voice_t *v);   /* (voice.c) */
 #include "eng_sample.c"         /* (ports/) SAMPLE: one shot, experimental modes, feedback, DESTROY, REC */
+#include "eng_grain.c"          /* (ports/) GRAIN: granular, on a slot or LIVE */
 #endif
 #if FELUCCA_FM4
 #include "eng_digital.c"        /* DIGITAL: four-operator FM (retired; FELUCCA_FM4=1 builds it) */
@@ -66,7 +67,11 @@ static const engine_t *const ENGINES[NENGINES] = {
     &ENG_FORMANT,                /* 5 VOICE (eng_formant.c: "voice" is a sounding note in voice.c) */
     &ENG_GONE,                   /* 6: reserved (TRIO, folded into ANALOG in JIANT 0.4: core.h analog_from_trio) */
     &ENG_WHEEL,                  /* 7 */
+#if FELUCCA_HOST_POWER
+    &ENG_GRAIN,                  /* 8 (ENGI_GRAIN; ports/ only: eng_grain.c) */
+#else
     &ENG_GONE,                   /* 8: reserved (GRAIN, retired in JIANT) */
+#endif
     &ENG_GONE,                   /* 9: reserved (PHYS, retired in TONIC: its sounds play as ANALOG) */
     &ENG_DRUM,                   /* 10 (ENGI_DRUM) */
     &ENG_NOISE,                  /* 11 */
@@ -84,6 +89,8 @@ static const param_desc_t *hp_xdesc(const track_t *t, uint32_t id)
     const engine_t *e = ENGINES[t->eng_req < NENGINES ? t->eng_req : 0u];
     if (e == &ENG_SAMPLE && id >= P_LN0 && id <= P_LN7)
         return smp_xdesc(t, id - P_LN0);
+    if (e == &ENG_GRAIN && ((id >= P_LN0 && id <= P_LN7) || id == P_GXQUANT || id == P_GXDAMP))
+        return gr_xdesc(t, id);
     return 0;
 }
 static void hp_preset_x(track_t *t, const engine_t *e, uint32_t pi)
@@ -92,6 +99,13 @@ static void hp_preset_x(track_t *t, const engine_t *e, uint32_t pi)
     if (e == &ENG_SAMPLE)
         for (i = 0; i < 8u; i++)
             t->p[P_LN0 + i] = SMP_PRESET_X[pi % NELEM(SMP_PRESETS)][i];
+    if (e == &ENG_GRAIN) {
+        const uint8_t *x = GR_PRESET_X[pi % NELEM(GR_PRESETS)];
+        for (i = 0; i < 8u; i++)
+            t->p[P_LN0 + i] = x[i];
+        t->p[P_GXQUANT] = x[8];
+        t->p[P_GXDAMP] = x[9];
+    }
 }
 #endif
 
@@ -113,7 +127,7 @@ static const uint8_t ENGINE_ORDER[NENG_SHOWN] = {
     ENGI_PHASE, ENGI_WHEEL,      /* PHASE WHEEL */
     ENGI_NOISE,                  /* NOISE */
 #if FELUCCA_HOST_POWER
-    ENGI_SAMPLE,                 /* (ports/) SAMPLE: after the FM-1's, so PROGRAM CHANGE numbers them as before */
+    ENGI_SAMPLE, ENGI_GRAIN,     /* (ports/) SAMPLE GRAIN: after the FM-1's, so PROGRAM CHANGE numbers them as before */
 #endif
 #if FELUCCA_FM4
     ENGI_DIGITAL,                /* DIGITAL (retired, FELUCCA_FM4 builds only): after the rest */

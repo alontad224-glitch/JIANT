@@ -29,7 +29,7 @@
 #endif
 #define NENGINES 15              /* the stores' engine numbers 0..14 (engines.c ENGINES[], append-only; 0.8.3: 14 ANIMAL) */
 #define ENGI_DIGITAL 1u          /* reserved without FELUCCA_FM4: never selectable (eng_ok), its sounds load as FM6 */
-#define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - 5 + !!FELUCCA_HOST_POWER)   /* (ports/: SAMPLE too) */   /* the engines one can pick: PRESETS, the EDIT layer, the editor,
+#define NENG_SHOWN (NENGINES - !FELUCCA_FM4 - 5 + 2 * !!FELUCCA_HOST_POWER)   /* (ports/: SAMPLE, GRAIN too) */   /* the engines one can pick: PRESETS, the EDIT layer, the editor,
                                                 * in the display order of engines.c ENGINE_ORDER (PHYS 9, and in
                                                 * JIANT SAMPLE 4, GRAIN 8, SLICE 13: retired) */
 /* (JIANT 0.6.71) the second core (hal/fm1_multicore.h; fx.c mix_block hands it some synth tracks). MC_CPU(): the core
@@ -228,7 +228,7 @@ static void params_by_count(int16_t *out, const int16_t *in, uint32_t np, const 
 static inline int eng_gone(uint32_t e)
 {
 #if FELUCCA_HOST_POWER                   /* (ports/) SAMPLE and GRAIN again, on the samples of smp_slots.c */
-    return e == ENGI_PHYS || e == ENGI_GRAIN || e == ENGI_SLICE || e == ENGI_TRIO;
+    return e == ENGI_PHYS || e == ENGI_SLICE || e == ENGI_TRIO;
 #else
     return e == ENGI_PHYS || e == ENGI_SAMPLE || e == ENGI_GRAIN || e == ENGI_SLICE || e == ENGI_TRIO;
 #endif

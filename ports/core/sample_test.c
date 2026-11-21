@@ -111,6 +111,16 @@ static void heavy_sample(track_t *t)
     t->p[P_E7] = 40;                           /* DESTROY on */
 }
 
+static void heavy_grain(track_t *t)
+{
+    t->p[P_E0] = 6;
+    t->p[P_E3] = 100;                          /* 190 ms grains, */
+    t->p[P_E4] = 127;                          /* 200 a second: clouds at their cap */
+    t->p[P_E6] = 40;
+    t->p[P_GXFB] = 60;
+    t->p[P_GXWIDTH] = 127;
+}
+
 static float S1[44100], S2[44100];
 int main(void)
 {
@@ -374,6 +384,188 @@ int main(void)
         printf("  cost  SAMPLE LOOP + FEEDBK + DESTROY, stereo slot: %u voices at %.1fx real time (%.2f %% of a core a voice)\n",
                nv, x, 100.0 / x / (nv ? nv : 1u));
         CHECK(nv == 48u && x > 2.0, "48 SAMPLE voices at once, faster than real time");
+    }
+    printf("GRAIN\n");
+    for (i = 0; i < 44100u; i++)               /* slot 1 again: the ramp */
+        S1[i] = 0.8f * (float)i / 44100.0f * (float)sin(2.0 * M_PI * 441.0 * i / 44100.0);
+    jiant_slot_load(0, S1, 0, 44100, 44100, "RAMP");
+    use(ENGI_GRAIN, 1);                        /* FROZEN CLOUD */
+    CHECK(t->engine == ENGI_GRAIN && !strcmp(ENGINES[t->engine]->name, "GRAIN"), "track 1 plays GRAIN");
+    t->p[P_E0] = 1;                            /* the quarters: 220 Hz at the start */
+    t->p[P_E1] = 0;
+    t->p[P_E5] = 0;                            /* no spray, */
+    t->p[P_E6] = 0;                            /* no detune */
+    t->p[P_GXREG] = 20;
+    ren(4096);
+    note(60, 110);
+    ren(44100);
+    {
+        uint32_t c = zc(ol, 11025, 33075) * 2u;
+        double ph = gr_v[0][t->m_vi].ph;
+        CHECK(wrms(ol, 11025, 44100) > 0.002, "it sounds (%.4f: frozen, unsprayed grains of one place partly cancel)", wrms(ol, 11025, 44100));
+        CHECK(c > 200u && c < 240u, "C4: the source's pitch (%u Hz, 220)", c);
+        ren(22050);
+        CHECK(gr_v[0][t->m_vi].ph == ph, "FREEZE: the playhead stays (frame %.0f)", ph);
+        off(60);
+        ren(22050);
+        note(72, 110);
+        ren(44100);
+        c = zc(ol, 11025, 33075) * 2u;
+        CHECK(c > 410u && c < 470u, "C5: an octave up (%u Hz)", c);
+        off(72);
+        ren(22050);
+    }
+    t->p[P_GXTRAV] = GT_FWD;
+    t->p[P_E2] = 0;
+    ren(4096);
+    note(60, 110);
+    ren(22050);
+    {
+        double ph0 = gr_v[0][t->m_vi].ph;
+        ren(22050);
+        CHECK(gr_v[0][t->m_vi].ph == ph0, "FWD at SCAN 0: frozen (frame %.0f)", ph0);
+        off(60);
+        ren(22050);
+    }
+    t->p[P_GXREG] = 127;
+    t->p[P_GXTRAV] = GT_STRETCH;
+    t->p[P_E2] = 21;                           /* 2x */
+    ren(4096);
+    note(72, 110);
+    ren(2205);
+    {
+        double ph0 = gr_v[0][t->m_vi].ph, d;
+        ren(8820);
+        d = gr_v[0][t->m_vi].ph - ph0;
+        CHECK(d > 17000.0 && d < 18300.0, "STRETCH 2x: the playhead at twice real time (%.0f frames in 8820), the pitch the key's",
+              d);
+        off(72);
+        ren(22050);
+    }
+    t->p[P_GXTRAV] = GT_REV;
+    t->p[P_E2] = 30;
+    ren(4096);
+    note(60, 110);
+    ren(2205);
+    {
+        double ph0 = gr_v[0][t->m_vi].ph;
+        ren(4410);
+        CHECK(gr_v[0][t->m_vi].ph < ph0 || gr_v[0][t->m_vi].ph > 40000.0, "REV: the playhead backwards (%.0f -> %.0f)", ph0,
+              gr_v[0][t->m_vi].ph);
+        off(60);
+        ren(22050);
+    }
+    t->p[P_GXTRAV] = GT_PING;
+    t->p[P_E2] = 63;
+    t->p[P_GXREG] = 10;
+    ren(4096);
+    note(60, 110);
+    {
+        uint32_t k, flips = 0;
+        float d0 = 1.0f;
+        for (k = 0; k < 40u; k++) {
+            ren(441);
+            flips += gr_v[0][t->m_vi].dir != d0;
+            d0 = gr_v[0][t->m_vi].dir;
+        }
+        CHECK(flips >= 4u, "PING: forth and back (%u turns in 0.4 s)", flips);
+        off(60);
+        ren(22050);
+    }
+    t->p[P_GXTRAV] = GT_KEY;
+    t->p[P_GXREG] = 127;
+    ren(4096);
+    note(36, 110);
+    ren(2205);
+    {
+        double lo = gr_v[0][t->m_vi].ph, hi;
+        off(36);
+        ren(22050);
+        note(84, 110);
+        ren(2205);
+        hi = gr_v[0][t->m_vi].ph;
+        off(84);
+        ren(22050);
+        CHECK(lo < 100.0 && hi > 43000.0, "KEY: C2 the region's start, C6 its end (%.0f, %.0f)", lo, hi);
+    }
+    use(ENGI_GRAIN, 9);                        /* GLITCH: RAND */
+    t->p[P_E0] = 0;
+    ren(4096);
+    note(60, 110);
+    {
+        uint32_t k, jumps = 0;
+        double p0 = -1;
+        for (k = 0; k < 20u; k++) {
+            ren(2205);
+            jumps += gr_v[0][t->m_vi].ph != p0;
+            p0 = gr_v[0][t->m_vi].ph;
+        }
+        CHECK(jumps >= 5u, "RAND: the playhead jumps (%u places in 1 s)", jumps);
+        off(60);
+        ren(22050);
+    }
+    use(ENGI_GRAIN, 0);                        /* CLOUD at its most: DENSITY, SIZE, SPRAY, SPREAD, FEEDBK, SHIMMR */
+    t->p[P_E0] = 6;
+    t->p[P_E3] = t->p[P_E4] = t->p[P_E5] = t->p[P_E6] = 127;
+    t->p[P_GXFB] = 127;
+    t->p[P_GXSHIM] = 1;
+    t->p[P_GXWIDTH] = 127;
+    ren(4096);
+    {
+        float pk = 0;
+        uint32_t k, most = 0;
+        nonfinite = 0;
+        for (k = 0; k < 8u; k++)
+            note(48 + 5 * k, 127);
+        for (k = 0; k < 10u; k++) {
+            uint32_t j, c = 0;
+            ren(22050);
+            for (j = 0; j < 22050u; j++)
+                pk = fabsf(ol[j]) > pk ? fabsf(ol[j]) : pk;
+            for (j = 0; j < 64u; j++)
+                c += (uint32_t)((gr_v[0][t->m_vi].live >> j) & 1u);
+            most = c > most ? c : most;
+        }
+        CHECK(!nonfinite && pk < 1.5f && most <= GR_N && most > 20u,
+              "DENSITY SIZE FEEDBK SHIMMR at their top, 8 voices, 5 s: finite, bounded (peak %.2f), %u grains a voice", pk, most);
+        CHECK(wrms(ol, 0, 22050) > 0.01 && fabs(wrms(ol, 0, 22050) - wrms(or_, 0, 22050)) + fabsf(ol[1000] - or_[1000]) > 0.0,
+              "WIDTH: the grains in stereo (L %.3f R %.3f)", wrms(ol, 0, 22050), wrms(or_, 0, 22050));
+        for (k = 0; k < 8u; k++)
+            off(48 + 5 * k);
+        ren(44100);
+    }
+    use(ENGI_GRAIN, 12);                       /* LIVE FREEZE: the input */
+    t->p[P_GXTRAV] = GT_FWD;
+    t->p[P_E1] = 10;
+    ren(4096);
+    {
+        static float il[4410], ir[4410];
+        uint32_t k, c;
+        for (k = 0; k < 4410u; k++)
+            il[k] = ir[k] = 0.5f * (float)sin(2.0 * M_PI * 300.0 * k / 44100.0);
+        ren(8192);
+        note(60, 110);
+        ren(22050);
+        CHECK(wrms(ol, 2000, 22050) < 0.0005, "LIVE IN, no input: silent (%.5f)", wrms(ol, 2000, 22050));
+        for (k = 0; k < 20u; k++) {
+            jiant_input(il, ir, 4410);
+            ren(4410);
+        }
+        c = zc(ol, 0, 4410) * 10u;
+        CHECK(wrms(ol, 0, 4410) > 0.005 && c > 270u && c < 330u, "LIVE IN: grains of the input as it plays (%u Hz, 300)", c);
+        t->p[P_GXTRAV] = GT_FREEZE;
+        for (k = 0; k < 10u; k++)
+            ren(4410);
+        CHECK(wrms(ol, 0, 4410) > 0.005, "LIVE FREEZE: what was played held after the input stopped (%.3f)", wrms(ol, 0, 4410));
+        off(60);
+        ren(44100);
+    }
+    {
+        uint32_t nv;
+        double x = cost(ENGI_GRAIN, 0, heavy_grain, &nv);
+        printf("  cost  GRAIN DENSITY 127, SIZE 100, FEEDBK, stereo: %u voices at %.1fx real time (%.2f %% of a core a voice)\n",
+               nv, x, 100.0 / x / (nv ? nv : 1u));
+        CHECK(nv == 48u && x > 1.0, "48 GRAIN voices at once (clouds of up to %u grains), faster than real time", GR_N);
     }
     CHECK(!nonfinite, "the output always finite");
     return fails != 0;
