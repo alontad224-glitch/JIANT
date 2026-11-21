@@ -5,7 +5,9 @@
      worklet.js, as index.html runs it), each device's own panel. FM-1: the emulator (index.html) itself. SMK-37 Pro /
      Elite and MPC Sample: their panels here, mapped to the FM-1's as the ports map them (ports/README.md;
      ports/mpc-sample/src/jiant/panel_map.h for the MPC). The music saved is the same on all of them (the flash kept in
-     this browser, as index.html keeps it). -->
+     this browser, as index.html keeps it). The MPC runs the big CPUs' build (felucca_hp.wasm, web/emu/felucca_hp.c:
+     the SAMPLE and GRAIN engines, DRUM-X's samples, 16 slots, recording) with the MPC app's SAMPLE BROWSER; its samples
+     are the files the user adds, kept in this browser (IndexedDB). -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -49,6 +51,7 @@ h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: .02em; }
 .btn.green .face { fill: var(--green); }
 .btn.green text { fill: #0d2414; }
 .btn.port .face { fill: #232326; stroke-dasharray: 3 3; }
+.btn.port.lit .face { fill: var(--lit); }
 .btn.on .face { stroke: var(--accent); stroke-width: 3; }
 .held .face { stroke: var(--lit); stroke-width: 3; }
 .pad .face { fill: #26262a; stroke: #3c3c41; stroke-width: 1.5; }
@@ -69,6 +72,25 @@ h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: .02em; }
 .map p { margin: 0 0 4px; break-inside: avoid; }
 .note { margin: 10px 0 0; color: var(--dim); }
 kbd { font: 600 11px ui-monospace, Menlo, monospace; border: 1px solid var(--rule); padding: 0 4px; color: var(--fg); }
+.samples { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--rule); border-radius: 10px; background: #a2a2a7; }
+.samples-head { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.samples-head b { font-size: 15px; }
+.samples button, .samples .add { font: inherit; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 7px;
+                                 background: #c4c4c8; color: var(--fg); cursor: pointer; }
+.samples .add { background: var(--body); color: #f2f2f4; border-color: var(--body); }
+.samples .hint { color: var(--dim); }
+.samples .msg { margin: 6px 0 0; min-height: 1.6em; color: var(--dim); }
+.samples-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 4px 24px; }
+.samples h3 { font-size: 13px; margin: 6px 0 4px; }
+.samples h3 small { font-weight: 400; color: var(--dim); }
+.samples ol { margin: 0; padding-left: 2.2em; }
+.samples li { padding: 1px 0; }
+.samples li.cur { font-weight: 700; }
+.samples li.none { list-style: none; margin-left: -2.2em; color: var(--dim); }
+.samples li .name { display: inline-block; max-width: calc(100% - 7em); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; margin-right: 6px; }
+.samples li button { padding: 0 6px; margin-left: 2px; font-size: 12px; }
+body.dropping .samples { outline: 3px dashed var(--accent); outline-offset: 2px; }
+.note.big { color: var(--fg); }
 footer { margin-top: 20px; font-size: 12px; color: var(--dim); text-align: center; }
 footer a { color: inherit; }
 </style>
@@ -127,24 +149,30 @@ const emu = {
   master(v) { this.send({ type: "master", value: Math.max(0, Math.min(1023, Math.round(v))) }); },
   midi(a, b, c) { this.send({ type: "midi", data: [a, b, c] }); },
   playing() { return !!(this.leds[0] & (1 << PLAY_GREEN)) || !!(this.leds[0] & (1 << B.PLAY)); },
-  async start(onFrame, master) {
+  // opts.wasm: the firmware (felucca.wasm, the FM-1's; felucca_hp.wasm, the big CPUs' for the MPC: an audio input
+  // too); opts.onMessage: the worklet's other messages (the sample slots, the recorder)
+  async start(onFrame, master, opts = {}) {
     const ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
+    const file = opts.wasm || "felucca.wasm";
     const [wasm] = await Promise.all([
-      fetch("felucca.wasm", { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error(`felucca.wasm: ${r.status}`); return r.arrayBuffer(); }),
+      fetch(file, { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error(`${file}: ${r.status}`); return r.arrayBuffer(); }),
       ac.audioWorklet.addModule("worklet.js?v=" + Date.now())]);
-    const node = new AudioWorkletNode(ac, "felucca", { numberOfInputs: 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    const node = new AudioWorkletNode(ac, "felucca", { numberOfInputs: opts.input ? 1 : 0, numberOfOutputs: 1, outputChannelCount: [2] });
     node.connect(ac.destination);
     await new Promise((res, rej) => {
       node.port.onmessage = (e) => {
         const m = e.data;
-        if (m.type === "ready") res();
-        else if (m.type === "error") rej(new Error(m.message));
+        if (m.type === "ready") { this.hostPower = !!m.hostPower; res(); }
+        else if (m.type === "error") { rej(new Error(m.message)); if (opts.onMessage) opts.onMessage(m); }
         else if (m.type === "frame") {
           if (m.leds) this.leds = m.leds;
           if (m.fb) this.fb = m.fb;
           onFrame(m.fb, m.leds ? m.leds : null);
           if (m.sectors) saveFlash(m.sectors);
-        }
+          if ((m.slots || m.rec) && opts.onMessage) opts.onMessage(m);
+        } else if (m.id !== undefined && this.waiting.has(m.id)) {
+          const w = this.waiting.get(m.id); this.waiting.delete(m.id); w(m);
+        } else if (opts.onMessage) opts.onMessage(m);
       };
       node.port.postMessage({ type: "load", wasm, sectors: loadFlash(), master }, [wasm]);
     });
@@ -153,7 +181,16 @@ const emu = {
     this.syncButtons(); this.syncKeys();
     this.send({ type: "visible", on: !document.hidden });
   },
+  // a message the worklet answers (its reply carries the same id)
+  waiting: new Map(), seq: 0,
+  ask(m, transfer = []) {
+    if (!this.node) return Promise.resolve(null);
+    const id = ++this.seq;
+    return new Promise((res) => { this.waiting.set(id, res); this.node.port.postMessage({ ...m, id }, transfer); });
+  },
   stop() {
+    for (const w of this.waiting.values()) w(null);
+    this.waiting.clear();
     if (this.node) { this.node.port.onmessage = null; this.node.disconnect(); }
     if (this.ac) this.ac.close().catch(() => {});
     this.node = this.ac = null; this.btn.clear(); this.key.clear(); this.leds = [0, 0, 0, 0]; this.fb = null;
@@ -468,8 +505,258 @@ const SMK_INFO = `
 The button names are the ones printed on the keyboard (as Melodee, tried on an SMK-37 Elite, names them); this panel is
 the mapping it will have.</p>`;
 
+// ------------------------------------------------------------------ the MPC's samples
+// The SAMPLE BROWSER's files: the samples the user adds (a file picker, or dropped on the page), decoded by the browser
+// (WAV and whatever else it decodes) at 44.1 kHz, kept for the session and in this browser (IndexedDB) when it can.
+// The slots' map (as the MPC app's JIANT/Samples/slots.json: slot -> file) in localStorage; a slot JIANT changed itself
+// (a recording, DESTROY) is written back as slotNN.wav a second after it stops changing, and the map then names it.
+const SLOTS_KEY = "jiant-mpc-slots", MAX_SECONDS = 60;
+const lib = {
+  files: [],                                           // [{name, bytes, buf (AudioBuffer, once decoded)}], by name
+  map: {},                                             // slot (0..15) -> file name
+  db: null, listeners: new Set(),
+  changed() { for (const f of this.listeners) f(); },
+  async open() {
+    try { this.map = JSON.parse(localStorage.getItem(SLOTS_KEY) || "{}") || {}; } catch { this.map = {}; }
+    try {
+      this.db = await new Promise((res, rej) => {
+        const q = indexedDB.open("jiant-samples", 1);
+        q.onupgradeneeded = () => q.result.createObjectStore("files", { keyPath: "name" });
+        q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+      });
+      const all = await new Promise((res, rej) => {
+        const q = this.db.transaction("files").objectStore("files").getAll();
+        q.onsuccess = () => res(q.result || []); q.onerror = () => rej(q.error);
+      });
+      for (const f of all) if (f && f.name && f.bytes && !this.find(f.name)) this.files.push({ name: f.name, bytes: f.bytes });
+      this.sort();
+    } catch { this.db = null; }                       // (private mode, blocked: this session only)
+    this.changed();
+  },
+  saveMap() { try { localStorage.setItem(SLOTS_KEY, JSON.stringify(this.map)); } catch {} },
+  store(f) {
+    try { if (this.db) this.db.transaction("files", "readwrite").objectStore("files").put({ name: f.name, bytes: f.bytes }); } catch {}
+  },
+  unstore(name) { try { if (this.db) this.db.transaction("files", "readwrite").objectStore("files").delete(name); } catch {} },
+  find(name) { return this.files.find((f) => f.name === name) || null; },
+  sort() { this.files.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })); },
+  async decode(f) {
+    if (f.buf) return f.buf;
+    const ctx = new OfflineAudioContext(1, 1, 44100);   // (decoded at the context's rate: 44.1 kHz, JIANT's)
+    f.buf = await ctx.decodeAudioData(f.bytes.slice(0));
+    return f.buf;
+  },
+  // files the user gave (File objects): each decoded first (not audio: left out); the name kept, a newer one replaces
+  async add(list) {
+    const added = [], bad = [];
+    for (const file of list) {
+      try {
+        const f = { name: file.name, bytes: await file.arrayBuffer() };
+        await this.decode(f);
+        const old = this.files.findIndex((g) => g.name === f.name);
+        if (old >= 0) this.files.splice(old, 1);
+        this.files.push(f); this.store(f); added.push(f.name);
+      } catch { bad.push(file.name); }
+    }
+    this.sort(); this.changed();
+    return { added, bad };
+  },
+  put(name, bytes) {                                   // (a slot written back: slotNN.wav)
+    const f = { name, bytes }, old = this.files.findIndex((g) => g.name === name);
+    if (old >= 0) this.files.splice(old, 1);
+    this.files.push(f); this.store(f); this.sort(); this.changed();
+    return f;
+  },
+  remove(name) {
+    this.files = this.files.filter((f) => f.name !== name); this.unstore(name);
+    for (const k of Object.keys(this.map)) if (this.map[k] === name) delete this.map[k];
+    this.saveMap(); this.changed();
+  },
+};
+const sampleName = (file) => file.replace(/\.[^.]+$/, "").slice(0, 31);
+// int16 planes -> a 16-bit PCM WAV at 44.1 kHz
+function wav16(l, r) {
+  const ch = r ? 2 : 1, n = l.length, b = new DataView(new ArrayBuffer(44 + n * ch * 2));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) b.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); b.setUint32(4, 36 + n * ch * 2, true); str(8, "WAVEfmt "); b.setUint32(16, 16, true);
+  b.setUint16(20, 1, true); b.setUint16(22, ch, true); b.setUint32(24, 44100, true); b.setUint32(28, 44100 * ch * 2, true);
+  b.setUint16(32, ch * 2, true); b.setUint16(34, 16, true); str(36, "data"); b.setUint32(40, n * ch * 2, true);
+  for (let i = 0, o = 44; i < n; i++) { b.setInt16(o, l[i], true); o += 2; if (r) { b.setInt16(o, r[i], true); o += 2; } }
+  return b.buffer;
+}
+function download(name, bytes) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const slotFile = (k) => "slot" + String(k + 1).padStart(2, "0") + ".wav";
+
+// the SAMPLE BROWSER (ports/mpc-sample/src/jiant/sample_browser.h): SAMPLE opens it over the screen; pads pick the slot,
+// the wheel the file, above the screen CLOSE / AUDITION / LOAD, ERASE clears, SAMPLE SELECT the source, SAMPLE REC
+// records. The recording's sources here: RESAMPLE (JIANT's own output), LINE and MIC (this computer's input, asked for
+// on the click that picks them)
+const SOURCES = ["RESAMPLE", "LINE", "MIC"];
+function sampleBrowser(redraw) {
+  const B = {
+    open: false, slot: 0, file: 0, source: 0, slots: Array.from({ length: 16 }, () => ({ frames: 0, ch: 0, name: "", gen: 0, changed: false })),
+    rec: { st: 0, slot: 0, frames: 0 }, status: "", audition: null, input: null, inputKind: "", seen: {}, timer: 0,
+    setStatus(s) { this.status = s; redraw(); clearTimeout(this.statusT); if (s) this.statusT = setTimeout(() => { this.status = ""; redraw(); }, 4000); },
+    fileName() { return lib.files[this.file]?.name || ""; },
+    clamp() { this.file = Math.max(0, Math.min(this.file, lib.files.length - 1)); },
+    toggle() { this.open = !this.open; if (!this.open) this.stopAudition(); redraw(); return this.open; },
+    pick(p) { this.slot = p; redraw(); },
+    scroll(n) { if (!lib.files.length) return; this.file += n; this.clamp(); redraw(); },
+    stopAudition() { if (this.audition) { try { this.audition.stop(); } catch {} this.audition = null; redraw(); } },
+    async auditionFile() {
+      if (this.audition) { this.stopAudition(); return; }
+      const f = lib.files[this.file];
+      if (!f || !emu.ac) return;
+      try {
+        const buf = await lib.decode(f), src = emu.ac.createBufferSource(), g = emu.ac.createGain();
+        g.gain.value = 0.75; src.buffer = buf; src.connect(g).connect(emu.ac.destination);
+        src.onended = () => { if (this.audition === src) { this.audition = null; redraw(); } };
+        src.start(); this.audition = src; redraw();
+      } catch { this.setStatus("CANNOT PLAY " + f.name); }
+    },
+    // a file into a slot: decoded at 44.1 kHz, its first 60 s, handed to the device (worklet.js slotLoad)
+    async load(slot, name) {
+      const f = lib.find(name);
+      if (!f || !emu.node) return 1;
+      let buf;
+      try { buf = await lib.decode(f); } catch { this.setStatus("NOT AUDIO: " + name); return 2; }
+      const n = Math.min(buf.length, MAX_SECONDS * 44100);
+      const l = buf.getChannelData(0).slice(0, n), r = buf.numberOfChannels > 1 ? buf.getChannelData(1).slice(0, n) : null;
+      const reply = await emu.ask({ type: "slot-load", slot, name: sampleName(name), l, r, rate: buf.sampleRate }, r ? [l.buffer, r.buffer] : [l.buffer]);
+      if (!reply || reply.rc) { this.setStatus(reply ? "NO MEMORY FOR " + name : ""); return 3; }
+      lib.map[slot] = name; lib.saveMap(); this.seen[slot] = null;
+      return 0;
+    },
+    async loadFile() {
+      const name = this.fileName();
+      if (name && !(await this.load(this.slot, name))) this.setStatus("LOADED INTO SLOT " + (this.slot + 1));
+    },
+    clear() {
+      emu.send({ type: "slot-clear", slot: this.slot });
+      delete lib.map[this.slot]; lib.saveMap(); this.setStatus("SLOT " + (this.slot + 1) + " CLEARED");
+    },
+    async nextSource() {
+      this.source = (this.source + 1) % SOURCES.length;
+      redraw();
+      if (SOURCES[this.source] !== "RESAMPLE") await this.useInput(SOURCES[this.source]);
+    },
+    // this computer's input into the device's (getUserMedia, asked for on the click): LINE untouched, MIC as the
+    // browser cleans it. Refused: the source stays, a recording from it says so
+    async useInput(kind) {
+      if (this.input && this.inputKind === kind) return true;
+      this.dropInput();
+      if (!navigator.mediaDevices?.getUserMedia || !emu.ac) { this.setStatus("NO AUDIO INPUT HERE"); return false; }
+      try {
+        const raw = kind === "LINE";
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: !raw, noiseSuppression: !raw, autoGainControl: !raw, channelCount: 2 } });
+        if (!emu.ac || !emu.node) { stream.getTracks().forEach((t) => t.stop()); return false; }
+        const src = emu.ac.createMediaStreamSource(stream);
+        src.connect(emu.node);
+        this.input = { stream, src }; this.inputKind = kind; this.setStatus(kind + " IN: " + (stream.getAudioTracks()[0]?.label || "on").slice(0, 28));
+        return true;
+      } catch (err) {
+        this.setStatus(kind + ": NO ACCESS (" + (err?.name || "denied") + ")");
+        return false;
+      }
+    },
+    dropInput() {
+      if (!this.input) return;
+      try { this.input.src.disconnect(); } catch {}
+      this.input.stream.getTracks().forEach((t) => t.stop());
+      this.input = null; this.inputKind = "";
+    },
+    async record() {
+      if (this.rec.st) { emu.send({ type: "rec-stop" }); return; }
+      const kind = SOURCES[this.source];
+      if (kind !== "RESAMPLE" && !(await this.useInput(kind))) return;
+      const reply = await emu.ask({ type: "rec-start", slot: this.slot, source: kind === "RESAMPLE" ? 1 : 0, bars: 0 });
+      if (reply && reply.rc) this.setStatus(reply.rc === 2 ? "NO ROOM TO RECORD YET" : "CANNOT RECORD");
+    },
+    // the worklet's news: the slots, the recorder
+    update(m) {
+      if (m.slots) this.slots = m.slots;
+      if (m.rec) this.rec = m.rec;
+      redraw();
+    },
+    // every half second: the slots JIANT changed (a recording, DESTROY) written back when they rest a second
+    async service() {
+      emu.send({ type: "service" });
+      const now = performance.now();
+      for (let k = 0; k < 16; k++) {
+        const s = this.slots[k];
+        if (!s.changed || (this.rec.st === 2 && this.rec.slot === k)) continue;
+        const seen = this.seen[k];
+        if (!seen || seen.gen !== s.gen) { this.seen[k] = { gen: s.gen, at: now }; continue; }
+        if (now - seen.at < 1000 || seen.busy) continue;
+        seen.busy = true;
+        const reply = await emu.ask({ type: "slot-read", slot: k });
+        const pcm = reply?.pcm;
+        if (!pcm) { seen.busy = false; continue; }
+        const name = slotFile(k);
+        lib.put(name, wav16(pcm.l, pcm.r));
+        lib.map[k] = name; lib.saveMap();
+        emu.send({ type: "slot-saved", slot: k, gen: pcm.gen });
+        this.seen[k] = null;
+      }
+    },
+    async downloadSlot(k) {
+      const reply = await emu.ask({ type: "slot-read", slot: k });
+      if (reply?.pcm) download(slotFile(k).replace(".wav", "-" + (reply.pcm.name || "sample").replace(/[^\w.-]+/g, "_") + ".wav"), wav16(reply.pcm.l, reply.pcm.r));
+    },
+    // at power on: the slots the map names, loaded again
+    async restore() {
+      for (const [k, name] of Object.entries(lib.map)) if (lib.find(name)) await this.load(+k, name);
+    },
+    stop() { this.stopAudition(); this.dropInput(); clearInterval(this.timer); clearTimeout(this.statusT); },
+  };
+  return B;
+}
+
+// the browser over JIANT's screen, as the MPC app paints it (jiant_app.cpp paint_browser)
+function paintBrowser(ctx, B) {
+  const orange = "#ff7a00", grey = "#8a8a8a", white = "#e8e8e8";
+  const text = (s, x, y, w, size, ink, align = "left") => {
+    ctx.fillStyle = ink; ctx.font = `${size}px ${DOT}`; ctx.textAlign = align; ctx.textBaseline = "top";
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y - 1, w, size + 5); ctx.clip();
+    ctx.fillText(s, align === "left" ? x : align === "right" ? x + w : x + w / 2, y); ctx.restore();
+  };
+  const slot = B.slots[B.slot] || { frames: 0 };
+  ctx.fillStyle = "#101010"; ctx.fillRect(40, 0, 240, 240);
+  text("SAMPLES", 48, 5, 120, 13, orange);
+  text("SLOT " + (B.slot + 1), 190, 5, 84, 13, white, "right");
+  text(slot.frames ? `${slot.name}  ${(slot.frames / 44100).toFixed(1)} s  ${slot.ch > 1 ? "ST" : "MONO"}${slot.changed ? "  *" : ""}` : "EMPTY",
+       48, 23, 226, 11, slot.frames ? white : grey);
+  ctx.fillStyle = grey; ctx.fillRect(48, 40, 226, 1);
+  if (!lib.files.length) {
+    text("no samples yet:", 48, 84, 226, 11, grey);
+    text("ADD SAMPLES below the MPC,", 48, 100, 226, 11, grey);
+    text("or drop WAVs on the page", 48, 116, 226, 11, grey);
+  }
+  const first = B.file > 4 ? B.file - 4 : 0;
+  for (let i = first; i < lib.files.length && i < first + 9; i++) {
+    const y = 46 + (i - first) * 16;
+    if (i === B.file) { ctx.fillStyle = "rgba(255,122,0,.25)"; ctx.fillRect(46, y, 230, 16); }
+    const inSlot = Object.entries(lib.map).filter(([, n]) => n === lib.files[i].name).map(([k]) => +k + 1);
+    text(lib.files[i].name, 50, y + 2, inSlot.length ? 190 : 222, 11, i === B.file ? orange : white);
+    if (inSlot.length) text(inSlot.join(","), 240, y + 2, 32, 9, grey, "right");
+  }
+  ctx.fillStyle = grey; ctx.fillRect(48, 194, 226, 1);
+  const rec = B.rec.st;
+  text("REC " + SOURCES[B.source], 48, 199, 120, 11, rec ? orange : grey);
+  if (rec) text(rec === 2 ? `RECORDING ${(B.rec.frames / 44100).toFixed(1)} s` : "ARMED", 150, 199, 124, 11, orange, "right");
+  else if (B.status) text(B.status, 120, 199, 154, 9, white, "right");
+  text("CLOSE", 48, 222, 70, 11, white);
+  text(B.audition ? "STOP" : "PLAY", 125, 222, 70, 11, white, "center");
+  text("LOAD", 204, 222, 70, 11, white, "right");
+}
+
 // Akai MPC Sample: the app in ports/mpc-sample, its controls as panel_map.h maps them; the screen 320 x 240 with
-// JIANT's 240 x 240 in the middle
+// JIANT's 240 x 240 in the middle. The firmware is the big CPUs' (felucca_hp.wasm: FELUCCA_HOST_POWER, as the app's)
 function buildMPC(stage) {
   const W = 1100, H = 700;
   const dev = document.createElement("div");
@@ -490,11 +777,34 @@ function buildMPC(stage) {
   let shift = false, win = 0;
   const held = new Set(), pos = { K1: 64, K2: 64, K3: 64, F: 0 };
   const btns = [];
+  let drawQueued = false;
+  const redraw = () => {
+    if (drawQueued) return;
+    drawQueued = true;
+    requestAnimationFrame(() => { drawQueued = false; side(); });
+  };
+  const browser = sampleBrowser(redraw);
+  // the browser's buttons (by the name printed on them) while it is open; SAMPLE opens and closes it
+  const browserButton = (name) => {
+    if (name === "SAMPLE") {
+      if (browser.toggle()) for (const id of [...emu.key.keys()]) if (id.startsWith("pad")) emu.keyUp(id);
+      return true;
+    }
+    if (!browser.open) return false;
+    if (name === "◀ HOME") browser.toggle();
+    else if (name === "EDIT") browser.auditionFile();
+    else if (name === "GLO") browser.loadFile();
+    else if (name === "ERASE") browser.clear();
+    else if (name === "SAMPLE\nSELECT") browser.nextSource();
+    else if (name === "SAMPLE\nREC") browser.record();
+    return true;                                       // (every other button is the browser's while it is open)
+  };
   const mpcButton = (x, y, w, h, name, role, opts = {}) => {
     const own = !(role in B) && role !== "stop";
     const g = button(x, y, w, h, name, { port: own, size: opts.size || 10.5, ink: opts.ink });
-    btns.push({ g, role });
+    btns.push({ g, role, name });
     holdable(g, (id) => {
+      if (browserButton(name)) return;
       if (role === "shift") { shift = true; g.classList.add("on"); return; }
       if (role === "bank") { win = (win + (shift ? 3 : 1)) % 4; side(); return; }
       if (role === "stop") { if (emu.playing()) emu.press("stop" + id, B.PLAY); return; }
@@ -505,13 +815,13 @@ function buildMPC(stage) {
     });
     return g;
   };
-  // above the screen: HOME, EDIT, GLO (the soft keys)
+  // above the screen: HOME, EDIT, GLO (the soft keys; in the browser CLOSE, AUDITION, LOAD)
   [["HOME", "HOME"], ["EDIT", "EDIT"], ["GLO", "GLO"]].forEach(([n, r], i) => mpcButton(70 + i * 120, 14, 100, 34, n === "HOME" ? "◀ HOME" : n, r, { size: 10 }));
   // the left and lower buttons
   const ROWS = [
-    [["SAMPLE", "none"], ["SEQ", "SEQ"], ["PAD FX", "FX"], ["KNOB FX", "LFO"]],
+    [["SAMPLE", "sample"], ["SEQ", "SEQ"], ["PAD FX", "FX"], ["KNOB FX", "LFO"]],
     [["CHOP", "ENV"], ["MUTE", "none"], ["LOOP", "ARP"], ["16 LEVELS", "SCL"]],
-    [["SAMPLE\nSELECT", "SAVE"], ["TAP\nTEMPO", "none"], ["ERASE", "none"], ["NOTE\nREPEAT", "none"]],
+    [["SAMPLE\nSELECT", "SAVE"], ["TAP\nTEMPO", "none"], ["ERASE", "erase"], ["NOTE\nREPEAT", "none"]],
     [["SHIFT", "shift"], ["PAD BANK", "bank"], ["−", "OCT-"], ["+", "OCT+"]],
     [["SAMPLE\nREC", "REC"], ["SEQ REC", "REC"], ["STOP", "stop"], ["PLAY", "PLAY"]],
   ];
@@ -534,11 +844,15 @@ function buildMPC(stage) {
   positional(vol.g, () => pos.VOL, (v) => { pos.VOL = v; vol.rotate(vdeg()); emu.master(v * 1023 / 127); }, 160);
   const wheel = knob(615, 268, 46, "WHEEL", true);
   let wa = 0;
-  turnable(wheel.g, (n) => { emu.enc(shift ? EN.PRESETS : EN.SELECT, n); wa = (wa + n * 15) % 360; wheel.rotate(wa); }, 10);
+  turnable(wheel.g, (n) => {
+    if (browser.open) browser.scroll(-n);              // (the browser: the files, clockwise down the list)
+    else emu.enc(shift ? EN.PRESETS : EN.SELECT, n);
+    wa = (wa + n * 15) % 360; wheel.rotate(wa);
+  }, 10);
   const f = fader(720, 200, 34, 160, "FADER");
   f.place(pos.F);
   positional(f.g, () => pos.F, (v) => { const d = v - pos.F; pos.F = v; f.place(v); emu.enc(EN.K4, d); }, 160);
-  // the pads: 1 bottom left, 16 top right
+  // the pads: 1 bottom left, 16 top right (in the browser: the slots)
   const pads = [];
   for (let p = 0; p < 16; p++) {
     const c = p % 4, r = 3 - Math.floor(p / 4), x = 800 + c * 72, y = 330 + r * 72;
@@ -546,7 +860,8 @@ function buildMPC(stage) {
     el("rect", { x, y, width: 64, height: 64, rx: 8, class: "face" }, g);
     label(g, x + 32, y + 38, String(p + 1), 12, SANS, "#77777b");
     pads.push(g);
-    holdable(g, (id) => emu.keyDown("pad" + p + id, WINDOWS[win] + p), (id) => emu.keyUp("pad" + p + id));
+    holdable(g, (id) => { if (browser.open) browser.pick(p); else emu.keyDown("pad" + p + id, WINDOWS[win] + p); },
+             (id) => emu.keyUp("pad" + p + id));
   }
   const bankLights = "ABCD".split("").map((ch, i) => {
     const x = 810 + i * 70;
@@ -554,24 +869,36 @@ function buildMPC(stage) {
     label(svg, x + 18, 304, ch, 11, SANS, "#8a8a8e");
     return c;
   });
-  // the MPC's screen as the app draws it: JIANT's frame in the middle, the pad bank on the left
+  // the MPC's screen as the app draws it: JIANT's frame in the middle (or the SAMPLE BROWSER over it), the pad bank on
+  // the left
   const side = () => {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 40, 240); ctx.fillRect(280, 0, 40, 240);
-    ctx.textAlign = "center"; ctx.fillStyle = "#8a8a8a"; ctx.font = "600 9px " + SANS;
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = "#8a8a8a"; ctx.font = "600 9px " + SANS;
     ctx.fillText("PADS", 20, 16);
     ctx.fillStyle = "#ff7a00"; ctx.font = "600 24px " + SANS; ctx.fillText("ABCD"[win], 20, 44);
     ctx.fillStyle = "#8a8a8a"; ctx.font = "600 9px " + SANS;
     ctx.fillText(fm1KeyName(WINDOWS[win]).replace("♯", "#"), 20, 66); ctx.fillText(fm1KeyName(WINDOWS[win] + 15).replace("♯", "#"), 20, 80);
     if (shift) { ctx.fillStyle = "#ff7a00"; ctx.fillText("SHIFT", 20, 226); }
     ctx.fillStyle = "#ff7a00"; ctx.fillText("JIANT", 300, 16);
+    if (browser.rec.st) { ctx.fillStyle = "#ff453a"; ctx.fillText(browser.rec.st === 2 ? "● REC" : "ARMED", 300, 226); }
     bankLights.forEach((c, i) => c.setAttribute("fill", i === win ? "#ff7a00" : "#333"));
+    if (browser.open) paintBrowser(ctx, browser);
+    else if (emu.fb) blitScreen(ctx, emu.fb, 40, 0);
     frame(null, emu.leds);
   };
   function frame(fb, leds) {
-    if (fb) blitScreen(ctx, fb, 40, 0);
+    if (fb && !browser.open) blitScreen(ctx, fb, 40, 0);
     if (!leds) return;
     const [litB, litK, dimB] = leds;
     for (const b of btns) {
+      if (browser.open) {                              // (the browser's buttons lit, the others dark)
+        const mine = ["SAMPLE", "◀ HOME", "EDIT", "GLO", "ERASE", "SAMPLE\nSELECT", "SAMPLE\nREC"].includes(b.name);
+        b.g.classList.toggle("lit", b.name === "SAMPLE" || (b.name === "SAMPLE\nREC" && !!browser.rec.st) || (b.name === "EDIT" && !!browser.audition));
+        b.g.classList.toggle("green", false);
+        b.g.classList.toggle("dim", mine && b.name !== "SAMPLE");
+        continue;
+      }
+      if (b.role === "sample" || b.role === "erase") { b.g.classList.remove("lit", "dim"); continue; }
       if (b.role === "stop") { b.g.classList.toggle("lit", emu.playing()); continue; }
       if (!(b.role in B)) continue;
       const bit = 1 << B[b.role], green = b.role === "PLAY" && (litB & (1 << PLAY_GREEN));
@@ -579,12 +906,97 @@ function buildMPC(stage) {
       b.g.classList.toggle("green", !!green);
       b.g.classList.toggle("dim", !!(dimB & bit));
     }
-    pads.forEach((g, p) => padLit(g, litK & (1 << (WINDOWS[win] + p)) ? "#b45400" : ""));
+    if (browser.open)                                  // (the slots: bright the one picked, lit those that hold a sample)
+      pads.forEach((g, p) => padLit(g, p === browser.slot ? "#ff7a00" : browser.slots[p]?.frames ? "#5a2c08" : ""));
+    else pads.forEach((g, p) => padLit(g, litK & (1 << (WINDOWS[win] + p)) ? "#b45400" : ""));
   }
   side();
   const shiftWatch = setInterval(side, 250);          // (SHIFT on the screen)
-  return { dev, frame, stop: () => clearInterval(shiftWatch) };
+  const panel = samplesPanel(browser);
+  return {
+    dev, frame, browser,
+    start: { wasm: "felucca_hp.wasm", input: true, onMessage: (m) => { if (m.slots || m.rec) browser.update(m); } },
+    async started() {
+      if (!emu.hostPower) { browser.setStatus("NOT THE BIG-CPU BUILD"); return; }
+      browser.timer = setInterval(() => browser.service(), 500);
+      await browser.restore();
+      redraw();
+    },
+    stop: () => { clearInterval(shiftWatch); browser.stop(); panel.stop(); },
+  };
 }
+
+// the samples under the MPC: add (a picker; or drop them on the page), the files (play, download, remove), the slots
+// (download what each holds: a recording, a destroyed sample), this computer's input for MIC / LINE
+function samplesPanel(B) {
+  const box = document.createElement("section");
+  box.className = "samples";
+  box.innerHTML = `
+    <div class="samples-head"><b>Samples</b>
+      <label class="add">Add samples<input type="file" accept="audio/*,.wav,.wave,.aif,.aiff,.flac,.mp3,.ogg,.m4a" multiple hidden></label>
+      <button type="button" class="mic">Use this computer's input (MIC / LINE)</button>
+      <span class="hint">or drop audio files onto the page. Kept in this browser; nothing is uploaded.</span></div>
+    <p class="msg" role="status"></p>
+    <div class="samples-cols"><div><h3>Files <small>(the browser's list)</small></h3><ol class="files"></ol></div>
+    <div><h3>Slots <small>(pads 1–16 in the browser)</small></h3><ol class="slots"></ol></div></div>`;
+  info.before(box);
+  const msg = box.querySelector(".msg"), filesEl = box.querySelector(".files"), slotsEl = box.querySelector(".slots");
+  const say = (s) => { msg.textContent = s; };
+  const add = async (list) => {
+    const audio = [...list].filter((f) => /^audio\//.test(f.type) || /\.(wav|wave|aiff?|flac|mp3|ogg|m4a|opus)$/i.test(f.name));
+    if (!audio.length) { say("No audio files there."); return; }
+    say("Reading " + audio.length + " file" + (audio.length > 1 ? "s" : "") + "…");
+    const { added, bad } = await lib.add(audio);
+    say((added.length ? "Added " + added.join(", ") + ". " : "") + (bad.length ? "Not audio this browser can read: " + bad.join(", ") + "." : "") +
+        (added.length ? " Open the browser with SAMPLE, pick a pad, scroll with the wheel, LOAD (the button over the screen's right)." : ""));
+  };
+  const input = box.querySelector("input[type=file]");
+  input.addEventListener("change", () => { add(input.files); input.value = ""; });
+  box.querySelector(".mic").addEventListener("click", async () => {
+    if (!emu.node) { say("Switch the MPC on first."); return; }
+    const kind = SOURCES[B.source] === "RESAMPLE" ? "LINE" : SOURCES[B.source];
+    if (await B.useInput(kind)) { B.source = SOURCES.indexOf(kind); say(kind + " in: SAMPLE REC in the browser records it."); }
+    else say("No access to the input: the browser or the system refused it. RESAMPLE (JIANT's own sound) still records.");
+  });
+  const btn = (label, title, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.title = title; b.addEventListener("click", fn); return b; };
+  const render = () => {
+    filesEl.innerHTML = "";
+    if (!lib.files.length) filesEl.innerHTML = '<li class="none">none yet</li>';
+    lib.files.forEach((f, i) => {
+      const li = document.createElement("li");
+      const name = document.createElement("span"); name.className = "name"; name.textContent = f.name;
+      if (B.open && i === B.file) li.className = "cur";
+      li.append(name, btn("▶", "Play it", () => { B.file = i; B.auditionFile(); }), btn("⤓", "Download", () => download(f.name, f.bytes)),
+                btn("✕", "Remove it from this browser", () => lib.remove(f.name)));
+      filesEl.appendChild(li);
+    });
+    slotsEl.innerHTML = "";
+    B.slots.forEach((s, k) => {
+      const li = document.createElement("li");
+      if (k === B.slot) li.className = "cur";
+      const name = document.createElement("span"); name.className = "name";
+      name.textContent = s.frames ? `${s.name} · ${(s.frames / 44100).toFixed(1)} s ${s.ch > 1 ? "stereo" : "mono"}${s.changed ? " · changed" : ""}` : "empty";
+      li.append(name);
+      if (s.frames) li.append(btn("⤓", "Download what this slot holds (a WAV)", () => B.downloadSlot(k)));
+      slotsEl.appendChild(li);
+    });
+  };
+  let last = "";
+  const watch = setInterval(() => {                    // (the slots and the browser's place, as they change)
+    const key = JSON.stringify([B.slots, B.slot, B.open, B.file, lib.files.map((f) => f.name)]);
+    if (key !== last) { last = key; render(); }
+  }, 300);
+  lib.listeners.add(render);
+  render();
+  // dropped on the page (while the MPC is the device shown)
+  const over = (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { e.preventDefault(); document.body.classList.add("dropping"); } };
+  const leave = () => document.body.classList.remove("dropping");
+  const drop = (e) => { if (!e.dataTransfer?.files?.length) return; e.preventDefault(); leave(); add(e.dataTransfer.files); };
+  addEventListener("dragover", over); addEventListener("dragleave", leave); addEventListener("drop", drop);
+  panelAdd = add;
+  return { stop() { clearInterval(watch); lib.listeners.delete(render); removeEventListener("dragover", over); removeEventListener("dragleave", leave); removeEventListener("drop", drop); box.remove(); panelAdd = null; } };
+}
+let panelAdd = null;                                   // (the tests: window.__mpc.add)
 const MPC_INFO = `
 <div class="map">
   <p><b>Pads</b> 16 of the FM-1's keys: PAD BANK moves them (A F3–G♯4, B A3–C5, C C♯4–E5, D E4–G5; SHIFT back).</p>
@@ -593,10 +1005,19 @@ const MPC_INFO = `
   <p><b>PLAY</b> PLAY, <b>STOP</b> stops it, <b>SEQ REC</b> / <b>SAMPLE REC</b> REC, <b>− +</b> OCT − / OCT +.</p>
   <p><b>Wheel</b> SELECT (SHIFT: PRESETS). <b>K1 K2 K3</b> and the <b>fader</b> KNOB 1–4 (SHIFT + K1: ALGORITHM).
      <b>VOL</b> MASTER. Pushing the wheel goes back to the MPC's own app.</p>
+  <p><b>SAMPLE</b> opens the SAMPLE BROWSER over the screen (SAMPLE again, or the left button above the screen, closes it):
+     <b>pads</b> pick the slot (lit: it holds a sample), the <b>wheel</b> scrolls the files, above the screen
+     CLOSE · PLAY (the file; again: stop) · LOAD (the file into the slot), <b>ERASE</b> clears the slot,
+     <b>SAMPLE SELECT</b> the source (RESAMPLE: JIANT's own sound; LINE, MIC: this computer's input, when you allow it),
+     <b>SAMPLE REC</b> records into the slot (again: stop; 60 s at most). A slot JIANT changed (a recording, DESTROY) comes
+     back as <i>slotNN.wav</i> in the files.</p>
   <p>Computer keyboard: <kbd>Z</kbd>–<kbd>'</kbd> <kbd>Q</kbd>–<kbd>O</kbd> keys, <kbd>↑</kbd> <kbd>↓</kbd> SELECT.</p>
 </div>
-<p class="note">Preview: the MPC Sample app (ports/mpc-sample) is built and tested, not yet tried on an MPC. On the MPC
-JIANT runs at full power: every track its own 8 voices.</p>`;
+<p class="note big"><b>The big-CPU build.</b> This panel runs JIANT as the MPC Sample app does (felucca_hp.wasm,
+FELUCCA_HOST_POWER): every track its own 8 voices, the <b>SAMPLE</b> and <b>GRAIN</b> engines, <b>DRUM-X</b>'s sample
+layer, 16 sample slots of up to 60 s and recording. The FM-1 has none of these: a project with SAMPLE or GRAIN tracks
+opens there with them as ANALOG, DRUM-X as its synthesized kit.</p>
+<p class="note">Preview: the MPC Sample app (ports/mpc-sample) is built and tested, not yet tried on an MPC.</p>`;
 
 // ------------------------------------------------------------------ the picker
 const stage = document.getElementById("stage"), info = document.getElementById("info");
@@ -606,7 +1027,7 @@ function teardown() {
   if (current?.stop) current.stop();
   stage.innerHTML = ""; info.innerHTML = ""; current = null; svg = null;
 }
-function overlay(dev, onFrame) {
+function overlay(dev, onFrame, opts, started) {
   const start = document.createElement("div");
   start.className = "start";
   start.innerHTML = '<button type="button">Switch on</button><p hidden></p>';
@@ -615,8 +1036,9 @@ function overlay(dev, onFrame) {
   go.addEventListener("click", async () => {
     go.disabled = true; go.textContent = "Starting…";
     try {
-      await emu.start(onFrame, 700);
+      await emu.start(onFrame, 700, opts);
       start.hidden = true;
+      if (started) await started();
     } catch (err) {
       emu.stop();
       go.disabled = false; go.textContent = "Switch on";
@@ -637,13 +1059,16 @@ function select(name) {
     stage.appendChild(f);
   } else {
     current = name === "smk37" ? buildSMK(stage) : buildMPC(stage);
-    overlay(current.dev, (fb, leds) => current?.frame(fb, leds));
+    const dev = current;
+    overlay(current.dev, (fb, leds) => current?.frame(fb, leds), current.start, current.started ? () => libReady.then(() => current === dev && dev.started()) : null);
     info.innerHTML = name === "smk37" ? SMK_INFO : MPC_INFO;
   }
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
   try { localStorage.setItem("jiant-device", name); } catch {}
 }
 for (const b of document.querySelectorAll(".picker button")) b.addEventListener("click", () => select(b.dataset.dev));
+const libReady = lib.open();                           // (the MPC's samples kept in this browser)
+window.__devices = { emu, lib, current: () => current, add: (files) => panelAdd && panelAdd(files) };   // (the tests)
 addEventListener("hashchange", () => { const n = location.hash.slice(1); if (n && !document.querySelector(`.picker [data-dev="${n}"][aria-pressed="true"]`)) select(n); });
 let first = location.hash.slice(1);
 try { first = first || localStorage.getItem("jiant-device") || "fm1"; } catch { first = first || "fm1"; }
