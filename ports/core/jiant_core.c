@@ -338,6 +338,7 @@ static smp_obj_t *jc_obj_new(uint32_t frames, uint32_t ch, const char *name)
 }
 /* a frame of x (n frames) at time t (its frames), band-limited to fc (of its Nyquist): a windowed sinc, 16 taps a
  * side (Blackman), normalised */
+#define JC_PI 3.14159265358979323846   /* (M_PI is not in MSVC's math.h without _USE_MATH_DEFINES) */
 static float jc_src_at(const float *x, uint32_t n, double t, double fc)
 {
     int32_t i0 = (int32_t)floor(t), k;
@@ -347,8 +348,8 @@ static float jc_src_at(const float *x, uint32_t n, double t, double fc)
         double d = t - (double)i, a = d * fc, h, win;
         if (i < 0 || i >= (int32_t)n || fabs(d) >= 16.0)
             continue;
-        h = fabs(a) < 1e-9 ? 1.0 : sin(M_PI * a) / (M_PI * a);
-        win = 0.42 + 0.5 * cos(M_PI * d / 16.0) + 0.08 * cos(2.0 * M_PI * d / 16.0);
+        h = fabs(a) < 1e-9 ? 1.0 : sin(JC_PI * a) / (JC_PI * a);
+        win = 0.42 + 0.5 * cos(JC_PI * d / 16.0) + 0.08 * cos(2.0 * JC_PI * d / 16.0);
         s += x[i] * h * win;
         w += h * win;
     }
