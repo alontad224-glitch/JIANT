@@ -555,6 +555,12 @@ static uint32_t layer_btn(void);
  * LANES 2 a DRUM track's (its lane levels); SOUND / SOUND 2 a DRUM track's (DRUM-X: ui_dx.c) */
 static int page_visible(uint32_t i)
 {
+#if FELUCCA_HOST_POWER
+    if (i >= HP_PAGE0 && i < NPAGES)                    /* (ports/) SAMPLE's TRIG REC, GRAIN's TRAVEL SOURCE PITCH, DRUM-X's
+                                                         * SAMPLES (params.c) */
+        return i < HP_PAGE0 + 2u ? trk_engp(TSEL) == &ENG_SAMPLE : i < HP_PAGE0 + 5u ? trk_engp(TSEL) == &ENG_GRAIN
+                                                                                       : trk_eng(TSEL) == ENGI_DRUM;
+#endif
     if (PAGES[i].graph == GR_SONG && PAGES[i].fam == FAM_SEQ)
         return 0;                                       /* (0.6.24) the song in one place: SAVE > ARRANGE (SEQ > SONG
                                                          * was the same page twice; kept in the table: its index) */

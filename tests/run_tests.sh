@@ -275,6 +275,10 @@ if [ -f build/gen/felucca_tables.h ]; then
     mkdir -p build/ui_fm4/ppm build/ui_fm4_slot
     run "UI renders with FELUCCA_FM4=1: DIGITAL's screens (EDIT, OP ENV, the 8 algorithm charts), lint, GREY gray, MONO neutral" \
         "$OUT/ui_render_fm4" build/ui_fm4 build/ui_fm4_slot
+    $CC -O1 -w -DFELUCCA_HOST_POWER=1 "-DFELUCCA_VERSION=\"$FV\"" -Ibuild/gen -Ifirmware/src -Itests -o "$OUT/ui_render_hp" tests/ui_render.c -lm
+    mkdir -p build/ui_hp/ppm build/ui_hp_slot
+    run "UI renders with FELUCCA_HOST_POWER=1 (ports/): SAMPLE, GRAIN and DRUM-X's samples, their pages and values, lint, GREY gray, MONO neutral" \
+        "$OUT/ui_render_hp" build/ui_hp build/ui_hp_slot
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/audio_test" tests/audio_test.c -lm
     run "audio: overload protection, bounded fades and DMA diagnostics" "$OUT/audio_test"
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/click_test" tests/click_test.c -lm

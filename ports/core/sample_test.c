@@ -706,6 +706,42 @@ int main(int argc, char **argv)
         ren(22050);
     }
     t->p[P_DXSMORPH] = 0;
+    if (argc > 2) {                            /* screenshots of the pages (argv[2]: a folder; PPM) */
+        static const char *const PG[][2] = {{"SAMPLE", "EDIT 1"}, {"SAMPLE", "TRIG"}, {"SAMPLE", "REC"}, {"GRAIN", "EDIT 1"},
+                                            {"GRAIN", "TRAVEL"}, {"GRAIN", "PITCH"}, {"DRUM", "SAMPLES"}};
+        uint32_t s, pg;
+        for (s = 0; s < NELEM(PG); s++) {
+            char fn[256];
+            FILE *f;
+            uint32_t e = !strcmp(PG[s][0], "SAMPLE") ? ENGI_SAMPLE : !strcmp(PG[s][0], "GRAIN") ? ENGI_GRAIN : ENGI_DRUM;
+            use(e, e == ENGI_SAMPLE ? 5 : e == ENGI_GRAIN ? 0 : 0);
+            t->p[P_E0] = e == ENGI_SAMPLE ? 1 : 6;
+            song.sel = 0;
+            for (pg = 0; pg < NPAGES; pg++)
+                if (!strcmp(PAGES[pg].title, PG[s][1]) && page_visible(pg))
+                    break;
+            ui.home = 0;
+            ui.page = (uint8_t)pg;
+            ui.force = 1;
+            note(62, 100);
+            ren(8820);
+            snprintf(fn, sizeof fn, "%s/%s_%s.ppm", argv[2], PG[s][0], PG[s][1]);
+            f = fopen(fn, "wb");
+            if (f) {
+                const uint16_t *px = jiant_screen();
+                fprintf(f, "P6 240 240 255\n");
+                for (i = 0; i < 240u * 240u; i++) {
+                    uint16_t c = (uint16_t)(px[i] >> 8 | px[i] << 8);
+                    fputc((c >> 11) << 3, f);
+                    fputc(((c >> 5) & 63u) << 2, f);
+                    fputc((c & 31u) << 3, f);
+                }
+                fclose(f);
+            }
+            off(62);
+            ren(8820);
+        }
+    }
     CHECK(!nonfinite, "the output always finite");
     if (argc > 1) {                            /* a project for the FM-1's side (fm1_load_test): T1 DRUM-X with its
                                                 * samples on, T2 SAMPLE, T3 GRAIN */
