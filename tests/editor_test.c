@@ -141,12 +141,14 @@ static int motion_locks(void)
     return bad;
 }
 
+/* (ports/) a big CPU's build answers with two more tags before 'Y' ('D' 1 board, 'H' 2 caps slots): host_power below */
+#define ED_TEST_HX (FELUCCA_HOST_POWER ? 7u : 0u)
 static int preferences(void)
 {
     int bad = 0;
     uint8_t a[4] = {0, 7, 0, 0};
     reset();
-    uint32_t n = request(ED_INFO, a, 0), n0 = n - 6u;   /* (0.8.5: the 'O' tag, the DRUM lane modes, then 'Y' last, LYRIC) */
+    uint32_t n = request(ED_INFO, a, 0), n0 = n - 6u - ED_TEST_HX;   /* (0.8.5: the 'O' tag, the DRUM lane modes, then 'Y' last, LYRIC) */
     bad += check("INFO explicitly tags display capabilities after SONG without changing command 33",
         ED_SONG == 33 && ED_UI_STATE == 34 && ED_FAV_SET == 38 &&
         host_wire[n0 - 37] == CHAIN_ROWS && host_wire[n0 - 36] == 0x55 &&
@@ -163,7 +165,7 @@ static int preferences(void)
         host_wire[n0 - 10] == 0x4C && host_wire[n0 - 9] == 1 && host_wire[n0 - 8] == 1 &&   /* 1.1 parameter locks */
         host_wire[n0 - 7] == 0x56 && host_wire[n0 - 6] == 1 && host_wire[n0 - 5] == 32 &&   /* (0.6.11) FM6 voice bank */
         host_wire[n0 - 4] == 0x4A && host_wire[n0 - 3] == 1 && host_wire[n0 - 2] == 1 &&   /* (0.6.62) JIANT: the installer */
-        host_wire[n - 7] == 0x4F && host_wire[n - 6] == 1 && host_wire[n - 5] == LM_N &&   /* (0.8.5) DRUM lane modes */
+        host_wire[n0 - 1] == 0x4F && host_wire[n0] == 1 && host_wire[n0 + 1] == LM_N &&   /* (0.8.5) DRUM lane modes */
         host_wire[n - 4] == 0x59 && host_wire[n - 3] == 1 && host_wire[n - 2] == LYR_LEN - 1u);   /* (0.8.5) LYRIC, 63 */
     request(ED_UI_SET, a, 2);
     bad += check("UI_SET updates the actual palette and reports RAM-only saving",
@@ -983,6 +985,54 @@ static int menu_protocol(void)
     return bad;
 }
 
+/* (ports/) the big CPUs' build (FELUCCA_HOST_POWER: run_tests.sh builds this file so too): INFO's 'D' (3, a
+ * computer, until the host names itself) and 'H' (caps 15, 16 slots) just before 'Y'; the FM-1's INFO has neither (its
+ * binary is unchanged). DESC names the values beyond EDIT by the selected track's engine: SAMPLE's TRIG page in the DRUM
+ * lane levels' ids, GRAIN's QUANT / DAMP, DRUM-X's sample layer (SMORPH .. SLEVEL) */
+static int host_power(void)
+{
+    static uint8_t a[8];
+    uint32_t n, i, found = 0;
+    int bad = 0;
+    reset();
+    n = request(ED_INFO, a, 0);
+    for (i = 5; i + 3 < n; i++)
+        if (host_wire[i] == 0x44 && host_wire[i + 1] == 1 && host_wire[i + 3] == 0x48)
+            found = i;
+#if FELUCCA_HOST_POWER
+    bad += check("(ports/) INFO: 'D' 1 3 (a computer), 'H' 2 15 16 (SAMPLE GRAIN DRUM-X samples, 16 slots), then 'Y'",
+        found && found == n - 11u && host_wire[found + 2] == 3 && host_wire[found + 4] == 2 && host_wire[found + 5] == 15 &&
+        host_wire[found + 6] == SMP_NSLOT && host_wire[n - 4] == 0x59);
+    {
+        static const struct { uint32_t eng, id; const char *label; } want[] = {
+            {ENGI_SAMPLE, P_E0, "SLOT"}, {ENGI_SAMPLE, P_LN0, "TRIG"}, {ENGI_SAMPLE, P_LN4, "REC"},
+            {ENGI_GRAIN, P_E0, "SLOT"}, {ENGI_GRAIN, P_LN0, "TRAVEL"}, {ENGI_GRAIN, P_GXQUANT, "QUANT"},
+            {ENGI_GRAIN, P_GXDAMP, "DAMP"}, {ENGI_DRUM, P_DXSMORPH, "SMORPH"}, {ENGI_DRUM, P_DXSBLEND, "BLEND"},
+            {ENGI_DRUM, P_DXSSLOT, "SLOT"}, {ENGI_DRUM, P_DXSMAP, "MAP"}, {ENGI_DRUM, P_DXSLEVEL, "SLEVEL"},
+        };
+        uint32_t ok = 1;
+        for (i = 0; i < sizeof want / sizeof want[0]; i++) {
+            a[0] = 1; a[1] = G_ENGSEL; a[2] = (8192 + want[i].eng) & 127; a[3] = (8192 + want[i].eng) >> 7;
+            request(ED_SET, a, 4);
+            a[0] = 0; a[1] = (uint8_t)want[i].id;
+            request(ED_DESC, a, 2);
+            if (ed_eng(TSEL) != want[i].eng || strcmp((const char *)host_wire + 5 + 3 + 6, want[i].label)) {
+                printf("  DESC %u of engine %u: %s\n", (unsigned)want[i].id, (unsigned)want[i].eng, (const char *)host_wire + 5 + 3 + 6);
+                ok = 0;
+            }
+        }
+        bad += check("(ports/) DESC by the track's engine: SAMPLE TRIG REC, GRAIN TRAVEL QUANT DAMP, DRUM-X SMORPH..SLEVEL", ok);
+        a[0] = 0; a[1] = P_DXSSLOT;                     /* (the track is DRUM's now) SLOT 112..127: its names by value */
+        request(ED_DESC, a, 2);
+        bad += check("(ports/) DESC of DRUM-X's SLOT (112..127) names 1 .. 16 (by value, as the device shows them)",
+            !strcmp((const char *)host_wire + 20, "1") && !strcmp((const char *)host_wire + 22, "2"));
+    }
+#else
+    bad += check("FM-1: INFO has no 'D' / 'H' tag (its bytes as before)", !found);
+#endif
+    return bad;
+}
+
 /* DRUM is DRUM-X (JIANT 0.1: Felucca's kits retired): DESC of E0 names MRPH (KIT's slot), E4 NOIS (SNAP's), E6 unused;
  * a project of Felucca with KIT values loads them as MRPH */
 static int drum_kit_retired(void)
@@ -1022,7 +1072,7 @@ int main(void)
 {
     int bad = preferences() + motion_locks() + framing() + uart_recovery() + steps() + stop_failures() + song_protocol() + malformed_saves() +
               fm6_patches() + user_preset_roundtrip() + live_sync() + usb_burst() + menu_protocol() + drum_kit_retired() +
-              lyric_protocol();
+              lyric_protocol() + host_power();
     printf("%s\n", bad ? "EDITOR TEST FAILED" : "editor test passed");
     return bad != 0;
 }

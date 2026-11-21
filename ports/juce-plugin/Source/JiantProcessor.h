@@ -32,7 +32,9 @@ public:
     bool hasEditor() const override { return true; }
     const juce::String getName() const override { return "JIANT FM"; }
     bool acceptsMidi() const override { return true; }
-    bool producesMidi() const override { return false; }
+    // the standalone app sends MIDI out (its MIDI output, chosen in its settings): the web editor's replies (jiant_sysex);
+    // the plugins none (their buses as before: JucePlugin_ProducesMidiOutput 0)
+    bool producesMidi() const override { return wrapperType == wrapperType_Standalone; }
     double getTailLengthSeconds() const override { return 0.0; }
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -71,6 +73,7 @@ private:
     static constexpr uint32_t kQueue = 512;
     std::array<Command, kQueue> queue_ {};
     std::atomic<uint32_t> qWrite_ {0}, qRead_ {0};
+    std::array<uint8_t, 1024> sysexOut_ {};               // (the editor's replies, one at a time into the MidiBuffer)
 
     // audio -> editor
     std::atomic<uint32_t> screenSeq_ {0};
