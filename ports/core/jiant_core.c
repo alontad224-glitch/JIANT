@@ -94,6 +94,9 @@ JC_API int jiant_autosave_now(void)
     return 1;
 }
 
+#if FELUCCA_HOST_POWER
+JC_API uint32_t jiant_service(void);
+#endif
 JC_API int jiant_boot(uint32_t seed, int skip_splash)
 {
     if (web_booted)
@@ -102,6 +105,9 @@ JC_API int jiant_boot(uint32_t seed, int skip_splash)
         web_nor_erase();
     web_seed(seed ? seed : 1u);
     web_boot();
+#if FELUCCA_HOST_POWER
+    jiant_service();                      /* (the recorder's first room: a host that never calls jiant_service records once) */
+#endif
     if (skip_splash) {                    /* the splash and the boot's 30 ms, rendered and dropped */
         while (web_boot_ms)
             web_render(128);
