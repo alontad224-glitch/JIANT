@@ -41,6 +41,8 @@ docker)
         build/jiant --preview build/preview.png
         rm -rf build/persist && mkdir -p build/persist
         build/jiant --persist-write build/persist && build/jiant --persist-read build/persist
+        rm -rf build/samples && mkdir -p build/samples
+        build/jiant --samples-write build/samples && build/jiant --samples-read build/samples
     fi
     ;;
 esac

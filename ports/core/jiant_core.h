@@ -148,6 +148,11 @@ int jiant_slot_info(uint32_t slot, jiant_slot_info_t *info);
 /* the slot's PCM as it plays (DESTROY's working copy), channel ch (0 L, 1 R; mono: both the same), int16; 0 empty */
 const int16_t *jiant_slot_pcm(uint32_t slot, uint32_t ch);
 void jiant_slot_saved(uint32_t slot, uint32_t gen);
+/* the object slot holds now (0: empty), and an object's PCM: channel ch's plane (as it plays), its frames and channels.
+ * For the service thread (a host saving a slot: the object stays whole until its own next jiant_service), or a host
+ * playing an object it made (an audition) */
+const jiant_sample *jiant_slot_object(uint32_t slot);
+const int16_t *jiant_sample_data(const jiant_sample *o, uint32_t ch, uint32_t *frames, uint32_t *channels);
 /* thread safe (above): the objects freed */
 uint32_t jiant_service(void);
 

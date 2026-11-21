@@ -17,6 +17,8 @@
 //   SHIFT + K1          ALGORITHM
 //   MAIN VOLUME         MASTER
 //   wheel push          back to the MPC's own app (sample-base)
+//   SAMPLE              the SAMPLE BROWSER over the screen: the slots, JIANT/Samples, recording (sample_browser.h;
+//                       its buttons and the pads are the browser's while it is open)
 #pragma once
 #include <array>
 #include <cstdint>
@@ -30,7 +32,8 @@ enum Fm1Encoder : uint8_t { SELECT, ALGO, PRESET, K1, K2, K3, K4, NoEncoder = 25
 // what the surface asks of the device: whole masks for keys and buttons (as the panel reads them), steps for an
 // encoder, the master level
 struct Command {
-    enum Kind : uint8_t { None, Keys, Buttons, Encoder, Master, Midi } kind = None;
+    enum Kind : uint8_t { None, Keys, Buttons, Encoder, Master, Midi, Record } kind = None;   // (Record: the SAMPLE
+                             // BROWSER's SAMPLE REC, sample_browser.h: encoder the slot, value the source)
     uint32_t value = 0;      // Keys, Buttons: the mask; Master 0..1023; Midi: status | d1 << 8 | d2 << 16
     uint8_t encoder = 0;
     int32_t steps = 0;

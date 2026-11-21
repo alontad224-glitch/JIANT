@@ -104,7 +104,10 @@ static inline void smp_scar(smp_obj_t *o, uint32_t i, float xl, float xr, float 
         o->work[1][i] = (int16_t)(b > 32767.0f ? 32767.0f : b < -32768.0f ? -32768.0f : b);
     }
 }
-static inline int16_t smp_i16(float x) { return (int16_t)(x > 32767.0f ? 32767.0f : x < -32768.0f ? -32768.0f : x); }
+static inline int16_t smp_i16(float x)                /* rounded, held to int16 */
+{
+    return (int16_t)(x >= 32767.0f ? 32767.0f : x <= -32768.0f ? -32768.0f : x >= 0.0f ? x + 0.5f : x - 0.5f);
+}
 static inline float smp_finite(float x) { return x == x && x < 1e9f && x > -1e9f ? x : 0.0f; }
 
 /* ---------------------------------------------------------------- the stereo side (a part's) --- *
@@ -143,8 +146,8 @@ static void smp_input(const float *l, const float *r, uint32_t n)
         float a = l ? smp_finite(l[i]) : 0.0f, b = r ? smp_finite(r[i]) : a;
         if (smp_in_w - smp_in_r >= SMP_INF)
             smp_in_r++;                               /* (full: the oldest goes) */
-        smp_in[smp_in_w % SMP_INF][0] = smp_i16(a * 32767.0f);
-        smp_in[smp_in_w % SMP_INF][1] = smp_i16(b * 32767.0f);
+        smp_in[smp_in_w % SMP_INF][0] = smp_i16(a * 32768.0f);
+        smp_in[smp_in_w % SMP_INF][1] = smp_i16(b * 32768.0f);
         smp_in_w++;
     }
 }

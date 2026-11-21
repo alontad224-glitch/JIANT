@@ -353,7 +353,7 @@ static void jc_plane(int16_t *d, const float *x, uint32_t n, uint32_t rate, uint
     double step = (double)rate / (double)JIANT_RATE, fc = step > 1.0 ? 1.0 / step : 1.0;
     for (i = 0; i < frames; i++) {
         float v = rate == JIANT_RATE ? (i < n ? x[i] : 0.0f) : jc_src_at(x, n, (double)i * step, fc);
-        d[i] = smp_i16(smp_finite(v) * 32767.0f);
+        d[i] = smp_i16(smp_finite(v) * 32768.0f);     /* (an int16 WAV through float and back: the same samples) */
     }
 }
 JC_API jiant_sample *jiant_sample_make(const float *l, const float *r, uint32_t frames, uint32_t rate, const char *name)
@@ -462,6 +462,18 @@ JC_API void jiant_slot_saved(uint32_t slot, uint32_t gen)
 {
     if (slot < SMP_NSLOT)
         smp_slot[slot].saved = gen;
+}
+JC_API const jiant_sample *jiant_slot_object(uint32_t slot)
+{
+    return slot < SMP_NSLOT ? smp_get(slot) : 0;
+}
+JC_API const int16_t *jiant_sample_data(const jiant_sample *o, uint32_t ch, uint32_t *frames, uint32_t *channels)
+{
+    if (frames)
+        *frames = o ? o->frames : 0u;
+    if (channels)
+        *channels = o ? o->ch : 0u;
+    return o ? o->work[ch & 1u] : 0;
 }
 JC_API void jiant_input(const float *l, const float *r, uint32_t n) { smp_input(l, r, n); }
 JC_API int jiant_rec_start(uint32_t slot, uint32_t source, uint32_t bars)

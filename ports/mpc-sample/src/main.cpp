@@ -14,7 +14,9 @@
 #include "runtime/screen.h"
 #include "jiant/jiant_app.h"
 #include "jiant_core.h"
+#include "jiant/sample_files.h"
 #include <sys/stat.h>
+#include <filesystem>
 #include <chrono>
 #include <cmath>
 #include <cstring>
@@ -168,8 +170,128 @@ int bench(double seconds)
     return 0;
 }
 
+// the sample slots on the card: --samples-write DIR puts two WAVs in DIR/Samples (48 kHz 24-bit stereo, 22.05 kHz
+// float mono) and a slots.json naming them, starts the app on DIR (it loads them), records a bar of JIANT's output
+// into slot 5 and has the service write it (DIR/Samples/slot05.wav, the map); --samples-read DIR, a new process, must
+// find all three slots as they were
+int samples(const char* dir, bool write)
+{
+    std::string s = std::string(dir) + "/Samples", expect = std::string(dir) + "/expect_slots.txt";
+    auto check = [](bool ok, const std::string& what) {
+        std::cout << (ok ? "  ok    " : "  FAIL  ") << what << '\n';
+        if (!ok)
+            throw std::runtime_error("samples: " + what);
+    };
+    if (write) {
+        std::filesystem::create_directories(s);
+        {   // tone.wav: 1 s at 48 kHz, 24-bit stereo (440 Hz left, 660 Hz right)
+            std::ofstream f(s + "/tone.wav", std::ios::binary);
+            uint32_t n = 48000, bytes = n * 6;
+            f.write("RIFF", 4); little(f, 36 + bytes, 4); f.write("WAVEfmt ", 8);
+            little(f, 16, 4); little(f, 1, 2); little(f, 2, 2); little(f, 48000, 4); little(f, 48000 * 6, 4);
+            little(f, 6, 2); little(f, 24, 2); f.write("data", 4); little(f, bytes, 4);
+            for (uint32_t i = 0; i < n; ++i) {
+                little(f, uint32_t(int32_t(4000000.0 * std::sin(2 * M_PI * 440.0 * i / 48000.0))), 3);
+                little(f, uint32_t(int32_t(4000000.0 * std::sin(2 * M_PI * 660.0 * i / 48000.0))), 3);
+            }
+        }
+        {   // noise.wav: 0.5 s at 22.05 kHz, 32-bit float mono
+            std::ofstream f(s + "/noise.wav", std::ios::binary);
+            uint32_t n = 11025, bytes = n * 4, seed = 1;
+            f.write("RIFF", 4); little(f, 36 + bytes, 4); f.write("WAVEfmt ", 8);
+            little(f, 16, 4); little(f, 3, 2); little(f, 1, 2); little(f, 22050, 4); little(f, 22050 * 4, 4);
+            little(f, 4, 2); little(f, 32, 2); f.write("data", 4); little(f, bytes, 4);
+            for (uint32_t i = 0; i < n; ++i) {
+                seed = seed * 1664525u + 1013904223u;
+                float v = float(int32_t(seed)) / 4294967296.0f;
+                uint32_t u;
+                std::memcpy(&u, &v, 4);
+                little(f, u, 4);
+            }
+        }
+        jiant_port::SlotMap m;
+        m[0] = "tone.wav";
+        m[2] = "noise.wav";
+        check(jiant_port::slots_write(s + "/slots.json", m), "slots.json written");
+    }
+    auto app = std::make_unique<JiantApp>(dir, 1);
+    jiant_slot_info_t a, b, c;
+    jiant_slot_info(0, &a);
+    jiant_slot_info(2, &b);
+    check(a.frames == 44100 && a.channels == 2 && b.frames == 22050 && b.channels == 1 && !std::strcmp(a.name, "tone"),
+          "slots 1 and 3 loaded at start from slots.json: " + std::to_string(a.frames) + " frames stereo, " +
+              std::to_string(b.frames) + " mono (both at 44.1 kHz now)");
+    if (write) {
+        uint32_t want = 44100u * 60u / jiant_bpm() * 4u;
+        render_take(*app, 0.1, nullptr, -1);
+        check(jiant_rec_start(4, JIANT_REC_MASTER, 1) == 0, "a bar of the master armed into slot 5");
+        app->post({Command::Midi, 0x90 | 60u << 8 | 110u << 16});
+        render_take(*app, 2.5, nullptr, 1.0);
+        jiant_slot_info(4, &c);
+        check(c.frames == want && c.changed, "recorded: " + std::to_string(c.frames) + " frames, changed");
+        render_take(*app, 0.1, nullptr, -1);
+        app->samples_service(nullptr, true);
+        render_take(*app, 0.1, nullptr, -1);
+        jiant_slot_info(4, &c);
+        check(std::filesystem::exists(s + "/slot05.wav") && !c.changed, "written to the card as Samples/slot05.wav, saved");
+        check(jiant_port::slots_read(s + "/slots.json")[4] == "slot05.wav", "slots.json names it");
+        const int16_t* p = jiant_slot_pcm(4, 0);
+        uint64_t h = 1469598103934665603ull;
+        for (uint32_t i = 0; i < c.frames; ++i)
+            h = (h ^ uint16_t(p[i])) * 1099511628211ull;
+        std::ofstream(expect) << c.frames << ' ' << h << '\n';
+        return 0;
+    }
+    uint32_t frames = 0;
+    uint64_t want = 0, h = 1469598103934665603ull;
+    std::ifstream(expect) >> frames >> want;
+    jiant_slot_info(4, &c);
+    const int16_t* p = jiant_slot_pcm(4, 0);
+    for (uint32_t i = 0; p && i < c.frames; ++i)
+        h = (h ^ uint16_t(p[i])) * 1099511628211ull;
+    check(frames && c.frames == frames && h == want && !c.changed,
+          "a new process: slot 5 the recording, sample for sample (" + std::to_string(c.frames) + " frames)");
+    {   // the SAMPLE BROWSER as the MPC shows it: SAMPLE pressed, pad 3, the wheel a step (DIR/browser.png)
+        auto press = [&](unsigned b) {
+            SurfaceEvent e;
+            e.input.kind = SurfaceInput::Kind::Button;
+            e.input.index = uint8_t(b);
+            e.input.pressed = true;
+            app->surface(e);
+            e.input.pressed = false;
+            app->surface(e);
+        };
+        press(jiant_port::Sample);
+        app->samples_service(nullptr, true);
+        SurfaceEvent e;
+        e.pad = 2;
+        e.midi.status = 0x90;
+        e.midi.value = 100;
+        app->surface(e);
+        e.input.kind = SurfaceInput::Kind::Control;
+        e.input.index = jiant_port::Wheel;
+        e.input.delta = 1;
+        e.pad = -1;
+        app->surface(e);
+        render_take(*app, 0.2, nullptr, -1);
+        juce::Image image(juce::Image::RGB, 320, 240, true);
+        {
+            juce::Graphics g(image);
+            app->paint(g);
+        }
+        save_png(image, (std::string(dir) + "/browser.png").c_str());
+        check(app->status().find("browser=1") != std::string::npos, "SAMPLE opens the browser (" + std::string(dir) +
+                                                                         "/browser.png)");
+    }
+    return 0;
+}
+
 std::optional<int> run_tool(int argc, char** argv)
 {
+    if (argc == 3 && std::strcmp(argv[1], "--samples-write") == 0)
+        return samples(argv[2], true);
+    if (argc == 3 && std::strcmp(argv[1], "--samples-read") == 0)
+        return samples(argv[2], false);
     if (argc == 2 && std::strcmp(argv[1], "--bench") == 0)
         return bench(20.0);
     if (argc == 3 && std::strcmp(argv[1], "--persist-write") == 0)

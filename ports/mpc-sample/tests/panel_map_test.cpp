@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Juan Ignacio Antonucci (Juan Jiant)
 // The MPC Sample's surface as the FM-1's panel (src/jiant/panel_map.h), without hardware.
 #include "jiant/panel_map.h"
+#include "jiant/sample_browser.h"
 #include <cstdio>
 
 using namespace jiant_port;
@@ -64,6 +65,43 @@ int main()
     CHECK(c.encoder == SELECT && c.steps == -1, "the wheel is SELECT");
     c = p.control(MainVolume, 127, 0, false);
     CHECK(c.kind == Command::Master && c.value == 1023, "MAIN VOLUME is MASTER");
+
+    {   // the SAMPLE BROWSER (sample_browser.h); (CHECK reads its condition twice: each step taken once, before it)
+        using A = SampleBrowser::Action;
+        SampleBrowser b;
+        bool ok = b.button(TopLeft, true) == A::None && b.pad(3, true) == A::None && b.wheel(1) == A::None;
+        CHECK(ok, "closed: the buttons, pads and wheel are the panel's");
+        ok = b.button(Sample, true) == A::Open && b.open() && b.button(Sample, false) == A::Swallow;
+        CHECK(ok, "SAMPLE opens it");
+        ok = b.pad(5, true) == A::Pick && b.slot() == 5 && b.pad(5, false) == A::Swallow;
+        CHECK(ok, "pad 6 picks slot 6");
+        ok = b.button(TopMiddle, true) == A::Swallow && b.button(TopRight, true) == A::Swallow;
+        CHECK(ok, "no files: nothing to audition or load");
+        b.set_files(3);
+        ok = b.wheel(2) == A::Scroll && b.file() == 2 && b.wheel(5) == A::Scroll && b.file() == 2 && b.wheel(-9) == A::Scroll &&
+             b.file() == 0;
+        CHECK(ok, "the wheel scrolls the 3 files, held at the ends");
+        ok = b.button(TopMiddle, true) == A::Audition && b.button(TopRight, true) == A::Load;
+        CHECK(ok, "AUDITION, LOAD");
+        ok = b.button(Erase, true) == A::Clear;
+        CHECK(ok, "ERASE clears the slot");
+        ok = b.button(SampleSelect, true) == A::Source && b.source() == RecSource::Mic;
+        ok = ok && b.button(SampleSelect, true) == A::Source && b.button(SampleSelect, true) == A::Source &&
+             b.source() == RecSource::Resample;
+        ok = ok && b.button(SampleSelect, true) == A::Source && b.source() == RecSource::Line;
+        CHECK(ok, "SAMPLE SELECT cycles LINE MIC USB RESAMPLE");
+        ok = b.button(SampleRecord, true) == A::Record;
+        CHECK(ok, "SAMPLE REC records");
+        ok = b.button(PlayB, true) == A::Swallow && b.button(Seq, true) == A::Swallow;
+        CHECK(ok, "the rest is swallowed while open");
+        b.set_files(1);
+        CHECK(b.file() == 0, "fewer files: the pick held in them");
+        ok = b.button(TopLeft, true) == A::Close && !b.open();
+        CHECK(ok, "the left button closes it");
+        b.button(Sample, true);
+        ok = b.button(Sample, true) == A::Close && !b.open();
+        CHECK(ok, "SAMPLE again too");
+    }
     std::printf(fails ? "panel map: %d FAILED\n" : "panel map: all passed\n", fails);
     return fails != 0;
 }
