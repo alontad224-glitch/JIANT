@@ -21,6 +21,15 @@
 **Try it in the browser first:** https://juanjiant-bit.github.io/JIANT/emu/devices.html. It has the FM-1, SMK-37 and
 MPC Sample panels; the MPC panel has the sample engines, and you can drop your own WAVs on the page.
 
+**Every device, its links:**
+
+| Device | Install / download | Emulator | Editor |
+| --- | --- | --- | --- |
+| M-VAVE FM-1 | [Web installer](https://juanjiant-bit.github.io/JIANT/webapp/installer/) | [FM-1 emulator](https://juanjiant-bit.github.io/JIANT/emu/index.html) | [Web editor](https://juanjiant-bit.github.io/JIANT/webapp/editor/) |
+| M-VAVE SMK-37 | Not yet: [build from source](https://github.com/juanjiant-bit/JIANT/blob/main/docs/SMK37.md) | [SMK-37 panel](https://juanjiant-bit.github.io/JIANT/emu/devices.html#smk37) | [Web editor](https://juanjiant-bit.github.io/JIANT/webapp/editor/) |
+| Akai MPC Sample | `JIANT-FM-MPC-Sample-*.zip` above, to the microSD card ([how to install](https://github.com/juanjiant-bit/JIANT/blob/main/ports/mpc-sample/README.md)) | [MPC panel](https://juanjiant-bit.github.io/JIANT/emu/devices.html#mpc) | Coming |
+| MPC standalones, VST3 / LV2 / standalone | The plugin zips above ([how they work](https://github.com/juanjiant-bit/JIANT/blob/main/ports/README.md)) | | |
+
 **Not in this release:**
 
 - The **M-VAVE SMK-37** firmware is not in this release: it is built from source (`docs/SMK37.md`) until someone
@@ -34,11 +43,14 @@ Problems and test reports: [Issues](https://github.com/juanjiant-bit/JIANT/issue
 **JIANT FM más allá de la FM-1: preview.** El mismo firmware de la FM-1, ahora en más aparatos. Gratis, GPL-3.0.
 **Todavía no se probó en hardware real: buscamos testers.**
 
-- **MPC Sample:** el zip va a la microSD; adentro está el README.
-- **MPC standalone:** el plugin.
+- **FM-1:** [instalador web](https://juanjiant-bit.github.io/JIANT/webapp/installer/) · [emulador](https://juanjiant-bit.github.io/JIANT/emu/index.html) · [editor web](https://juanjiant-bit.github.io/JIANT/webapp/editor/).
+- **MPC Sample:** el zip va a la microSD; adentro está el README ([cómo instalarlo](https://github.com/juanjiant-bit/JIANT/blob/main/ports/mpc-sample/README.md)) ·
+  [emulador](https://juanjiant-bit.github.io/JIANT/emu/devices.html#mpc) · editor: próximamente.
+- **MPC standalone:** el plugin ([cómo funciona](https://github.com/juanjiant-bit/JIANT/blob/main/ports/README.md)).
 - **Computadora:** VST3 y app standalone para Linux y Windows.
 - **Motores nuevos en estos aparatos:** SAMPLE (one-shot experimental, feedback, resample, triggers complejos),
   GRAIN (granular con recorridos, stretch, feedback y modo LIVE) y DRUM-X con morph entre síntesis y samples.
 - **Probalo antes en el navegador:** https://juanjiant-bit.github.io/JIANT/emu/devices.html
-- **SMK-37:** todavía sin paquete, se compila desde el código.
+- **SMK-37:** todavía sin paquete, se compila desde el código ([SMK37.md](https://github.com/juanjiant-bit/JIANT/blob/main/docs/SMK37.md)) ·
+  [emulador](https://juanjiant-bit.github.io/JIANT/emu/devices.html#smk37) · [editor web](https://juanjiant-bit.github.io/JIANT/webapp/editor/).
 - **Mac e iOS:** más adelante.

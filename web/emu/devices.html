@@ -85,10 +85,32 @@ h1 .fm { background: var(--heat); -webkit-background-clip: text; background-clip
 .lede { margin: 12px 0 0; max-width: 62ch; color: var(--text); }
 /* the picker: one card per device */
 .picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.picker button { --bc: var(--rule); font: inherit; text-align: left; padding: 14px 16px; border: 0; color: var(--text); cursor: pointer;
-                 min-width: 0; display: flex; flex-direction: column; gap: 4px; transition: transform .2s; }
-.picker button:hover { --bc: var(--cyan); transform: translateY(-2px); }
-.picker button[aria-pressed="true"] { --bc: var(--yellow); --k: 22px; }
+.picker .card { --bc: var(--rule); min-width: 0; display: flex; flex-direction: column; transition: transform .2s; }
+.picker .card:hover { --bc: var(--cyan); transform: translateY(-2px); }
+.picker .card:has(button[aria-pressed="true"]) { --bc: var(--yellow); --k: 22px; }
+.picker button { font: inherit; text-align: left; padding: 14px 16px 8px; border: 0; background: none; color: var(--text); cursor: pointer;
+                 min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+/* each device's links: in its card, and under its panel */
+.links { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 0 16px 12px; font: 500 10.5px/1.6 var(--mono); letter-spacing: .08em;
+         text-transform: uppercase; }
+.links a, .links span { color: var(--dim); text-decoration: none; white-space: nowrap; }
+.links a::before { content: "↗ "; color: var(--cyan); }
+.links a[href^="#"]::before, .links a[href$=".html"]::before { content: "▸ "; color: var(--orange); }
+.links a:hover { color: var(--yellow); }
+.links .na { opacity: .75; }
+.links .na::before { content: "○ "; color: var(--dim); }
+.devlinks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.devlinks a, .devlinks span { display: inline-flex; flex-direction: column; gap: 2px; padding: 9px 12px; border: 1px solid var(--rule);
+         background: var(--bg); color: var(--line); text-decoration: none; font: 600 11px/1.2 var(--mono); letter-spacing: .1em;
+         text-transform: uppercase; min-width: 0; }
+.devlinks small { font: 400 10.5px/1.3 var(--mono); letter-spacing: .02em; text-transform: none; color: var(--dim); }
+.devlinks a:hover { border-color: var(--yellow); color: var(--yellow); }
+.devlinks .hot { border-color: var(--orange); }
+.devlinks .here { border-style: dashed; }
+.devlinks .na { color: var(--dim); border-style: dashed; }
+.plugins { --bc: var(--violet); padding: 18px 20px; font-size: 14px; }
+.plugins p { margin: 0 0 4px; max-width: 70ch; }
+.plugins b { color: var(--line); font-weight: 600; }
 .picker .tag { font: 500 10px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--dim);
                display: flex; gap: 8px; align-items: center; }
 .picker .tag i { font-style: normal; color: var(--cyan); }
@@ -97,7 +119,8 @@ h1 .fm { background: var(--heat); -webkit-background-clip: text; background-clip
 .picker button[aria-pressed="true"] b { color: var(--yellow); }
 .picker small { font: 12px/1.4 var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) {
-  .picker { gap: 6px; } .picker button { padding: 10px; } .picker small { display: none; }
+  .picker { gap: 6px; } .picker button { padding: 10px 10px 6px; } .picker small { display: none; }
+  .links { padding: 0 10px 10px; font-size: 9px; letter-spacing: .02em; gap: 0 8px; flex-direction: column; }
   .picker .tag { font-size: 9px; letter-spacing: .08em; flex-wrap: wrap; gap: 0 6px; } .picker b { white-space: normal; font-size: 11px; }
 }
 /* the bench: the device, and beside it (the MPC, wide screens) its screen larger, its samples and its map */
@@ -117,61 +140,72 @@ h1 .fm { background: var(--heat); -webkit-background-clip: text; background-clip
 .ctl:focus { outline: none; }
 .ctl:focus-visible .face { stroke: #ffe14d; stroke-width: 3; }
 .face { transition: fill .06s; }
-/* the SMK-37's parts */
-.smk .sk .face { fill: url(#smk-key); stroke: #0d0d0e; stroke-width: 1.5; }
-.smk .sk.dim .face { fill: #4a4740; }
-.smk .sk.lit .face { fill: #f4f1e8; }
-.smk .sk.green .face { fill: var(--green); }
-.smk .sk.rec.lit .face { fill: #ff453a; }
-.smk .sk.lit .kt, .smk .sk.green .kt { fill: #1d1d1f; }
-.held .face { stroke: var(--lit); stroke-width: 3; }
-.smk .pad .face { fill: #303034; stroke: #111113; stroke-width: 1.5; }
-.smk .pad.held .face { fill: #ffffff !important; }
-.key .face { stroke: #1a1a1c; stroke-width: 1.2; }
-.key.white .face { fill: url(#smk-white); }
-.key.black .face { fill: url(#smk-black); }
-.key.off .face { opacity: .78; }
-.key.white.lit .face { fill: #ffd29e; }
-.key.black.lit .face { fill: #b45400; }
-.key.held .face, .key.white.held .face { fill: var(--accent); }
-/* the MPC Sample's parts: backlit buttons by colour, a strip on the transport keys, violet pads */
-.mpc .mb .face { stroke: rgba(0, 0, 0, .55); stroke-width: 1.5; }
-.mpc .mb .kt { fill: #f1f1f3; }
-.mpc .mb.t-dark .face { fill: #2b2b2f; }
-.mpc .mb.t-dark.dim .face { fill: #4b4840; }
-.mpc .mb.t-dark.lit .face { fill: #fff4d6; filter: url(#mpc-glow); }
-.mpc .mb.t-dark.lit .kt { fill: #1d1d1f; }
-.mpc .mb.t-grey .face { fill: #5a5b61; }
-.mpc .mb.t-grey.dim .face { fill: #6f6c63; }
-.mpc .mb.t-grey.lit .face { fill: #fff4d6; }
-.mpc .mb.t-grey.lit .kt { fill: #1d1d1f; }
-.mpc .mb.t-orange .face { fill: #9a3a1b; }
-.mpc .mb.t-orange.dim .face { fill: #c0532b; }
-.mpc .mb.t-orange.lit .face { fill: #ff6a2e; filter: url(#mpc-glow); }
-.mpc .mb.t-blue .face { fill: #1d4f7e; }
-.mpc .mb.t-blue.dim .face { fill: #286aa6; }
-.mpc .mb.t-blue.lit .face { fill: #3aa6ff; filter: url(#mpc-glow); }
-.mpc .mb.t-blue.lit .kt, .mpc .mb.t-orange.lit .kt { fill: #0b0b0c; }
-.mpc .mb .strip { transition: fill .06s; }
-.mpc .mb.s-red .strip { fill: #6e1a1d; }
-.mpc .mb.s-red.dim .strip { fill: #a5282c; }
-.mpc .mb.s-red.lit .strip { fill: #ff3b3f; filter: url(#mpc-glow); }
-.mpc .mb.s-white .strip { fill: #7c7c80; }
-.mpc .mb.s-white.lit .strip { fill: #ffffff; filter: url(#mpc-glow); }
-.mpc .mb.s-green .strip { fill: #1f5a32; }
-.mpc .mb.s-green.dim .strip { fill: #2e8a4b; }
-.mpc .mb.s-green.lit .strip, .mpc .mb.s-green.green .strip { fill: #5fe08a; filter: url(#mpc-glow); }
-.mpc .mb.on .face { stroke: var(--accent); stroke-width: 3; }
-.mpc .mb.held .face { stroke: #fff4d6; stroke-width: 3; }
-.mpc .pad .face { fill: #77787e; stroke: #4c3f8e; stroke-width: 2.5; }
-.mpc.on .pad .face { stroke: #a08cff; }
-.mpc .pad-glow { opacity: .2; transition: opacity .4s; }
+/* The panels in JIANT's own look (the firmware's JIANT skin, tools/gen_ui_palettes.py: a thermal camera; the site's
+   HUD corners): a near-black body, thin lines, values as heat (indigo violet red orange amber cream), what is active in
+   orange, what is selected in violet. Controls are drawn as the firmware draws them: rings that show a value, pads and
+   keys that light, thin-line marks. The positions are the devices' own */
+.device { --j-line: rgba(239, 230, 200, .16); --j-ink: #ddd6ea; --j-org: #ff7a1a; --j-vio: #b870ff; --j-cyan: #3fe0e6;
+          --j-grn: #8be06a; --j-red: #ff4b4b; --j-cream: #fff3ce; }
+.device .lit-glow, .ctl.glow .face { filter: url(#j-glow); }
+/* buttons (both panels): a dark key with a thin edge; lit: its edge and a warm fill, glowing */
+.sk .face, .mb .face { fill: #100f17; stroke: var(--j-line); stroke-width: 1.5; transition: fill .08s, stroke .08s; }
+.sk .kt, .mb .kt { fill: var(--j-ink); }
+.sk.port .kt, .mb.port .kt { fill: #a39cba; }
+.sk.dim .face, .mb.dim .face { stroke: rgba(255, 122, 26, .5); }
+.sk.lit .face, .mb.lit .face { fill: #2b1607; stroke: var(--j-org); filter: url(#j-glow); }
+.sk.lit .kt, .mb.lit .kt { fill: var(--j-cream); }
+.sk.green .face, .mb.green .face { fill: #12230d; stroke: var(--j-grn); filter: url(#j-glow); }
+.sk.rec .kt { fill: #ff8a80; }
+.sk.rec.lit .face { fill: #2c0b0e; stroke: var(--j-red); }
+.held .face { stroke: var(--j-cream) !important; stroke-width: 2.5; }
+/* the MPC's tones: the same keys, an edge by family (MODE orange, PAD PLAY cyan, the rest the line) */
+.mb.t-grey .face { fill: #15141d; }
+.mb.t-orange .face { stroke: rgba(255, 122, 26, .55); }
+.mb.t-orange .kt { fill: #ffb27a; }
+.mb.t-blue .face { stroke: rgba(63, 224, 230, .5); }
+.mb.t-blue .kt { fill: #9ef0f3; }
+.mb.t-blue.dim .face { stroke: rgba(63, 224, 230, .8); }
+.mb.t-blue.lit .face { fill: #062628; stroke: var(--j-cyan); }
+.mb .strip { transition: fill .08s; }
+.mb.s-red .strip { fill: #4a1418; }
+.mb.s-red.dim .strip { fill: #8a2228; }
+.mb.s-red.lit .strip { fill: var(--j-red); filter: url(#j-glow); }
+.mb.s-white .strip { fill: #3a3842; }
+.mb.s-white.lit .strip { fill: var(--j-cream); filter: url(#j-glow); }
+.mb.s-green .strip { fill: #1e3a17; }
+.mb.s-green.dim .strip { fill: #3d6b2c; }
+.mb.s-green.lit .strip, .mb.s-green.green .strip { fill: var(--j-grn); filter: url(#j-glow); }
+.mb.on .face { stroke: var(--j-vio); stroke-width: 2.5; }
+/* pads: dark, HUD corners; lit in the colour the panel gives them (padLit), held cream */
+.pad .face { fill: #0d0c13; stroke: rgba(184, 112, 255, .26); stroke-width: 1.5; transition: fill .08s, stroke .08s; }
+.pad .brk-c { stroke: rgba(239, 230, 200, .3); transition: stroke .08s; }
+.pad.held .face { fill: var(--j-cream) !important; fill-opacity: 1 !important; stroke: var(--j-cream) !important; }
+.pad.held .brk-c { stroke: var(--j-org); }
+.pad.held .pn { fill: #050409; }
+/* the SMK-37's keys: charcoal keys, a light bar each (the FM-1's touch keys), orange when lit */
+.key .face { stroke: #050409; stroke-width: 2; transition: fill .08s; }
+.key.white .face { fill: url(#j-white); }
+.key.black .face { fill: #050408; stroke: rgba(184, 112, 255, .55); }
+.key .bar { fill: rgba(239, 230, 200, .55); transition: fill .08s; }
+.key.black .bar { fill: rgba(184, 112, 255, .7); }
+.key.off { opacity: .42; }
+.key.white.lit .face { fill: #2b1607; }
+.key.black.lit .face { fill: #3a1b06; }
+.key.lit .bar { fill: var(--j-org); filter: url(#j-glow); }
+.key.held .face, .key.white.held .face { fill: var(--j-org); }
+.key.held .bar { fill: var(--j-cream); }
+/* the MPC's lights and pad glow */
+.mpc .pad-glow { opacity: .18; transition: opacity .5s; }
 .mpc.on .pad-glow { opacity: 1; }
-.mpc .pad.held .face { fill: #ff7a1a !important; stroke: #ffd2a8; }
-.mpc .led-pwr { fill: #15301f; }
-.mpc.on .led-pwr { fill: #5fe08a; filter: url(#mpc-glow); }
-.mpc .led-fader { fill: #6a6a6e; }
-.mpc.on .led-fader { fill: #f4f4ff; filter: url(#mpc-glow); }
+.mpc .led-pwr { fill: #16241a; }
+.mpc.on .led-pwr { fill: var(--j-grn); filter: url(#j-glow); }
+.mpc .led-fader { fill: #2a2833; }
+.mpc.on .led-fader { fill: var(--j-cream); filter: url(#j-glow); }
+/* the creatures on the bodies (as HOME draws a track): breathing, slowly */
+.creature { transform-box: fill-box; transform-origin: center; animation: breathe 5.5s ease-in-out infinite; }
+.creature.b { animation-duration: 7s; animation-delay: -2s; }
+@keyframes breathe { 50% { transform: scale(1.06) rotate(2deg); } }
+.device:not(.on) .creature { animation-play-state: paused; }
 /* switch on */
 .start { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 16px;
          background: rgba(5, 4, 9, .5); border-radius: var(--start-r, 20px); }
@@ -247,14 +281,20 @@ footer .tm { flex-basis: 100%; letter-spacing: 0; }
   on; what you save on one is there on the others.</p>
 </section>
 <div class="picker" role="group" aria-label="Device">
-  <button type="button" class="brk" data-dev="fm1"><span class="tag">01 · <i>today</i></span><b>M-VAVE FM-1</b><small>27 keys · 14 buttons · 7 encoders</small></button>
-  <button type="button" class="brk" data-dev="smk37"><span class="tag">02 · <i class="dev">in development</i></span><b>M-VAVE SMK-37</b><small>37 keys · 16 pads · 8 encoders · 4 faders</small></button>
-  <button type="button" class="brk" data-dev="mpc"><span class="tag">03 · <i class="dev">preview</i></span><b>MPC Sample</b><small>16 pads · 3 knobs · fader · wheel</small></button>
+  <div class="card brk"><button type="button" data-dev="fm1"><span class="tag">01 · <i>today</i></span><b>M-VAVE FM-1</b><small>27 keys · 14 buttons · 7 encoders</small></button><nav class="links" data-links="fm1" aria-label="FM-1: install, emulator, editor, manual"></nav></div>
+  <div class="card brk"><button type="button" data-dev="smk37"><span class="tag">02 · <i class="dev">in development</i></span><b>M-VAVE SMK-37</b><small>37 keys · 16 pads · 8 encoders · 4 faders</small></button><nav class="links" data-links="smk37" aria-label="SMK-37: install, emulator, editor, manual"></nav></div>
+  <div class="card brk"><button type="button" data-dev="mpc"><span class="tag">03 · <i class="dev">preview</i></span><b>MPC Sample</b><small>16 pads · 3 knobs · fader · wheel</small></button><nav class="links" data-links="mpc" aria-label="MPC Sample: download, install, emulator"></nav></div>
 </div>
 <div class="bench" id="bench">
   <div class="stage brk" id="stage"></div>
   <div class="side" id="side"><div id="info"></div></div>
 </div>
+<section class="plugins brk" aria-labelledby="plug-h">
+  <p class="k" id="plug-h">Also: the plugins</p>
+  <p>JIANT FM as a plugin for the <b>MPC standalones</b> (MPC OS 3.10.1+) and as <b>VST3, LV2 and a standalone app</b> for
+  Linux and Windows: the big CPUs' build, with the SAMPLE and GRAIN engines.</p>
+  <nav class="devlinks" data-links="plugins" aria-label="Plugins: download, how they work"></nav>
+</section>
 <footer>
   <span>JIANT FM · Juan Jiant · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a></span>
   <span><a href="index.html">FM-1 emulator alone</a> · <a href="https://github.com/juanjiant-bit/JIANT/tree/main/ports">The ports</a> ·
@@ -481,17 +521,130 @@ function shadow(d, id, dy = 3, blur = 3, opacity = .45) {
 function lines(parent, x, y, s, size, font, ink, step = size + 2) {
   s.split("\n").forEach((t, i) => label(parent, x, y + i * step, t, size, font, ink));
 }
+// ------------------------------------------------------------------ JIANT's look for a panel
+// The JIANT skin's heat (firmware/src/ui_graph.c heat_col: indigo violet red orange amber cream white), the knobs'
+// colours (tools/gen_ui_palettes.py KNOBS["JIANT"]), Plex Mono for what is printed, DotGothic16 for what JIANT does
+const HEAT = ["#3a4aad", "#8459ff", "#ff414a", "#ff7519", "#ffbe5a", "#fff3ce", "#ffffff"];
+const KNOB_COL = ["#8a6cff", "#ffd23c", "#5874ff", "#ff4b4b"];
+const ORG = "#ff7a1a", VIO = "#b870ff", CYAN = "#3fe0e6", CREAM = "#fff3ce", INK = "#ddd6ea", DIM = "#8f88a6";
+const MONO = "'IBM Plex Mono', ui-monospace, Menlo, monospace", MICH = "Michroma, 'Arial Black', sans-serif";
+function heatAt(t) {                                   // t 0..1 -> a colour on the heat ramp (without the white)
+  const s = Math.max(0, Math.min(1, t)) * (HEAT.length - 2), i = Math.min(HEAT.length - 3, Math.floor(s)), f = s - i;
+  const a = HEAT[i], b = HEAT[i + 1], c = (h, k) => parseInt(h.slice(1 + k * 2, 3 + k * 2), 16);
+  return "#" + [0, 1, 2].map((k) => Math.round(c(a, k) + (c(b, k) - c(a, k)) * f).toString(16).padStart(2, "0")).join("");
+}
+// the defs every JIANT panel uses: the glow, the heat (across and up), the charcoal key, the dot field
+function jiantDefs(d) {
+  glow(d, "j-glow", 3.2);
+  glow(d, "j-halo", 7);
+  linear(d, "j-heat", HEAT.slice(0, 6).map((c, i) => [i / 5, c]), [0, 0, 1, 0]);
+  linear(d, "j-heatv", HEAT.slice(0, 6).map((c, i) => [i / 5, c]), [0, 1, 0, 0]);
+  linear(d, "j-body", [[0, "#13111b"], [0.5, "#0c0b12"], [1, "#08070c"]]);
+  linear(d, "j-white", [[0, "#1d1b27"], [0.85, "#272533"], [1, "#32303f"]]);
+  const dots = el("pattern", { id: "j-dots", width: 14, height: 14, patternUnits: "userSpaceOnUse" }, d);
+  el("rect", { x: 6, y: 6, width: 1.4, height: 1.4, fill: "#efe6c8", opacity: .07 }, dots);
+  const grille = el("pattern", { id: "j-grille", width: 9, height: 9, patternUnits: "userSpaceOnUse" }, d);
+  el("rect", { x: 3, y: 3, width: 3, height: 3, fill: VIO, opacity: .22 }, grille);
+}
+// HUD corners (the site's .brk) around a box
+function brackets(parent, x, y, w, h, k, ink, sw = 2, cls = "") {
+  const p = `M${x} ${y + k}V${y}H${x + k} M${x + w - k} ${y}H${x + w}V${y + k} M${x + w} ${y + h - k}V${y + h}H${x + w - k} M${x + k} ${y + h}H${x}V${y + h - k}`;
+  return el("path", { d: p, fill: "none", stroke: ink, "stroke-width": sw, class: cls, "pointer-events": "none" }, parent);
+}
+// the body: near black, the dot field, a thin edge, the heat line along its top, orange corners
+function jiantBody(W, H, rx) {
+  el("rect", { x: 2, y: 2, width: W - 4, height: H - 4, rx, fill: "url(#j-body)", stroke: "rgba(184,112,255,.35)", "stroke-width": 1.5 });
+  el("rect", { x: 2, y: 2, width: W - 4, height: H - 4, rx, fill: "url(#j-dots)" });
+  el("rect", { x: rx, y: 2, width: W - 2 * rx, height: 2.5, fill: "url(#j-heat)", opacity: .9 });
+  brackets(svg, 10, 10, W - 20, H - 20, 26, ORG, 2);
+}
+// a creature, as HOME draws a track: a wobbly closed line, two eyes; drawn only, breathing
+function creature(parent, x, y, r, ink, seed, cls = "") {
+  const g = el("g", { class: "creature " + cls, "pointer-events": "none" }, parent);
+  for (const [k, sw, op] of [[1, 1.4, .55], [0.62, 1, .35]]) {
+    let p = "";
+    for (let i = 0; i <= 72; i++) {
+      const a = i / 72 * Math.PI * 2;
+      const q = r * k * (1 + .16 * Math.sin(3 * a + seed) + .09 * Math.sin(5 * a + seed * 2.3) + .05 * Math.sin(9 * a + seed * .7));
+      p += (i ? "L" : "M") + (x + Math.cos(a) * q * 1.15).toFixed(1) + " " + (y + Math.sin(a) * q).toFixed(1);
+    }
+    el("path", { d: p + "Z", fill: "none", stroke: ink, "stroke-width": sw, opacity: op }, g);
+  }
+  for (const dx of [-r * .2, r * .2]) el("rect", { x: x + dx - 2.5, y: y - r * .12 - 2.5, width: 5, height: 5, fill: CREAM, opacity: .8 }, g);
+  return g;
+}
+// the wordmark: JIANT in Michroma, FM in the heat
+function wordmark(parent, x, y, size, anchor = "middle", suffix = "") {
+  const t = el("text", { x, y, "text-anchor": anchor, "font-family": MICH, "font-size": size, fill: "#efe6c8", "letter-spacing": ".08em", "pointer-events": "none" }, parent);
+  t.textContent = "JIANT ";
+  const fm = el("tspan", { fill: "url(#j-heat)" }, t);
+  fm.textContent = "FM";
+  if (suffix) { const sx = el("tspan", { fill: DIM, "font-family": MONO, "font-size": size * .78, "letter-spacing": ".1em" }, t); sx.textContent = "  " + suffix; }
+  return t;
+}
+// a ring around a knob: the 270° track, an arc for the value (absolute: its colour the value's heat, as the JIANT skin
+// colours a knob) or, for an endless encoder, a lit point where it turned to, a fading tail behind it
+function ringKnob(g, x, y, r, opts = {}) {
+  const R = r + (opts.gap ?? 8), arc = (a0, a1) => {
+    const p = (a) => [x + Math.cos((a - 90) * Math.PI / 180) * R, y + Math.sin((a - 90) * Math.PI / 180) * R];
+    const [x0, y0] = p(a0), [x1, y1] = p(a1);
+    return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+  };
+  el("circle", { cx: x, cy: y, r: R + 6, fill: "transparent" }, g);   // (the touch area)
+  el("circle", { cx: x, cy: y, r, fill: "#0e0d15", stroke: "rgba(239,230,200,.22)", "stroke-width": 1.5, class: "face" }, g);
+  el("circle", { cx: x, cy: y, r: r * .7, fill: "none", stroke: "rgba(239,230,200,.07)", "stroke-width": 1 }, g);
+  const ptr = el("line", { x1: x, y1: y - r * .35, x2: x, y2: y - r + 4, stroke: CREAM, "stroke-width": opts.pw || 2.6, "stroke-linecap": "round" }, g);
+  let set;
+  if (opts.endless) {
+    const n = 24, dots = [];
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2 - Math.PI / 2;
+      dots.push(el("circle", { cx: x + Math.cos(a) * R, cy: y + Math.sin(a) * R, r: 1.7, fill: "rgba(239,230,200,.18)" }, g));
+    }
+    let last = -1;
+    set = (deg) => {
+      ptr.setAttribute("transform", `rotate(${deg} ${x} ${y})`);
+      const at = ((Math.round(deg / 15) % n) + n) % n;
+      if (at === last) return;
+      last = at;
+      dots.forEach((dt, i) => {
+        const k = (at - i + n) % n;
+        dt.setAttribute("fill", k === 0 ? opts.ink : k < 3 ? opts.ink : "rgba(239,230,200,.18)");
+        dt.setAttribute("opacity", k === 0 ? 1 : k === 1 ? .5 : k === 2 ? .22 : 1);
+        dt.setAttribute("r", k === 0 ? 3.4 : 1.7);
+        if (k === 0) dt.setAttribute("filter", "url(#j-glow)"); else dt.removeAttribute("filter");
+      });
+    };
+  } else {
+    el("path", { d: arc(-135, 135), fill: "none", stroke: "rgba(239,230,200,.12)", "stroke-width": opts.w || 4, "stroke-linecap": "round" }, g);
+    const val = el("path", { fill: "none", "stroke-width": opts.w || 4, "stroke-linecap": "round", filter: "url(#j-glow)" }, g);
+    set = (t) => {                                     // t 0..1
+      const a = -135 + 270 * t;
+      ptr.setAttribute("transform", `rotate(${a} ${x} ${y})`);
+      val.setAttribute("d", arc(-135, Math.max(-134, a)));
+      val.setAttribute("stroke", opts.ink || heatAt(.15 + .85 * t));
+    };
+  }
+  return set;
+}
+// a pad: a dark square, HUD corners, its number; padLit lights it in a colour
+function padShape(g, x, y, s, n, ink = DIM) {
+  el("rect", { x, y, width: s, height: s, rx: 4, class: "face" }, g);
+  brackets(g, x + 4, y + 4, s - 8, s - 8, Math.round(s * .16), "", 1.5, "brk-c").removeAttribute("stroke");
+  label(g, x + s / 2, y + Math.min(24, s * .24) + 4, String(n), 12, DOT, ink).classList.add("pn");
+}
 function keybed(x, y, w, h, first, count, opts) {
   // first: the first key's MIDI note; white keys across w, black ones over them
   const whites = [], keys = [];
   for (let m = first; m < first + count; m++) if (![1, 3, 6, 8, 10].includes(m % 12)) whites.push(m);
   const kw = w / whites.length;
-  el("rect", { x: x - 6, y: y - 6, width: w + 12, height: h + 12, rx: 10, fill: "var(--tray)" });
+  el("rect", { x: x - 6, y: y - 6, width: w + 12, height: h + 12, rx: 6, fill: "#050409", stroke: "rgba(184,112,255,.3)", "stroke-width": 1.5 });
   const make = (m, black) => {
     const i = whites.indexOf(black ? m - 1 : m), g = control("key " + (black ? "black" : "white"), noteName(m));
-    const bx = black ? x + (i + 1) * kw - kw * 0.32 : x + i * kw + 1;
-    el("rect", { x: bx, y, width: black ? kw * 0.64 : kw - 2, height: black ? h * 0.6 : h, rx: 3, class: "face" }, g);
-    if (!black && (opts.names || m % 12 === 0)) label(g, bx + (kw - 2) / 2, y + h - 10, noteName(m), 11, SANS, "#77777c");
+    const bx = black ? x + (i + 1) * kw - kw * 0.32 : x + i * kw + 1, bw = black ? kw * 0.64 : kw - 2, bh = black ? h * 0.6 : h;
+    el("rect", { x: bx, y, width: bw, height: bh, rx: 3, class: "face" }, g);
+    el("rect", { x: bx + bw / 2 - 2, y: y + bh - (black ? 36 : 62), width: 4, height: black ? 22 : 26, rx: 2, class: "bar" }, g);
+    if (!black && (opts.names || m % 12 === 0)) label(g, bx + (kw - 2) / 2, y + h - 12, noteName(m), 11, MONO, m % 12 === 0 ? "#c9c2dc" : "#6e6884");
     keys.push({ m, g });
     opts.bind(g, m);
   };
@@ -499,8 +652,13 @@ function keybed(x, y, w, h, first, count, opts) {
   for (let m = first; m < first + count; m++) if ([1, 3, 6, 8, 10].includes(m % 12)) make(m, true);
   return keys;
 }
-const padLit = (g, rgb) => { g.querySelector(".face").style.fill = rgb || ""; };
-
+// a pad lit in a colour (its fill a glow of it, its edge it), or dark
+const padLit = (g, rgb) => {
+  const f = g.querySelector(".face"), b = g.querySelector(".brk-c");
+  f.style.fill = rgb || ""; f.style.fillOpacity = rgb ? .3 : ""; f.style.stroke = rgb || "";
+  if (b) b.style.stroke = rgb || "";
+  g.classList.toggle("glow", !!rgb);
+};
 // the computer keyboard as the FM-1's keys (as index.html: Z..' and Q..O), arrows SELECT / ALGORITHM
 const KEYCODES = {};
 [0, 2, 4, 6, 7, 9, 11, 12, 14, 16].forEach((k, i) => KEYCODES[["KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash"][i]] = k);
@@ -543,96 +701,80 @@ const SMK_PRINT = { "NOTE\nREPEAT": "REPEAT", "SEQ\nPLAY": "PLAY", "SEQ\nREC": "
                     "KNOB\nBANK": "KNOB\nBANK", "FADER\nBANK": "FADER\nBANK", "<": "◀", ">": "▶" };
 const SMK_RIGHT = ["ARP", "NOTE\nREPEAT", "SCALE", "CHORD", "GLOBE", "BT", "PATCH", "PARA", "FX", "SEQ", "SEQ\nPLAY", "SEQ\nREC"];
 const SMK_LEFT = ["KNOB\nBANK", "FADER\nBANK", "<", ">", "OCTAVE -", "OCTAVE +"];
-const SMK_FINISHES = { grey: "url(#smk-grey)", red: "url(#smk-red)" };
 function buildSMK(stage) {
   const W = 1400, H = 584;
   const dev = document.createElement("div");
   dev.className = "device smk";
-  dev.style.setProperty("--start-r", "1.6% / 3.8%");
+  dev.style.setProperty("--start-r", "1% / 2.4%");
   stage.appendChild(dev);
   svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("role", "group");
   svg.setAttribute("aria-label", "M-VAVE SMK-37 (a drawing)");
   dev.appendChild(svg);
-  const d = defs();
-  linear(d, "smk-grey", [[0, "#5b5c61"], [0.06, "#4b4c51"], [1, "#3c3d41"]]);
-  linear(d, "smk-red", [[0, "#cf3a42"], [0.06, "#b8282f"], [1, "#9a1d24"]]);
-  linear(d, "smk-white", [[0, "#d9d9dc"], [0.08, "#fafafa"], [0.92, "#f0f0f1"], [1, "#d6d6d9"]]);
-  linear(d, "smk-black", [[0, "#2a2a2e"], [0.88, "#0e0e10"], [1, "#3a3a3e"]]);
-  linear(d, "smk-wheel", [[0, "#0c0c0d"], [0.5, "#4a4a4f"], [1, "#0c0c0d"]], [0, 0, 1, 0]);
-  linear(d, "smk-cap", [[0, "#e8e8ea"], [0.5, "#a0a0a5"], [1, "#cfcfd2"]]);
-  linear(d, "smk-key", [[0, "#3a3a3f"], [1, "#222225"]]);
-  radial(d, "smk-knob", [[0, "#5a5a60"], [0.6, "#232326"], [1, "#0f0f10"]]);
-  shadow(d, "smk-sh", 2, 2, .55);
-  shadow(d, "smk-sh-big", 6, 8, .5);
-  const ORANGE = "#ffa25a", INK = "#f1f1f3";
-  // the body (its finish: grey or red), two screws at the top corners
-  let finish = "grey";
-  try { finish = localStorage.getItem("jiant-smk-finish") === "red" ? "red" : "grey"; } catch {}
-  const body = el("rect", { x: 3, y: 3, width: W - 6, height: H - 6, rx: 22, fill: SMK_FINISHES[finish], stroke: "#1a1a1c", "stroke-width": 2, filter: "url(#smk-sh-big)" });
-  el("rect", { x: 6, y: 6, width: W - 12, height: H - 12, rx: 19, fill: "none", stroke: "#fff", "stroke-opacity": .14, "stroke-width": 1.5 });
-  for (const x of [22, W - 22]) {
-    el("circle", { cx: x, cy: 22, r: 8, fill: "#9a9ba0", stroke: "#2a2a2e", "stroke-width": 1.5 });
-    el("line", { x1: x - 5, y1: 22, x2: x + 5, y2: 22, stroke: "#4a4a4e", "stroke-width": 2 });
-  }
-  const top = (x, s) => label(svg, x, 44, s, 12, SANS, INK);
-  const jiant = (g, x, y, s) => label(g, x, y, s, 11, DOT, ORANGE);
-  // PITCH and MOD wheels
+  jiantDefs(defs());
+  // the body: JIANT's, the wordmark on its top edge
+  jiantBody(W, H, 14);
+  wordmark(svg, W / 2, 30, 13, "middle", "· SMK-37");
+  const top = (x, s) => label(svg, x, 44, s, 11, MONO, DIM);
+  const jiant = (g, x, y, s) => label(g, x, y, s, 11, DOT, ORG);
+  // PITCH and MOD wheels: a slot, the value as heat from the rest point (the middle for PITCH, the bottom for MOD)
   const wheel = (x, name, sub, onValue, spring) => {
     const g = control("fader", name), y = 58, h = 98, w = 40;
     top(x + w / 2, name);
-    el("rect", { x: x - 5, y: y - 5, width: w + 10, height: h + 10, rx: 12, fill: "#111113", stroke: "#000" }, g);
-    el("rect", { x, y, width: w, height: h, rx: 8, fill: "url(#smk-wheel)", class: "face" }, g);
-    for (let i = 0; i < 12; i++) el("rect", { x: x + 6, y: y + 6 + i * 7.6, width: w - 12, height: 2, fill: "#fff", opacity: .08 }, g);
-    const mark = el("rect", { x: x + 8, y: 0, width: w - 16, height: 4, rx: 2, fill: "#e8e8ea" }, g);
+    el("rect", { x: x - 5, y: y - 5, width: w + 10, height: h + 10, rx: 6, fill: "transparent" }, g);
+    el("rect", { x, y, width: w, height: h, rx: 5, fill: "#07060b", stroke: "rgba(239,230,200,.2)", "stroke-width": 1.5, class: "face" }, g);
+    for (let i = 1; i < 12; i++) el("line", { x1: x + 8, x2: x + w - 8, y1: y + i * h / 12, y2: y + i * h / 12, stroke: "#efe6c8", "stroke-opacity": .06 }, g);
+    const fill = el("rect", { x: x + w / 2 - 3, width: 6, rx: 2, fill: "url(#j-heatv)", filter: "url(#j-glow)" }, g);
+    const mark = el("rect", { x: x + 6, y: 0, width: w - 12, height: 3, rx: 1.5, fill: CREAM }, g);
+    if (spring) el("line", { x1: x + 3, x2: x + w - 3, y1: y + h / 2, y2: y + h / 2, stroke: VIO, "stroke-opacity": .6 }, g);
     jiant(g, x + w / 2, y + h + 20, sub);
     let v = spring ? 64 : 0;
-    const place = () => mark.setAttribute("y", y + 8 + (1 - v / 127) * (h - 20));
+    const place = () => {
+      const my = y + 6 + (1 - v / 127) * (h - 12), from = spring ? y + h / 2 : y + h - 4;
+      mark.setAttribute("y", my - 1.5);
+      fill.setAttribute("y", Math.min(my, from)); fill.setAttribute("height", Math.max(0, Math.abs(from - my)));
+    };
     place();
     positional(g, () => v, (nv) => { v = nv; place(); onValue(v); }, 100);
     if (spring) g.addEventListener("pointerup", () => { v = 64; place(); onValue(64); });
   };
   wheel(32, "PITCH", "BEND", (v) => { const b = Math.min(16383, v * 129); emu.midi(0xE0, b & 127, b >> 7); }, true);
   wheel(92, "MOD", "MOD", (v) => emu.midi(0xB0, 1, v), false);
-  // the screen (the FM-1's: 240 x 240), the JIANT frame in it
+  // the screen (the FM-1's: 240 x 240), the JIANT frame in it, violet HUD corners round it
   const S = [174, 46, 248];
-  el("rect", { x: S[0] - 18, y: S[1] - 16, width: S[2] + 36, height: S[2] + 34, rx: 20, fill: "#1a1a1d", stroke: "#000", "stroke-width": 2, filter: "url(#smk-sh)" });
-  el("rect", { x: S[0] - 4, y: S[1] - 4, width: S[2] + 8, height: S[2] + 8, rx: 6, fill: "#000" });
+  el("rect", { x: S[0] - 14, y: S[1] - 12, width: S[2] + 28, height: S[2] + 26, rx: 6, fill: "#030206", stroke: "rgba(184,112,255,.35)", "stroke-width": 1.5 });
+  brackets(svg, S[0] - 20, S[1] - 18, S[2] + 40, S[2] + 38, 18, VIO, 2);
+  el("rect", { x: S[0] - 2, y: S[1] - 2, width: S[2] + 4, height: S[2] + 4, fill: "#000" });
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 240;
   Object.assign(canvas.style, { left: `${S[0] / W * 100}%`, top: `${S[1] / H * 100}%`, width: `${S[2] / W * 100}%` });
   dev.appendChild(canvas);
   const ctx = canvas.getContext("2d");
   let bank = 0, masterValue = 700;
-  // K1..K8 in one row: the name over each, JIANT's under it
+  // K1..K8 in one row: rings (K1-K4 in the JIANT skin's knob colours, MASTER its level as heat), JIANT's name under each
   const ROLE_NAME = { [EN.K1]: "KNOB 1", [EN.K2]: "KNOB 2", [EN.K3]: "KNOB 3", [EN.K4]: "KNOB 4", master: "MASTER",
                       [EN.SELECT]: "SELECT", [EN.ALGORITHM]: "ALGO", [EN.PRESETS]: "PRESETS" };
+  const RING = { [EN.K1]: KNOB_COL[0], [EN.K2]: KNOB_COL[1], [EN.K3]: KNOB_COL[2], [EN.K4]: KNOB_COL[3],
+                 [EN.SELECT]: CYAN, [EN.ALGORITHM]: ORG, [EN.PRESETS]: VIO };
   SMK_ENCODERS.forEach(([name, role], i) => {
-    const x = 486 + i * 68, y = 88, r = 24;
+    const x = 486 + i * 68, y = 92, r = 19;
     top(x, name);
     const g = control("knob", name);
-    el("circle", { cx: x, cy: y, r: r + 4, fill: "#0b0b0c", filter: "url(#smk-sh)" }, g);
-    el("circle", { cx: x, cy: y, r, fill: "url(#smk-knob)", stroke: "#45454a", "stroke-width": 1.5, class: "face" }, g);
-    for (let t = 0; t < 24; t++) {                     // (the knurl)
-      const a = t * Math.PI / 12;
-      el("line", { x1: x + Math.cos(a) * (r - 1), y1: y + Math.sin(a) * (r - 1), x2: x + Math.cos(a) * (r - 5), y2: y + Math.sin(a) * (r - 5), stroke: "#000", "stroke-opacity": .5, "stroke-width": 1.5 }, g);
-    }
-    const ind = el("line", { x1: x, y1: y - r + 3, x2: x, y2: y - 6, stroke: "#f1f1f3", "stroke-width": 3, "stroke-linecap": "round" }, g);
-    jiant(g, x, y + r + 20, ROLE_NAME[role]);
-    const rotate = (deg) => ind.setAttribute("transform", `rotate(${deg} ${x} ${y})`);
-    let angle = role === "master" ? -135 + 270 * masterValue / 1023 : 0;
-    rotate(angle);
+    const set = ringKnob(g, x, y, r, role === "master" ? { gap: 7 } : { endless: true, ink: RING[role], gap: 7 });
+    jiant(g, x, y + r + 31, ROLE_NAME[role]);
+    let angle = 0;
+    set(role === "master" ? masterValue / 1023 : 0);
     turnable(g, (n) => {
       if (role === "master") {
         masterValue = Math.max(0, Math.min(1023, masterValue + n * 16));
         emu.master(masterValue);
-        angle = -135 + 270 * masterValue / 1023;
+        set(masterValue / 1023);
       } else {
         emu.enc(role, n);
-        angle = (angle + n * 18) % 360;
+        angle += n * 15;
+        set(angle);
       }
-      rotate(angle);
     });
   });
   // the 18 buttons: the name printed on each, JIANT's under it (inside the key)
@@ -644,12 +786,11 @@ function buildSMK(stage) {
     const [role, i] = ROLE_OF[name];
     const own = !(role in B);
     const g = control("sk" + (own ? " port" : "") + (role === "REC" ? " rec" : ""), name);
-    el("rect", { x, y, width: w, height: h, rx: 5, class: "face", filter: "url(#smk-sh)" }, g);
-    el("rect", { x: x + 2, y: y + 2, width: w - 4, height: h * 0.4, rx: 4, fill: "#fff", opacity: .06, "pointer-events": "none" }, g);
+    el("rect", { x, y, width: w, height: h, rx: 4, class: "face" }, g);
     const text = SMK_PRINT[name] || name, ls = text.split("\n"), sub = JIANT_OF[role];
     const size = ls.length > 1 ? 8.5 : name === "<" || name === ">" ? 12 : 9.5, ty = y + (sub ? h * 0.42 : h / 2 + 3) - (ls.length - 1) * 4.5;
-    ls.forEach((s, k) => label(g, x + w / 2, ty + k * 9.5, s, size, SANS, role === "REC" ? "#ff7a70" : INK).classList.add("kt"));
-    if (sub) label(g, x + w / 2, y + h - 6, sub, 10, DOT, ORANGE);
+    ls.forEach((s, k) => label(g, x + w / 2, ty + k * 9.5, s, size, MONO).classList.add("kt"));
+    if (sub) label(g, x + w / 2, y + h - 6, sub, 10, DOT, ORG);
     btns.push({ g, role });
     holdable(g, (id) => {
       if (role === "bank") { bank = (bank + 1) % SMK_FADER_BANKS.length; showBank(); return; }
@@ -660,49 +801,40 @@ function buildSMK(stage) {
   };
   SMK_LEFT.forEach((n, k) => smkButton(n, 28 + (k % 2) * 60, 186 + Math.floor(k / 2) * 44, 54, 38));
   SMK_RIGHT.forEach((n, k) => smkButton(n, 1010 + (k % 6) * 61.5, 218 + Math.floor(k / 6) * 45, 56, 39));
-  // the 16 pads, 2 rows of 8 (1-8 on top) in their tray: the FM-1's 16 white keys (its steps), the lowest on the bottom row
+  // the 16 pads, 2 rows of 8 (1-8 on top): the FM-1's 16 white keys (its steps), the lowest on the bottom row; each lights
+  // in the heat of its place in the bar
   const pads = [];
-  el("rect", { x: 454, y: 156, width: 540, height: 150, rx: 12, fill: "#000", "fill-opacity": .28, stroke: "#000", "stroke-opacity": .35, "stroke-width": 1.5 });
+  el("rect", { x: 454, y: 156, width: 540, height: 150, rx: 6, fill: "#050409", stroke: "rgba(184,112,255,.25)", "stroke-width": 1.5 });
   for (let p = 0; p < 16; p++) {
     const x = 466 + (p % 8) * 65.5, y = 166 + Math.floor(p / 8) * 67, s = 58;
     const g = control("pad", "Pad " + (p + 1));
-    el("rect", { x, y, width: s, height: s, rx: 7, class: "face", filter: "url(#smk-sh)" }, g);
-    el("rect", { x: x + 3, y: y + 3, width: s - 6, height: 18, rx: 5, fill: "#fff", opacity: .05, "pointer-events": "none" }, g);
-    label(g, x + s / 2, y + 26, String(p + 1), 12, SANS, "#c8c8cc");
-    label(g, x + s / 2, y + 44, fm1KeyName(smkPadKey(p)).replace("♯", "#"), 10, DOT, ORANGE);
+    padShape(g, x, y, s, p + 1);
+    label(g, x + s / 2, y + 42, fm1KeyName(smkPadKey(p)).replace("♯", "#"), 11, DOT, ORG);
     pads.push(g);
     holdable(g, (id) => emu.keyDown("pad" + p + id, smkPadKey(p)), (id) => emu.keyUp("pad" + p + id));
   }
-  // F1..F4 with their scales; under each, what the bank makes it
+  const padHeat = (p) => heatAt(.18 + .8 * (p < 8 ? p + 8 : p - 8) / 15);
+  // F1..F4: a thin track, the level as heat up to the cap; under each, what the bank makes it
   const fsubs = [];
   for (let i = 0; i < 4; i++) {
     const x = 1060 + i * 86, y = 58, h = 116, w = 36, g = control("fader", "F" + (i + 1));
     top(x, "F" + (i + 1));
-    for (let t = 0; t <= 10; t++) el("line", { x1: x - 26, x2: x - 16, y1: y + t * h / 10, y2: y + t * h / 10, stroke: INK, "stroke-opacity": .45, "stroke-width": 1.2 }, g);
-    el("rect", { x: x - 3, y: y - 4, width: 6, height: h + 8, rx: 3, fill: "#050506" }, g);
+    for (let t = 0; t <= 10; t++) el("line", { x1: x - 24, x2: x - (t % 5 ? 19 : 15), y1: y + t * h / 10, y2: y + t * h / 10, stroke: "#efe6c8", "stroke-opacity": t % 5 ? .2 : .45, "stroke-width": 1.2 }, g);
     el("rect", { x: x - w / 2, y: y - 14, width: w, height: h + 28, fill: "transparent" }, g);
-    const cap = el("g", { filter: "url(#smk-sh)" }, g);
-    el("rect", { x: x - w / 2, y: -11, width: w, height: 22, rx: 3, fill: "url(#smk-cap)", class: "face" }, cap);
-    el("rect", { x: x - w / 2 + 3, y: -1, width: w - 6, height: 2, fill: "#333" }, cap);
+    el("rect", { x: x - 2, y: y - 4, width: 4, height: h + 8, rx: 2, fill: "#1c1a25" }, g);
+    const lvl = el("rect", { x: x - 2, width: 4, rx: 2, fill: "url(#j-heatv)", filter: "url(#j-glow)" }, g);
+    const cap = el("g", {}, g);
+    el("rect", { x: x - w / 2, y: -9, width: w, height: 18, rx: 3, fill: "#15141d", stroke: "rgba(239,230,200,.45)", "stroke-width": 1.2, class: "face" }, cap);
+    el("rect", { x: x - w / 2 + 6, y: -1, width: w - 12, height: 2, fill: ORG }, cap);
     fsubs.push(jiant(g, x, y + h + 24, ""));
     let v = 100;
-    const place = () => cap.setAttribute("transform", `translate(0 ${y + (1 - v / 127) * h})`);
+    const place = () => { const cy = y + (1 - v / 127) * h; cap.setAttribute("transform", `translate(0 ${cy})`); lvl.setAttribute("y", cy); lvl.setAttribute("height", y + h + 4 - cy); };
     place();
     positional(g, () => v, (nv) => { v = nv; place(); const [st, cc] = SMK_FADER_BANKS[bank].cc(i); emu.midi(st, cc, v); }, 116);
   }
   const FADER_SUB = [["LVL T1", "LVL T2", "LVL T3", "LVL T4"], ["CUTOFF", "RESO", "REVERB", "DELAY"]];
   function showBank() { fsubs.forEach((t, i) => { t.textContent = FADER_SUB[bank][i]; }); }
   showBank();
-  // the finish: a small switch on the body's top edge
-  const fin = el("g", { class: "ctl", tabindex: 0, role: "button", "aria-label": "Body finish: grey or red" });
-  el("rect", { x: W / 2 - 60, y: 9, width: 120, height: 22, fill: "transparent" }, fin);
-  const finText = label(fin, W / 2, 25, "", 10, SANS, INK);
-  finText.setAttribute("fill-opacity", .7);
-  const showFinish = () => { body.setAttribute("fill", SMK_FINISHES[finish]); finText.textContent = "FINISH: " + finish.toUpperCase() + " ⇄"; };
-  const flip = () => { finish = finish === "grey" ? "red" : "grey"; try { localStorage.setItem("jiant-smk-finish", finish); } catch {} showFinish(); };
-  fin.addEventListener("click", flip);
-  fin.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
-  showFinish();
   // 37 keys, C3..C6, across the whole width: F3..G5 are the FM-1's 27; the five below and five above play nothing yet
   const keys = keybed(30, 336, 1340, 222, 48, 37, {
     names: true,
@@ -724,7 +856,7 @@ function buildSMK(stage) {
       b.g.classList.toggle("dim", !!(dimB & bit));
     }
     for (const { m, g } of keys) { const k = m - 53; g.classList.toggle("lit", k >= 0 && k < FM1_KEYS && !!(litK & (1 << k))); }
-    pads.forEach((g, p) => padLit(g, litK & (1 << smkPadKey(p)) ? "#efe9dc" : ""));   // (white when lit: docs/SMK37.md)
+    pads.forEach((g, p) => padLit(g, litK & (1 << smkPadKey(p)) ? padHeat(p) : ""));
   }
   return { dev, frame };
 }
@@ -1003,65 +1135,55 @@ function paintBrowser(ctx, B) {
 // in the dark band; MODE and SHIFT, the fader, ERASE on the left; three knobs over the 4 x 4 pads; PAD PLAY, the wheel
 // and the transport on the right; the palm rest), in plain shapes and a plain name: not the maker's artwork. Printed
 // under each control in orange: what it is in JIANT
-const MPC_INK = "#38383d", MPC_JIANT = "#b4450e";
+const MPC_INK = DIM, MPC_JIANT = ORG;
 function buildMPC(stage) {
   const W = 990, H = 1194;
   const dev = document.createElement("div");
   dev.className = "device mpc";
-  dev.style.setProperty("--start-r", "3.4% / 2.8%");
+  dev.style.setProperty("--start-r", "1.6% / 1.4%");
   stage.appendChild(dev);
   svg = document.createElementNS(NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("role", "group");
   svg.setAttribute("aria-label", "MPC Sample (a drawing)");
   dev.appendChild(svg);
-  const d = defs();
-  linear(d, "mpc-shell", [[0, "#dcdde0"], [0.45, "#cbccd0"], [1, "#b2b3b8"]]);
-  linear(d, "mpc-band", [[0, "#1b1b1e"], [1, "#0b0b0d"]]);
-  linear(d, "mpc-rest", [[0, "#6a6b70"], [0.06, "#505156"], [0.3, "#3f4044"], [1, "#2b2c30"]]);
-  linear(d, "mpc-gloss", [[0, "#fff", 0.22], [0.55, "#fff", 0]]);
-  linear(d, "mpc-pad", [[0, "#8a8b91"], [1, "#696a70"]]);
-  linear(d, "mpc-house", [[0, "#a9aaae"], [1, "#c4c5c9"]]);
-  linear(d, "mpc-capf", [[0, "#e6e6e8"], [0.5, "#a9aaae"], [1, "#d0d0d3"]]);
-  radial(d, "mpc-cap", [[0, "#f4f4f5"], [0.55, "#b5b6ba"], [1, "#6e6f74"]]);
-  radial(d, "mpc-wheel", [[0, "#d9dadd"], [0.6, "#a3a4a9"], [1, "#6a6b70"]], 0.38, 0.3, 0.75);
-  glow(d, "mpc-glow", 4);
-  glow(d, "mpc-halo", 7);
-  shadow(d, "mpc-sh", 3, 3, .45);
-  shadow(d, "mpc-sh-big", 6, 6, .5);
-  const grille = el("pattern", { id: "mpc-grille", width: 10, height: 10, patternUnits: "userSpaceOnUse" }, d);
-  el("circle", { cx: 5, cy: 5, r: 2.6, fill: "#26262a" }, grille);
-  // the body, the dark band
-  el("rect", { x: 3, y: 3, width: W - 6, height: H - 6, rx: 34, fill: "url(#mpc-shell)", stroke: "#86878c", "stroke-width": 2 });
-  el("rect", { x: 7, y: 7, width: W - 14, height: H - 14, rx: 30, fill: "none", stroke: "#fff", "stroke-opacity": .55, "stroke-width": 1.5 });
-  el("rect", { x: 15, y: 27, width: 960, height: 306, rx: 22, fill: "url(#mpc-band)", stroke: "#000", "stroke-width": 2 });
-  el("rect", { x: 17, y: 29, width: 956, height: 302, rx: 20, fill: "none", stroke: "#fff", "stroke-opacity": .06, "stroke-width": 1.5 });
-  label(svg, 861, 86, "MPC SAMPLE", 21, SANS, "#8e8e94").setAttribute("letter-spacing", ".12em");
-  // the meter (two columns of five) and the speaker: drawn, not wired
-  [["#ff4a3d", "#ff9a2e", "#3fd06a", "#3fd06a", "#3fd06a"]].forEach((cols) => [688, 714].forEach((x) => cols.forEach((c, r) =>
-    el("rect", { x, y: 128 + r * 38, width: 16, height: 26, rx: 3, fill: c, opacity: .28 }))));
-  el("rect", { x: 766, y: 112, width: 190, height: 196, rx: 12, fill: "#09090a", stroke: "#2a2a2e" });
-  el("rect", { x: 774, y: 120, width: 174, height: 180, rx: 8, fill: "url(#mpc-grille)" });
+  jiantDefs(defs());
+  // the body, the screen's band (the heat along its foot)
+  jiantBody(W, H, 16);
+  el("rect", { x: 15, y: 27, width: 960, height: 306, rx: 8, fill: "#040307", stroke: "rgba(184,112,255,.3)", "stroke-width": 1.5 });
+  el("rect", { x: 40, y: 331, width: 910, height: 2, fill: "url(#j-heat)", opacity: .7 });
+  label(svg, 861, 82, "MPC SAMPLE", 15, MICH, "#6e6884").setAttribute("letter-spacing", ".1em");
+  label(svg, 861, 100, "running JIANT FM", 10, MONO, DIM);
+  // the meter (two columns of five, as heat) and the speaker: drawn, not wired
+  [688, 714].forEach((x) => [0, 1, 2, 3, 4].forEach((r) =>
+    el("rect", { x, y: 128 + r * 38, width: 16, height: 26, rx: 2, fill: heatAt(.85 - r * .18), opacity: .32 })));
+  el("rect", { x: 766, y: 112, width: 190, height: 196, rx: 6, fill: "#07060b", stroke: "rgba(239,230,200,.14)" });
+  el("rect", { x: 774, y: 120, width: 174, height: 180, rx: 4, fill: "url(#j-grille)" });
+  brackets(svg, 770, 116, 182, 188, 14, VIO, 1.5);
   // the screen
   const S = [369, 125, 262, 196.5];
-  el("rect", { x: S[0] - 10, y: S[1] - 10, width: S[2] + 20, height: S[3] + 20, rx: 8, fill: "#050506", stroke: "#2c2c30", "stroke-width": 2 });
+  el("rect", { x: S[0] - 8, y: S[1] - 8, width: S[2] + 16, height: S[3] + 16, rx: 4, fill: "#000", stroke: "rgba(184,112,255,.35)", "stroke-width": 1.5 });
+  brackets(svg, S[0] - 15, S[1] - 15, S[2] + 30, S[3] + 30, 16, VIO, 2);
   const canvas = document.createElement("canvas");
   canvas.width = 320; canvas.height = 240;
   Object.assign(canvas.style, { left: `${S[0] / W * 100}%`, top: `${S[1] / H * 100}%`, width: `${S[2] / W * 100}%` });
   dev.appendChild(canvas);
   const ctx = canvas.getContext("2d");
   // the pad bank's letter and the power light, left of the screen
-  const bankLetter = label(svg, 244, 222, "A", 46, SANS, "#f2f2f4");
-  el("rect", { x: 230, y: 284, width: 30, height: 11, rx: 3, class: "led-pwr" });
+  label(svg, 244, 160, "PAD BANK", 10, MONO, DIM).setAttribute("letter-spacing", ".12em");
+  const bankLetter = label(svg, 244, 228, "A", 50, MICH, ORG);
+  bankLetter.setAttribute("filter", "url(#j-glow)");
+  el("rect", { x: 232, y: 284, width: 24, height: 8, rx: 2, class: "led-pwr" });
   // printed captions on the body: a name between two rules
   const caption = (x1, x2, y, s) => {
-    const t = label(svg, (x1 + x2) / 2, y + 5, s, 13, SANS, MPC_INK);
-    const w = s.length * 9 + 14;
-    el("line", { x1, x2: (x1 + x2 - w) / 2, y1: y, y2: y, stroke: MPC_INK, "stroke-width": 1.5 });
-    el("line", { x1: (x1 + x2 + w) / 2, x2, y1: y, y2: y, stroke: MPC_INK, "stroke-width": 1.5 });
+    const t = label(svg, (x1 + x2) / 2, y + 4, s, 11, MONO, MPC_INK);
+    t.setAttribute("letter-spacing", ".14em");
+    const w = s.length * 9 + 18;
+    el("line", { x1, x2: (x1 + x2 - w) / 2, y1: y, y2: y, stroke: MPC_INK, "stroke-opacity": .5, "stroke-width": 1 });
+    el("line", { x1: (x1 + x2 + w) / 2, x2, y1: y, y2: y, stroke: MPC_INK, "stroke-opacity": .5, "stroke-width": 1 });
     return t;
   };
-  const rule = (x1, x2, y) => el("line", { x1, x2, y1: y, y2: y, stroke: MPC_INK, "stroke-opacity": .6, "stroke-width": 1.5 });
+  const rule = (x1, x2, y) => el("line", { x1, x2, y1: y, y2: y, stroke: MPC_INK, "stroke-opacity": .3, "stroke-width": 1 });
   caption(45, 225, 354, "MODE"); rule(45, 225, 514);
   caption(780, 960, 354, "PAD PLAY"); rule(780, 960, 514);
 
@@ -1090,18 +1212,17 @@ function buildMPC(stage) {
     else if (name === "SAMPLE\nREC") browser.record();
     return true;                                       // (every other button is the browser's while it is open)
   };
-  // a button: its face by colour (tone), a light strip (the transport), the name printed on it, what it is in
+  // a button: its edge by family (tone), a light strip (the transport), the name printed on it, what it is in
   // JIANT printed under it (over it: the keys above the screen)
   const mpcButton = (x, y, w, h, name, role, opts = {}) => {
     const own = !(role in B) && role !== "stop";
     const g = control(`mb t-${opts.tone || "dark"}${opts.strip ? " s-" + opts.strip : ""}${own ? " port" : ""}`, name);
-    el("rect", { x, y, width: w, height: h, rx: 7, class: "face", filter: "url(#mpc-sh)" }, g);
-    el("rect", { x: x + 2, y: y + 2, width: w - 4, height: h * 0.5, rx: 6, fill: "url(#mpc-gloss)", "pointer-events": "none" }, g);
-    if (opts.strip) el("rect", { x: x + 8, y: y + h - 13, width: w - 16, height: 7, rx: 3, class: "strip" }, g);
-    const text = opts.text ?? name, ls = text ? text.split("\n") : [], size = opts.size || 13;
-    const mid = y + (opts.strip ? (h - 12) / 2 : h / 2) + size * 0.36;
-    ls.forEach((s, i) => label(g, x + w / 2, mid + (i - (ls.length - 1) / 2) * (size + 1), s, size, SANS).classList.add("kt"));
-    if (opts.sub) label(g, x + w / 2, opts.over ? y - 9 : y + h + 17, opts.sub, 13, DOT, opts.over ? "#ff8a3a" : MPC_JIANT);
+    el("rect", { x, y, width: w, height: h, rx: 5, class: "face" }, g);
+    if (opts.strip) el("rect", { x: x + 10, y: y + h - 11, width: w - 20, height: 4, rx: 2, class: "strip" }, g);
+    const text = opts.text ?? name, ls = text ? text.split("\n") : [], size = (opts.size || 13) - 1;
+    const mid = y + (opts.strip ? (h - 10) / 2 : h / 2) + size * 0.36;
+    ls.forEach((s, i) => label(g, x + w / 2, mid + (i - (ls.length - 1) / 2) * (size + 1), s, size, MONO).classList.add("kt"));
+    if (opts.sub) label(g, x + w / 2, opts.over ? y - 9 : y + h + 17, opts.sub, 13, DOT, ORG);
     btns.push({ g, role, name });
     holdable(g, (id) => {
       if (browserButton(name)) return;
@@ -1141,84 +1262,98 @@ function buildMPC(stage) {
   mpcButton(R2, 852, BW, 50, "SEQ REC", "REC", { strip: "red", text: "SEQ\nREC", size: 10.5, sub: "REC" });
   mpcButton(R, 930, BW, 50, "STOP", "stop", { strip: "white", text: "■", size: 16, sub: "STOP" });
   mpcButton(R2, 930, BW, 50, "PLAY", "PLAY", { strip: "green", text: "▶", size: 16, sub: "PLAY" });
-  // the microphone's mark over the wheel (the unit's built-in mic): drawn only
-  const mic = el("g", { stroke: MPC_INK, "stroke-width": 2.5, fill: "none", "stroke-linecap": "round" });
-  el("rect", { x: 931, y: 596, width: 16, height: 26, rx: 8 }, mic);
-  el("path", { d: "M925 612 a14 14 0 0 0 28 0 M939 626 v8 M932 634 h14" }, mic);
-  // knobs K1..K3 (pots: their positions) and VOLUME: a black skirt, a silver cap, the pointer
-  const knobAt = (x, y, r, name, sub, subY, ink = MPC_JIANT) => {
+  // the microphone's mark over the wheel (the unit's built-in mic): a thin line, drawn only
+  const mic = el("g", { stroke: MPC_INK, "stroke-width": 1.6, fill: "none", "stroke-linecap": "round" });
+  el("rect", { x: 933, y: 598, width: 12, height: 22, rx: 6 }, mic);
+  el("path", { d: "M927 612 a12 12 0 0 0 24 0 M939 624 v8 M932 632 h14" }, mic);
+  // knobs K1..K3 (pots: their positions as heat on their rings) and VOLUME
+  const knobAt = (x, y, r, name, sub, subY) => {
     const g = control("knob", name);
-    el("circle", { cx: x, cy: y, r: r + 12, fill: "none", stroke: "#000", "stroke-opacity": .18, "stroke-width": 1.5 }, g);
-    for (const a of [-135, 135]) {
-      const t = (a - 90) * Math.PI / 180;
-      el("circle", { cx: x + Math.cos(t) * (r + 12), cy: y + Math.sin(t) * (r + 12), r: 3, fill: ink === MPC_JIANT ? MPC_INK : "#9a9aa0" }, g);
-    }
-    el("circle", { cx: x, cy: y, r: r + 6, fill: "#141416", filter: "url(#mpc-sh-big)" }, g);
-    el("circle", { cx: x, cy: y, r, fill: "url(#mpc-cap)", stroke: "#3c3c40", "stroke-width": 1.5, class: "face" }, g);
-    const ptr = el("g", {}, g);
-    el("rect", { x: x - 4, y: y - r + 2, width: 8, height: r * 0.72, rx: 3, fill: "#2a2a2e" }, ptr);
-    if (sub) label(g, x, subY, sub, 13, DOT, ink);
-    return { g, rotate: (deg) => ptr.setAttribute("transform", `rotate(${deg} ${x} ${y})`) };
+    const set = ringKnob(g, x, y, r, { gap: 10, w: 5, pw: 3 });
+    if (sub) label(g, x, subY, sub, 13, DOT, ORG);
+    return { g, set };
   };
   const pot = (x, name, sub, onMove) => {
-    const k = knobAt(x, 432, 34, name, sub, 500);
-    const deg = () => -135 + 270 * pos[name] / 127;
-    k.rotate(deg());
-    positional(k.g, () => pos[name], (v) => { const dd = v - pos[name]; pos[name] = v; k.rotate(deg()); onMove(dd, v); }, 160);
+    const k = knobAt(x, 432, 30, name, sub, 500);
+    k.set(pos[name] / 127);
+    positional(k.g, () => pos[name], (v) => { const dd = v - pos[name]; pos[name] = v; k.set(v / 127); onMove(dd, v); }, 160);
   };
   pot(312, "K1", "KNOB 1", (dd) => emu.enc(shift ? EN.ALGORITHM : EN.K1, dd));
   pot(495, "K2", "KNOB 2", (dd) => emu.enc(EN.K2, dd));
   pot(678, "K3", "KNOB 3", (dd) => emu.enc(EN.K3, dd));
   pos.VOL = 88;
-  const vol = knobAt(126, 186, 44, "VOL", "", 0, "#ff8a3a");
-  label(svg, 126, 276, "VOLUME", 13, SANS, "#9a9aa0").setAttribute("letter-spacing", ".14em");
-  label(svg, 126, 298, "MASTER", 13, DOT, "#ff8a3a");
-  const vdeg = () => -135 + 270 * pos.VOL / 127;
-  vol.rotate(vdeg());
-  positional(vol.g, () => pos.VOL, (v) => { pos.VOL = v; vol.rotate(vdeg()); emu.master(v * 1023 / 127); }, 160);
-  // the wheel (DATA): a big grey dial with a finger dimple
+  const vol = knobAt(126, 180, 40, "VOL", "", 0);
+  label(svg, 126, 268, "VOLUME", 11, MONO, DIM).setAttribute("letter-spacing", ".14em");
+  label(svg, 126, 292, "MASTER", 13, DOT, ORG);
+  vol.set(pos.VOL / 127);
+  positional(vol.g, () => pos.VOL, (v) => { pos.VOL = v; vol.set(v / 127); emu.master(v * 1023 / 127); }, 160);
+  // the wheel (DATA): a dark dial, a ring of points, the lit one where it turned to (cyan: SELECT)
   const wg = control("knob", "WHEEL"), WX = 852, WY = 676, WR = 60;
-  el("circle", { cx: WX, cy: WY, r: WR + 5, fill: "#7d7e83", filter: "url(#mpc-sh-big)" }, wg);
-  el("circle", { cx: WX, cy: WY, r: WR, fill: "url(#mpc-wheel)", stroke: "#5c5d62", "stroke-width": 1.5, class: "face" }, wg);
-  el("circle", { cx: WX, cy: WY, r: WR - 14, fill: "none", stroke: "#fff", "stroke-opacity": .25, "stroke-width": 1.5 }, wg);
-  const dimple = el("circle", { cx: WX, cy: WY - WR + 18, r: 7, fill: "#8d8e93", stroke: "#6b6c71" }, wg);
-  label(wg, WX, WY + WR + 24, "SELECT", 13, DOT, MPC_JIANT);
+  el("circle", { cx: WX, cy: WY, r: WR + 8, fill: "transparent" }, wg);
+  el("circle", { cx: WX, cy: WY, r: WR, fill: "#0e0d15", stroke: "rgba(239,230,200,.22)", "stroke-width": 1.5, class: "face" }, wg);
+  el("circle", { cx: WX, cy: WY, r: WR - 22, fill: "none", stroke: "rgba(63,224,230,.18)", "stroke-width": 1 }, wg);
+  creature(wg, WX, WY + 2, 13, CYAN, 1.7, "b");
+  const wdots = [];
+  for (let i = 0; i < 32; i++) {
+    const a = i / 32 * Math.PI * 2 - Math.PI / 2;
+    wdots.push(el("circle", { cx: WX + Math.cos(a) * (WR - 10), cy: WY + Math.sin(a) * (WR - 10), r: 1.6, fill: "rgba(239,230,200,.2)" }, wg));
+  }
+  label(wg, WX, WY + WR + 24, "SELECT", 13, DOT, ORG);
   let wa = 0;
+  const wset = () => {
+    const at = ((Math.round(wa / 11.25) % 32) + 32) % 32;
+    wdots.forEach((dt, i) => {
+      const k = (at - i + 32) % 32, on = k < 3;
+      dt.setAttribute("fill", on ? CYAN : "rgba(239,230,200,.2)");
+      dt.setAttribute("opacity", k === 0 ? 1 : k === 1 ? .5 : k === 2 ? .22 : 1);
+      dt.setAttribute("r", k === 0 ? 4 : 1.6);
+      if (k === 0) dt.setAttribute("filter", "url(#j-glow)"); else dt.removeAttribute("filter");
+    });
+  };
+  wset();
   turnable(wg, (n) => {
     if (browser.open) browser.scroll(-n);              // (the browser: the files, clockwise down the list)
     else emu.enc(shift ? EN.PRESETS : EN.SELECT, n);
-    wa = (wa + n * 15) % 360; dimple.setAttribute("transform", `rotate(${wa} ${WX} ${WY})`);
+    wa += n * 11.25; wset();
   }, 10);
-  // the fader (KNOB 4), in its housing, the light beside it
+  // the fader (KNOB 4): a thin track, its level as heat up to the cap, the light beside it
   const fg = control("fader", "FADER"), FX = 98, FY = 626, FW = 66, FH = 262, FT = 196;
-  el("rect", { x: FX, y: FY, width: FW, height: FH, rx: 8, fill: "url(#mpc-house)", stroke: "#86878c", "stroke-width": 1.5 }, fg);
-  el("rect", { x: FX + FW / 2 - 6, y: FY + 18, width: 12, height: FH - 36, rx: 4, fill: "#0e0e10" }, fg);
-  const fcap = el("g", { filter: "url(#mpc-sh)" }, fg);
-  el("rect", { x: FX + 4, y: 0, width: FW - 8, height: 44, rx: 5, fill: "url(#mpc-capf)", stroke: "#6e6f74", class: "face" }, fcap);
-  for (let i = 0; i < 3; i++) el("rect", { x: FX + 10, y: 15 + i * 6, width: FW - 20, height: 2, fill: "#7a7b80" }, fcap);
-  el("rect", { x: 182, y: 752, width: 24, height: 10, rx: 3, class: "led-fader" });
-  label(fg, FX + FW / 2, FY + FH + 22, "KNOB 4", 13, DOT, MPC_JIANT);
-  const place = (v) => fcap.setAttribute("transform", `translate(0 ${FY + 18 + (1 - v / 127) * FT - 4})`);
+  el("rect", { x: FX, y: FY, width: FW, height: FH, rx: 5, fill: "#07060b", stroke: "rgba(239,230,200,.16)", "stroke-width": 1.5 }, fg);
+  for (let t = 0; t <= 10; t++) el("line", { x1: FX + 8, x2: FX + (t % 5 ? 14 : 18), y1: FY + 18 + t * FT / 10 + 4, y2: FY + 18 + t * FT / 10 + 4, stroke: "#efe6c8", "stroke-opacity": t % 5 ? .2 : .45 }, fg);
+  el("rect", { x: FX + FW / 2 - 2, y: FY + 18, width: 4, height: FH - 36, rx: 2, fill: "#1c1a25" }, fg);
+  const flvl = el("rect", { x: FX + FW / 2 - 2, width: 4, rx: 2, fill: "url(#j-heatv)", filter: "url(#j-glow)" }, fg);
+  const fcap = el("g", {}, fg);
+  el("rect", { x: FX + 6, y: 0, width: FW - 12, height: 34, rx: 4, fill: "#15141d", stroke: "rgba(239,230,200,.45)", "stroke-width": 1.2, class: "face" }, fcap);
+  el("rect", { x: FX + 14, y: 16, width: FW - 28, height: 2, fill: ORG }, fcap);
+  el("rect", { x: 182, y: 753, width: 20, height: 8, rx: 2, class: "led-fader" });
+  label(fg, FX + FW / 2, FY + FH + 22, "KNOB 4", 13, DOT, ORG);
+  const place = (v) => {
+    const cy = FY + 18 + (1 - v / 127) * FT;
+    fcap.setAttribute("transform", `translate(0 ${cy})`);
+    flvl.setAttribute("y", cy + 17); flvl.setAttribute("height", Math.max(0, FY + FH - 18 - cy - 17));
+  };
   place(pos.F);
   positional(fg, () => pos.F, (v) => { const dd = v - pos.F; pos.F = v; place(v); emu.enc(EN.K4, dd); }, 160);
-  // the pads: 1 bottom left, 16 top right (in the browser: the slots), in their tray, the violet light around each
-  el("rect", { x: 240, y: 502, width: 510, height: 510, rx: 12, fill: "#0c0b12", stroke: "#000", "stroke-width": 2 });
-  el("rect", { x: 244, y: 506, width: 502, height: 502, rx: 10, fill: "none", stroke: "#6d55ff", "stroke-width": 3, class: "pad-glow", filter: "url(#mpc-halo)" });
+  // the pads: 1 bottom left, 16 top right (in the browser: the slots), in their tray, the violet light around them
+  el("rect", { x: 240, y: 502, width: 510, height: 510, rx: 6, fill: "#050409", stroke: "rgba(184,112,255,.3)", "stroke-width": 1.5 });
+  el("rect", { x: 244, y: 506, width: 502, height: 502, rx: 5, fill: "none", stroke: "#8459ff", "stroke-width": 2, class: "pad-glow", filter: "url(#j-halo)" });
   const pads = [];
   for (let p = 0; p < 16; p++) {
     const c = p % 4, r = 3 - Math.floor(p / 4), x = 257 + c * 121, y = 519 + r * 121, s = 108;
-    el("rect", { x: x - 2, y: y - 2, width: s + 4, height: s + 4, rx: 10, fill: "none", stroke: "#8a72ff", "stroke-width": 4, class: "pad-glow", filter: "url(#mpc-glow)" });
     const g = control("pad", "Pad " + (p + 1));
-    el("rect", { x, y, width: s, height: s, rx: 8, class: "face" }, g);
-    el("rect", { x: x + 4, y: y + 4, width: s - 8, height: s * 0.42, rx: 6, fill: "url(#mpc-gloss)", "pointer-events": "none" }, g);
-    label(g, x + 16, y + 22, String(p + 1), 13, SANS, "#4c4d53");
+    padShape(g, x, y, s, p + 1);
     pads.push(g);
     holdable(g, (id) => { if (browser.open) browser.pick(p); else emu.keyDown("pad" + p + id, WINDOWS[win] + p); },
              (id) => emu.keyUp("pad" + p + id));
   }
-  // the palm rest
-  el("rect", { x: 30, y: 1028, width: 930, height: 140, rx: 22, fill: "url(#mpc-rest)", stroke: "#2a2b2f", "stroke-width": 2 });
-  el("rect", { x: 34, y: 1031, width: 922, height: 10, rx: 5, fill: "#fff", opacity: .12 });
+  // the palm rest: JIANT's, a creature on it
+  el("rect", { x: 30, y: 1028, width: 930, height: 140, rx: 8, fill: "#050409", stroke: "rgba(239,230,200,.12)", "stroke-width": 1.5 });
+  el("rect", { x: 30, y: 1028, width: 930, height: 140, rx: 8, fill: "url(#j-dots)" });
+  wordmark(svg, 66, 1108, 22, "start");
+  label(svg, 66, 1134, "BIO-SYNTHETIC OPERATING SYSTEM", 10, MONO, DIM).setAttribute("text-anchor", "start");
+  creature(svg, 800, 1098, 34, ORG, 0.6);
+  creature(svg, 880, 1092, 22, VIO, 2.9, "b");
+  creature(svg, 724, 1104, 16, CYAN, 4.2, "b");
   // the screen, larger, beside the panel (the MPC's own is small, as on the unit)
   const fig = document.createElement("figure");
   fig.className = "mirror brk";
@@ -1390,6 +1525,38 @@ const FM1_INFO = `
 <p class="note">The FM-1 is the emulator's own page, as at <a href="index.html">the emulator</a>: its keys, buttons and
 encoders where they are on the FM-1, its computer-keyboard keys, and FM-1 ⇄ emulator to move your music.</p>`;
 
+// ------------------------------------------------------------------ each device's links
+// [label, href (null: not yet), what it is, kind (hot: the main one, here: this page, na: not yet)]. The installer and the
+// editor are the site's (.github/workflows/emulator.yml: webapp/installer, webapp/editor); the docs on GitHub
+const SITE = "https://juanjiant-bit.github.io/JIANT/", GH = "https://github.com/juanjiant-bit/JIANT/blob/main/";
+const RELEASES = "https://github.com/juanjiant-bit/JIANT/releases";
+const LINKS = {
+  fm1: [["Install", SITE + "webapp/installer/", "the web installer, two minutes", "hot"],
+        ["Emulator", "index.html", "the FM-1 alone"],
+        ["Editor", SITE + "webapp/editor/", "your sounds, in the browser"],
+        ["Manual", SITE + "manual/", "every page, every knob"]],
+  smk37: [["Install: not yet", GH + "docs/SMK37.md", "build from source", "na"],
+          ["Emulator", "#smk37", "this panel", "here"],
+          ["Editor", SITE + "webapp/editor/", "the FM-1's, the same sounds"],
+          ["Manual", GH + "docs/SMK37.md", "the SMK-37 build, its mapping"]],
+  mpc: [["Download", RELEASES, "the zip for the microSD card", "hot"],
+        ["How to install", GH + "ports/mpc-sample/README.md", "the card, the app, the samples"],
+        ["Emulator", "#mpc", "this panel", "here"],
+        ["Editor: coming", null, "for the MPC, later", "na"]],
+  plugins: [["Download", RELEASES, "MPC plugin · VST3 · LV2 · standalone", "hot"],
+            ["How it works", GH + "ports/README.md", "the ports, how to build them"]],
+};
+const ext = (h) => /^https?:/.test(h) ? ' target="_blank" rel="noopener"' : "";
+const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+// the card's row (short) and the panel's (with what each is)
+const linkRow = (dev) => LINKS[dev].map(([t, h, , k]) => h ? `<a href="${h}"${ext(h)}${k === "na" ? ' class="na"' : ""}>${esc(t)}</a>` : `<span class="na">${esc(t)}</span>`).join("");
+const linkButtons = (dev) => LINKS[dev].map(([t, h, what, k]) => {
+  const inner = `${esc(t)}<small>${esc(what)}</small>`, cls = k ? ` class="${k}"` : "";
+  return h ? `<a href="${h}"${ext(h)}${cls}${k === "here" ? ' aria-current="page"' : ""}>${inner}</a>` : `<span${cls}>${inner}</span>`;
+}).join("");
+for (const n of document.querySelectorAll("[data-links]"))
+  n.innerHTML = n.classList.contains("devlinks") ? linkButtons(n.dataset.links) : linkRow(n.dataset.links);
+
 // ------------------------------------------------------------------ the picker
 const stage = document.getElementById("stage"), info = document.getElementById("info");
 let current = null;
@@ -1408,7 +1575,7 @@ function overlay(dev, onFrame, opts, started) {
     go.disabled = true; go.textContent = "Starting…";
     try {
       await emu.start(onFrame, 700, opts);
-      start.hidden = true;
+      start.hidden = true; dev.classList.add("on");
       if (started) await started();
     } catch (err) {
       emu.stop();
@@ -1436,6 +1603,10 @@ function select(name) {
     overlay(current.dev, (fb, leds) => current?.frame(fb, leds), current.start, current.started ? () => libReady.then(() => current === dev && dev.started()) : null);
     info.innerHTML = name === "smk37" ? SMK_INFO : MPC_INFO;
   }
+  const row = document.createElement("nav");
+  row.className = "devlinks"; row.setAttribute("aria-label", "Links for this device");
+  row.innerHTML = linkButtons(name);
+  stage.appendChild(row);
   if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
   try { localStorage.setItem("jiant-device", name); } catch {}
 }
