@@ -1,0 +1,1632 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: GPL-3.0-only
+     Copyright (C) 2026 Juan Ignacio Antonucci (Juan Jiant)
+     JIANT FM on every device it runs on, in the browser: one firmware (felucca.wasm, the FM-1's own code, and
+     worklet.js, as index.html runs it), each device's own panel. FM-1: the emulator (index.html) itself. SMK-37 Pro /
+     Elite and MPC Sample: their panels here, mapped to the FM-1's as the ports map them (ports/README.md;
+     ports/mpc-sample/src/jiant/panel_map.h for the MPC). The music saved is the same on all of them (the flash kept in
+     this browser, as index.html keeps it). The MPC runs the big CPUs' build (felucca_hp.wasm, web/emu/felucca_hp.c:
+     the SAMPLE and GRAIN engines, DRUM-X's samples, 16 slots, recording) with the MPC app's SAMPLE BROWSER; its samples
+     are the files the user adds, kept in this browser (IndexedDB). -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JIANT FM devices</title>
+<meta name="description" content="JIANT FM on the M-VAVE FM-1, the M-VAVE SMK-37 and the Akai MPC Sample, in your browser: pick a device, play it with its own panel.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 16 16%22%3E%3Crect width=%2216%22 height=%2216%22 rx=%223%22/%3E%3Crect x=%224%22 y=%224%22 width=%228%22 height=%228%22 fill=%22%23fff%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Michroma&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=Instrument+Sans:wght@400;500;600&amp;display=swap">
+<script>try { if (localStorage.getItem("jiant-theme") === "light") document.documentElement.dataset.theme = "light"; } catch {}</script>
+<style>
+/* The site's look (web/landing/index.html, web/jiant-ui.css): the void, HUD corners, Michroma heads, Plex Mono labels,
+   dark first and a light theme on request (data-theme="light", as the site's tools). The devices themselves are
+   objects: their colours do not follow the theme. DotGothic16 (SIL OFL 1.1, fonts/OFL.txt) for their labels */
+@font-face { font-family: "DotGothic16"; src: url("fonts/DotGothic16-subset.woff") format("woff"); font-display: swap; }
+:root, :root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #050409; --glass: rgba(13, 11, 20, .92); --line: #efe6c8; --text: #ddd6ea; --dim: #a39cba;
+  --rule: rgba(239, 230, 200, .16); --cyan: #3fe0e6; --violet: #b870ff; --yellow: #ffe14d; --orange: #ff7a1a;
+  --mag: #ff3ea5; --red: #ff3b2f; --on-accent: #050409;
+  --heat: linear-gradient(90deg, #9d97ff, #d39bff 22%, #ff9fd2 42%, #ff9a8a 60%, #ffc07a 78%, #fff3a8);
+  --display: "Michroma", "Arial Black", system-ui, sans-serif;
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  /* the devices' parts (not themed) */
+  --body: #1d1d1f; --tray: #141415; --part: #2a2a2d; --edge: #3a3a3e; --label: #d6d6d8;
+  --lit: #fff4d6; --green: #5fe08a; --accent: #ff7a00;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4efe4; --glass: rgba(255, 252, 245, .94); --line: #251a32; --text: #2d2238; --dim: #655770;
+  --rule: rgba(37, 26, 50, .2); --cyan: #006e78; --violet: #6d3fb8; --yellow: #8b4b00; --orange: #ae3c00;
+  --mag: #aa175c; --red: #b3261e; --on-accent: #fff;
+  --heat: linear-gradient(90deg, #6855b5, #a63886 45%, #b13d16 75%, #865500);
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 var(--sans); overflow-x: hidden;
+       background-image: radial-gradient(ellipse at 5% 0%, rgba(184, 112, 255, .08), transparent 45%),
+                         radial-gradient(ellipse at 100% 0%, rgba(63, 224, 230, .05), transparent 45%); }
+a { color: inherit; text-underline-offset: 3px; }
+a:hover { color: var(--cyan); }
+:focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; }
+::selection { background: var(--mag); color: var(--on-accent); }
+main { max-width: 1120px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right, 0px)) 32px max(16px, env(safe-area-inset-left, 0px));
+       display: flex; flex-direction: column; gap: 22px; }
+/* HUD corners (the landing's .brk) */
+.brk { --bc: var(--cyan); --k: 14px;
+  background:
+   linear-gradient(var(--bc), var(--bc)) 0 0/var(--k) 1px, linear-gradient(var(--bc), var(--bc)) 0 0/1px var(--k),
+   linear-gradient(var(--bc), var(--bc)) 100% 0/var(--k) 1px, linear-gradient(var(--bc), var(--bc)) 100% 0/1px var(--k),
+   linear-gradient(var(--bc), var(--bc)) 0 100%/var(--k) 1px, linear-gradient(var(--bc), var(--bc)) 0 100%/1px var(--k),
+   linear-gradient(var(--bc), var(--bc)) 100% 100%/var(--k) 1px, linear-gradient(var(--bc), var(--bc)) 100% 100%/1px var(--k),
+   linear-gradient(var(--glass), var(--glass));
+  background-repeat: no-repeat; }
+/* the top bar */
+.top { display: flex; justify-content: space-between; align-items: center; gap: 10px 18px; flex-wrap: wrap; padding: 10px 14px;
+       font: 500 11px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.top .home { text-decoration: none; }
+.top b { color: var(--line); font-weight: 600; }
+.top nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.top nav a { text-decoration: none; }
+.top nav a:hover, .top nav a[aria-current] { color: var(--yellow); }
+.theme { font: 500 11px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); background: transparent;
+         border: 1px solid var(--rule); padding: 8px 10px; cursor: pointer; }
+.theme:hover { color: var(--yellow); border-color: var(--yellow); }
+/* the title */
+.kicker { font: 500 12px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--cyan); margin: 0 0 12px;
+          display: flex; align-items: center; gap: 10px; }
+.circ { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--cyan);
+        color: var(--on-accent); font: 600 13px/1 var(--mono); flex: none; }
+h1 { font: 400 clamp(24px, 4.6vw, 46px)/1.15 var(--display); letter-spacing: .02em; margin: 0; color: var(--line); text-wrap: balance; }
+h1 .fm { background: var(--heat); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.lede { margin: 12px 0 0; max-width: 62ch; color: var(--text); }
+/* the picker: one card per device */
+.picker { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.picker .card { --bc: var(--rule); min-width: 0; display: flex; flex-direction: column; transition: transform .2s; }
+.picker .card:hover { --bc: var(--cyan); transform: translateY(-2px); }
+.picker .card:has(button[aria-pressed="true"]) { --bc: var(--yellow); --k: 22px; }
+.picker button { font: inherit; text-align: left; padding: 14px 16px 8px; border: 0; background: none; color: var(--text); cursor: pointer;
+                 min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+/* each device's links: in its card, and under its panel */
+.links { display: flex; flex-wrap: wrap; gap: 2px 12px; padding: 0 16px 12px; font: 500 10.5px/1.6 var(--mono); letter-spacing: .08em;
+         text-transform: uppercase; }
+.links a, .links span { color: var(--dim); text-decoration: none; white-space: nowrap; }
+.links a::before { content: "↗ "; color: var(--cyan); }
+.links a[href^="#"]::before, .links a[href$=".html"]::before { content: "▸ "; color: var(--orange); }
+.links a:hover { color: var(--yellow); }
+.links .na { opacity: .75; }
+.links .na::before { content: "○ "; color: var(--dim); }
+.devlinks { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.devlinks a, .devlinks span { display: inline-flex; flex-direction: column; gap: 2px; padding: 9px 12px; border: 1px solid var(--rule);
+         background: var(--bg); color: var(--line); text-decoration: none; font: 600 11px/1.2 var(--mono); letter-spacing: .1em;
+         text-transform: uppercase; min-width: 0; }
+.devlinks small { font: 400 10.5px/1.3 var(--mono); letter-spacing: .02em; text-transform: none; color: var(--dim); }
+.devlinks a:hover { border-color: var(--yellow); color: var(--yellow); }
+.devlinks .hot { border-color: var(--orange); }
+.devlinks .here { border-style: dashed; }
+.devlinks .na { color: var(--dim); border-style: dashed; }
+.plugins { --bc: var(--violet); padding: 18px 20px; font-size: 14px; }
+.plugins p { margin: 0 0 4px; max-width: 70ch; }
+.plugins b { color: var(--line); font-weight: 600; }
+.picker .tag { font: 500 10px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--dim);
+               display: flex; gap: 8px; align-items: center; }
+.picker .tag i { font-style: normal; color: var(--cyan); }
+.picker .tag i.dev { color: var(--orange); }
+.picker b { font: 400 clamp(13px, 1.7vw, 17px)/1.3 var(--display); color: var(--line); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.picker button[aria-pressed="true"] b { color: var(--yellow); }
+.picker small { font: 12px/1.4 var(--mono); color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) {
+  .picker { gap: 6px; } .picker button { padding: 10px 10px 6px; } .picker small { display: none; }
+  .links { padding: 0 10px 10px; font-size: 9px; letter-spacing: .02em; gap: 0 8px; flex-direction: column; }
+  .picker .tag { font-size: 9px; letter-spacing: .08em; flex-wrap: wrap; gap: 0 6px; } .picker b { white-space: normal; font-size: 11px; }
+}
+/* the bench: the device, and beside it (the MPC, wide screens) its screen larger, its samples and its map */
+.bench { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
+.bench.dev-mpc { grid-template-columns: minmax(0, 560px) minmax(0, 1fr); }
+@media (max-width: 960px) { .bench.dev-mpc { grid-template-columns: minmax(0, 1fr); } .bench.dev-mpc .stage { max-width: 560px; width: 100%; margin: 0 auto; } }
+.stage { --bc: var(--orange); position: relative; padding: 14px; min-width: 0; }
+.bench.dev-mpc .stage { padding: clamp(10px, 3vw, 22px); }
+@media (min-width: 961px) { .bench.dev-mpc .stage { position: sticky; top: 12px; } }
+.side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.fm1 { width: 100%; border: 0; display: block; min-height: 600px; background: #8e8e93; }
+.device { position: relative; width: 100%; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.device svg { display: block; width: 100%; height: auto; touch-action: none; }
+.device canvas { position: absolute; image-rendering: pixelated; background: #000; pointer-events: none; }
+.ctl { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ctl.knob, .ctl.fader { cursor: ns-resize; }
+.ctl:focus { outline: none; }
+.ctl:focus-visible .face { stroke: #ffe14d; stroke-width: 3; }
+.face { transition: fill .06s; }
+/* The panels in JIANT's own look (the firmware's JIANT skin, tools/gen_ui_palettes.py: a thermal camera; the site's
+   HUD corners): a near-black body, thin lines, values as heat (indigo violet red orange amber cream), what is active in
+   orange, what is selected in violet. Controls are drawn as the firmware draws them: rings that show a value, pads and
+   keys that light, thin-line marks. The positions are the devices' own */
+.device { --j-line: rgba(239, 230, 200, .16); --j-ink: #ddd6ea; --j-org: #ff7a1a; --j-vio: #b870ff; --j-cyan: #3fe0e6;
+          --j-grn: #8be06a; --j-red: #ff4b4b; --j-cream: #fff3ce; }
+.device .lit-glow, .ctl.glow .face { filter: url(#j-glow); }
+/* buttons (both panels): a dark key with a thin edge; lit: its edge and a warm fill, glowing */
+.sk .face, .mb .face { fill: #100f17; stroke: var(--j-line); stroke-width: 1.5; transition: fill .08s, stroke .08s; }
+.sk .kt, .mb .kt { fill: var(--j-ink); }
+.sk.port .kt, .mb.port .kt { fill: #a39cba; }
+.sk.dim .face, .mb.dim .face { stroke: rgba(255, 122, 26, .5); }
+.sk.lit .face, .mb.lit .face { fill: #2b1607; stroke: var(--j-org); filter: url(#j-glow); }
+.sk.lit .kt, .mb.lit .kt { fill: var(--j-cream); }
+.sk.green .face, .mb.green .face { fill: #12230d; stroke: var(--j-grn); filter: url(#j-glow); }
+.sk.rec .kt { fill: #ff8a80; }
+.sk.rec.lit .face { fill: #2c0b0e; stroke: var(--j-red); }
+.held .face { stroke: var(--j-cream) !important; stroke-width: 2.5; }
+/* the MPC's tones: the same keys, an edge by family (MODE orange, PAD PLAY cyan, the rest the line) */
+.mb.t-grey .face { fill: #15141d; }
+.mb.t-orange .face { stroke: rgba(255, 122, 26, .55); }
+.mb.t-orange .kt { fill: #ffb27a; }
+.mb.t-blue .face { stroke: rgba(63, 224, 230, .5); }
+.mb.t-blue .kt { fill: #9ef0f3; }
+.mb.t-blue.dim .face { stroke: rgba(63, 224, 230, .8); }
+.mb.t-blue.lit .face { fill: #062628; stroke: var(--j-cyan); }
+.mb .strip { transition: fill .08s; }
+.mb.s-red .strip { fill: #4a1418; }
+.mb.s-red.dim .strip { fill: #8a2228; }
+.mb.s-red.lit .strip { fill: var(--j-red); filter: url(#j-glow); }
+.mb.s-white .strip { fill: #3a3842; }
+.mb.s-white.lit .strip { fill: var(--j-cream); filter: url(#j-glow); }
+.mb.s-green .strip { fill: #1e3a17; }
+.mb.s-green.dim .strip { fill: #3d6b2c; }
+.mb.s-green.lit .strip, .mb.s-green.green .strip { fill: var(--j-grn); filter: url(#j-glow); }
+.mb.on .face { stroke: var(--j-vio); stroke-width: 2.5; }
+/* pads: dark, HUD corners; lit in the colour the panel gives them (padLit), held cream */
+.pad .face { fill: #0d0c13; stroke: rgba(184, 112, 255, .26); stroke-width: 1.5; transition: fill .08s, stroke .08s; }
+.pad .brk-c { stroke: rgba(239, 230, 200, .3); transition: stroke .08s; }
+.pad.held .face { fill: var(--j-cream) !important; fill-opacity: 1 !important; stroke: var(--j-cream) !important; }
+.pad.held .brk-c { stroke: var(--j-org); }
+.pad.held .pn { fill: #050409; }
+/* the SMK-37's keys: charcoal keys, a light bar each (the FM-1's touch keys), orange when lit */
+.key .face { stroke: #050409; stroke-width: 2; transition: fill .08s; }
+.key.white .face { fill: url(#j-white); }
+.key.black .face { fill: #050408; stroke: rgba(184, 112, 255, .55); }
+.key .bar { fill: rgba(239, 230, 200, .55); transition: fill .08s; }
+.key.black .bar { fill: rgba(184, 112, 255, .7); }
+.key.off { opacity: .42; }
+.key.white.lit .face { fill: #2b1607; }
+.key.black.lit .face { fill: #3a1b06; }
+.key.lit .bar { fill: var(--j-org); filter: url(#j-glow); }
+.key.held .face, .key.white.held .face { fill: var(--j-org); }
+.key.held .bar { fill: var(--j-cream); }
+/* the MPC's lights and pad glow */
+.mpc .pad-glow { opacity: .18; transition: opacity .5s; }
+.mpc.on .pad-glow { opacity: 1; }
+.mpc .led-pwr { fill: #16241a; }
+.mpc.on .led-pwr { fill: var(--j-grn); filter: url(#j-glow); }
+.mpc .led-fader { fill: #2a2833; }
+.mpc.on .led-fader { fill: var(--j-cream); filter: url(#j-glow); }
+/* the creatures on the bodies (as HOME draws a track): breathing, slowly */
+.creature { transform-box: fill-box; transform-origin: center; animation: breathe 5.5s ease-in-out infinite; }
+.creature.b { animation-duration: 7s; animation-delay: -2s; }
+@keyframes breathe { 50% { transform: scale(1.06) rotate(2deg); } }
+.device:not(.on) .creature { animation-play-state: paused; }
+/* switch on */
+.start { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 12px; padding: 16px;
+         background: rgba(5, 4, 9, .5); border-radius: var(--start-r, 20px); }
+.start[hidden] { display: none; }
+.start button { font: 600 12px/1.1 var(--mono); letter-spacing: .12em; text-transform: uppercase; padding: 15px 22px;
+                background: #ffe14d; color: #050409; border: 1px solid #ffe14d; cursor: pointer; display: inline-flex; gap: 10px; align-items: center; }
+.start button::before { content: ""; width: 8px; height: 8px; background: currentColor; }
+.start button:hover:not(:disabled) { background: #ff3ea5; border-color: #ff3ea5; }
+.start button:disabled { opacity: .5; cursor: progress; }
+.start p { margin: 0; max-width: 32em; text-align: center; color: #fff; font: 13px/1.5 var(--mono); background: rgba(5, 4, 9, .8); padding: 6px 10px; }
+/* the screen, larger (the MPC's is small on the drawing, as on the unit) */
+.mirror { --bc: var(--violet); padding: 14px; margin: 0; }
+.mirror canvas { display: block; width: 100%; max-width: 480px; aspect-ratio: 4 / 3; margin: 0 auto; image-rendering: pixelated; background: #000; }
+.cap { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 8px 0 0; font: 500 10px/1.4 var(--mono);
+       letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.cap b { color: var(--line); font-weight: 500; }
+/* the map and notes */
+.k { font: 500 10px/1.4 var(--mono); letter-spacing: .16em; text-transform: uppercase; color: var(--cyan); margin: 0 0 10px; }
+.map { --bc: var(--cyan); padding: 18px 20px; font-size: 14px; }
+.map .cols { columns: 2 24em; column-gap: 32px; }
+.bench.dev-mpc .map .cols { columns: 1; }
+.map p { margin: 0 0 8px; break-inside: avoid; }
+.map b { color: var(--line); font-weight: 600; }
+#info { display: flex; flex-direction: column; gap: 14px; }
+.note { margin: 0; padding: 14px 18px; border-left: 2px solid var(--dim); background: var(--glass); font-size: 14px; }
+.note.big { border-left-color: var(--mag); color: var(--line); }
+.note.big b { color: var(--mag); font-weight: 600; }
+kbd { font: 500 11px var(--mono); border: 1px solid var(--rule); padding: 0 5px; color: var(--line); background: var(--bg); }
+/* the MPC's samples */
+.samples { --bc: var(--violet); padding: 16px 18px; font-size: 14px; }
+.samples-head { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; }
+.samples-head b { font: 400 15px/1.3 var(--display); color: var(--line); margin-right: 4px; }
+.samples button, .samples .add { font: 500 11px/1.2 var(--mono); letter-spacing: .08em; text-transform: uppercase; padding: 9px 12px;
+                                 border: 1px solid var(--rule); background: var(--bg); color: var(--line); cursor: pointer; }
+.samples button:hover, .samples .add:hover { border-color: var(--yellow); color: var(--yellow); }
+.samples .add { background: var(--yellow); color: var(--on-accent); border-color: var(--yellow); font-weight: 600; }
+.samples .add:hover { background: var(--mag); border-color: var(--mag); color: var(--on-accent); }
+.samples .hint { color: var(--dim); font-size: 13px; flex-basis: 100%; }
+.samples .msg { margin: 6px 0 0; min-height: 1.6em; color: var(--cyan); font: 12px/1.6 var(--mono); }
+.samples-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 4px 24px; }
+.samples h3 { font: 500 10px/1.4 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--violet); margin: 8px 0 6px; }
+.samples h3 small { font-weight: 400; color: var(--dim); letter-spacing: .06em; text-transform: none; }
+.samples ol { margin: 0; padding-left: 2.2em; font: 12.5px/1.5 var(--mono); }
+.samples li { padding: 2px 0; }
+.samples li::marker { color: var(--dim); }
+.samples li.cur { color: var(--yellow); }
+.samples li.none { list-style: none; margin-left: -2.2em; color: var(--dim); }
+.samples li .name { display: inline-block; max-width: calc(100% - 7.5em); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; margin-right: 6px; }
+.samples li button { padding: 1px 7px; margin-left: 2px; font-size: 12px; letter-spacing: 0; }
+body.dropping .samples { outline: 2px dashed var(--yellow); outline-offset: 3px; }
+footer { display: flex; justify-content: space-between; gap: 10px 18px; flex-wrap: wrap; padding: 16px 14px; border-top: 1px solid var(--rule);
+         font: 11px/1.6 var(--mono); letter-spacing: .06em; color: var(--dim); }
+footer a { color: var(--line); }
+footer .tm { flex-basis: 100%; letter-spacing: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+<header class="top brk">
+  <a class="home" href="../"><b>JIANT</b> / FM · devices</a>
+  <nav aria-label="JIANT">
+    <a href="../">Home</a><a href="index.html">Emulator</a><a href="devices.html" aria-current="page">Devices</a>
+    <a href="../webapp/editor/">Editor</a><a href="../webapp/installer/">Installer</a>
+    <a href="https://github.com/juanjiant-bit/JIANT/tree/main/ports">Ports</a>
+  </nav>
+  <button type="button" class="theme" id="theme">Light</button>
+</header>
+<section>
+  <p class="kicker"><span class="circ">3</span>one firmware · three devices</p>
+  <h1>JIANT<span class="fm">FM</span>, on every device</h1>
+  <p class="lede">One firmware, the FM-1's own code, on each device with that device's own panel. Pick one and switch it
+  on; what you save on one is there on the others.</p>
+</section>
+<div class="picker" role="group" aria-label="Device">
+  <div class="card brk"><button type="button" data-dev="fm1"><span class="tag">01 · <i>today</i></span><b>M-VAVE FM-1</b><small>27 keys · 14 buttons · 7 encoders</small></button><nav class="links" data-links="fm1" aria-label="FM-1: install, emulator, editor, manual"></nav></div>
+  <div class="card brk"><button type="button" data-dev="smk37"><span class="tag">02 · <i class="dev">in development</i></span><b>M-VAVE SMK-37</b><small>37 keys · 16 pads · 8 encoders · 4 faders</small></button><nav class="links" data-links="smk37" aria-label="SMK-37: install, emulator, editor, manual"></nav></div>
+  <div class="card brk"><button type="button" data-dev="mpc"><span class="tag">03 · <i class="dev">preview</i></span><b>MPC Sample</b><small>16 pads · 3 knobs · fader · wheel</small></button><nav class="links" data-links="mpc" aria-label="MPC Sample: download, install, emulator"></nav></div>
+</div>
+<div class="bench" id="bench">
+  <div class="stage brk" id="stage"></div>
+  <div class="side" id="side"><div id="info"></div></div>
+</div>
+<section class="plugins brk" aria-labelledby="plug-h">
+  <p class="k" id="plug-h">Also: the plugins</p>
+  <p>JIANT FM as a plugin for the <b>MPC standalones</b> (MPC OS 3.10.1+) and as <b>VST3, LV2 and a standalone app</b> for
+  Linux and Windows: the big CPUs' build, with the SAMPLE and GRAIN engines.</p>
+  <nav class="devlinks" data-links="plugins" aria-label="Plugins: download, how they work"></nav>
+</section>
+<footer>
+  <span>JIANT FM · Juan Jiant · <a href="https://www.gnu.org/licenses/gpl-3.0.html">GPL-3.0</a></span>
+  <span><a href="index.html">FM-1 emulator alone</a> · <a href="https://github.com/juanjiant-bit/JIANT/tree/main/ports">The ports</a> ·
+    DotGothic16, <a href="fonts/OFL.txt">SIL OFL 1.1</a></span>
+  <span class="tm">M-VAVE, FM-1, SMK-37, Akai and MPC are trademarks of their owners; JIANT is not affiliated with or endorsed by
+  them. The SMK-37 and MPC panels are drawings of where their controls are, not their exact look.</span>
+</footer>
+</main>
+
+<script type="module">
+const NS = "http://www.w3.org/2000/svg";
+const STORE = "felucca-emu-flash";                     // (index.html's: the same music on every device)
+// the FM-1's panel as the firmware reads it (panel.c): buttons by label, encoders by role, keys F3..G5
+const B = { FX: 0, SCL: 1, ENV: 2, LFO: 3, EDIT: 4, GLO: 5, HOME: 6, SAVE: 7, ARP: 8, SEQ: 9, PLAY: 10, REC: 11, "OCT-": 12, "OCT+": 13 };
+const EN = { SELECT: 0, ALGORITHM: 1, PRESETS: 2, K1: 3, K2: 4, K3: 5, K4: 6 };
+const PLAY_GREEN = 14, FM1_KEYS = 27;
+const WINDOWS = [0, 4, 8, 11];                         // pads -> keys: bank A F3..G#4, B A3..C5, C C#4..E5, D E4..G5
+const NOTES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+const noteName = (midi) => NOTES[midi % 12] + (Math.floor(midi / 12) - 1);
+const fm1KeyName = (k) => noteName(53 + k);
+
+// ------------------------------------------------------------------ the firmware in an AudioWorklet
+const emu = {
+  node: null, ac: null, btn: new Map(), key: new Map(), btnMask: -1, keyMask: -1, leds: [0, 0, 0, 0], fb: null,
+  send(m) { if (this.node) this.node.port.postMessage(m); },
+  syncButtons() {
+    let m = 0;
+    for (const b of this.btn.values()) m |= 1 << b;
+    if (m !== this.btnMask) { this.btnMask = m; this.send({ type: "buttons", mask: m }); }
+  },
+  syncKeys() {
+    let m = 0;
+    for (const k of this.key.values()) if (k >= 0 && k < FM1_KEYS) m |= 1 << k;
+    if (m !== this.keyMask) { this.keyMask = m; this.send({ type: "keys", mask: m }); }
+  },
+  press(id, bit) { this.btn.set(id, bit); this.syncButtons(); },
+  unpress(id) { if (this.btn.delete(id)) this.syncButtons(); },
+  keyDown(id, k) { this.key.set(id, k); this.syncKeys(); },
+  keyUp(id) { if (this.key.delete(id)) this.syncKeys(); },
+  enc(role, n) { if (n) this.send({ type: "enc", role, n }); },
+  master(v) { this.send({ type: "master", value: Math.max(0, Math.min(1023, Math.round(v))) }); },
+  midi(a, b, c) { this.send({ type: "midi", data: [a, b, c] }); },
+  playing() { return !!(this.leds[0] & (1 << PLAY_GREEN)) || !!(this.leds[0] & (1 << B.PLAY)); },
+  // opts.wasm: the firmware (felucca.wasm, the FM-1's; felucca_hp.wasm, the big CPUs' for the MPC: an audio input
+  // too); opts.onMessage: the worklet's other messages (the sample slots, the recorder)
+  async start(onFrame, master, opts = {}) {
+    const ac = new AudioContext({ sampleRate: 44100, latencyHint: "interactive" });
+    const file = opts.wasm || "felucca.wasm";
+    const [wasm] = await Promise.all([
+      fetch(file, { cache: "no-cache" }).then((r) => { if (!r.ok) throw new Error(`${file}: ${r.status}`); return r.arrayBuffer(); }),
+      ac.audioWorklet.addModule("worklet.js?v=" + Date.now())]);
+    const node = new AudioWorkletNode(ac, "felucca", { numberOfInputs: opts.input ? 1 : 0, numberOfOutputs: 1, outputChannelCount: [2] });
+    node.connect(ac.destination);
+    await new Promise((res, rej) => {
+      node.port.onmessage = (e) => {
+        const m = e.data;
+        if (m.type === "ready") { this.hostPower = !!m.hostPower; res(); }
+        else if (m.type === "error") { rej(new Error(m.message)); if (opts.onMessage) opts.onMessage(m); }
+        else if (m.type === "frame") {
+          if (m.leds) this.leds = m.leds;
+          if (m.fb) this.fb = m.fb;
+          onFrame(m.fb, m.leds ? m.leds : null);
+          if (m.sectors) saveFlash(m.sectors);
+          if ((m.slots || m.rec) && opts.onMessage) opts.onMessage(m);
+        } else if (m.id !== undefined && this.waiting.has(m.id)) {
+          const w = this.waiting.get(m.id); this.waiting.delete(m.id); w(m);
+        } else if (opts.onMessage) opts.onMessage(m);
+      };
+      node.port.postMessage({ type: "load", wasm, sectors: loadFlash(), master }, [wasm]);
+    });
+    await ac.resume();
+    this.ac = ac; this.node = node; this.btnMask = this.keyMask = -1;
+    this.syncButtons(); this.syncKeys();
+    this.send({ type: "visible", on: !document.hidden });
+  },
+  // a message the worklet answers (its reply carries the same id)
+  waiting: new Map(), seq: 0,
+  ask(m, transfer = []) {
+    if (!this.node) return Promise.resolve(null);
+    const id = ++this.seq;
+    return new Promise((res) => { this.waiting.set(id, res); this.node.port.postMessage({ ...m, id }, transfer); });
+  },
+  stop() {
+    for (const w of this.waiting.values()) w(null);
+    this.waiting.clear();
+    if (this.node) { this.node.port.onmessage = null; this.node.disconnect(); }
+    if (this.ac) this.ac.close().catch(() => {});
+    this.node = this.ac = null; this.btn.clear(); this.key.clear(); this.leds = [0, 0, 0, 0]; this.fb = null;
+  },
+};
+document.addEventListener("visibilitychange", () => emu.send({ type: "visible", on: !document.hidden }));
+
+function loadFlash() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORE) || "{}"), out = {};
+    for (const [off, b64] of Object.entries(raw)) out[off] = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    return out;
+  } catch { return {}; }
+}
+function saveFlash(sectors) {
+  try {
+    const raw = {};
+    for (const [off, u8] of Object.entries(sectors)) {
+      let s = "";
+      for (let i = 0; i < u8.length; i += 4096) s += String.fromCharCode.apply(null, u8.subarray(i, i + 4096));
+      raw[off] = btoa(s);
+    }
+    localStorage.setItem(STORE, JSON.stringify(raw));
+  } catch { /* private mode, full: this session only */ }
+}
+
+// the FM-1's 240 x 240 frame (RGB565, the panel's byte order) into a canvas at (x, y)
+function blitScreen(ctx, fb, x, y) {
+  if (!fb) return;
+  const img = blitScreen.img || (blitScreen.img = ctx.createImageData(240, 240)), d = img.data;
+  for (let i = 0; i < 240 * 240; i++) {
+    const v = fb[i], p = ((v >> 8) | (v << 8)) & 0xFFFF;
+    d[i * 4] = ((p >> 11) & 31) * 255 / 31; d[i * 4 + 1] = ((p >> 5) & 63) * 255 / 63;
+    d[i * 4 + 2] = (p & 31) * 255 / 31; d[i * 4 + 3] = 255;
+  }
+  ctx.putImageData(img, x, y);
+}
+
+// ------------------------------------------------------------------ drawing a panel
+let svg = null;
+function el(tag, attrs, parent = svg) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  parent.appendChild(e);
+  return e;
+}
+const SANS = "-apple-system, 'Helvetica Neue', Arial, sans-serif", DOT = "'DotGothic16', " + SANS;
+function label(parent, x, y, s, size, font = SANS, ink = "var(--label)") {
+  const t = el("text", { x, y, "text-anchor": "middle", "font-family": font, "font-size": size, "font-weight": 600,
+                         fill: ink, "letter-spacing": ".04em", "pointer-events": "none" }, parent);
+  t.textContent = s;
+  return t;
+}
+function control(cls, name) {
+  const g = el("g", { class: "ctl " + cls, tabindex: 0, role: cls.includes("knob") || cls.includes("fader") ? "slider" : "button",
+                      "aria-label": name });
+  g.addEventListener("contextmenu", (e) => e.preventDefault());
+  return g;
+}
+// a held control: down(id) on press, up(id) on release (pointer, Enter / Space)
+function holdable(g, down, up) {
+  const ids = new Set();
+  g.addEventListener("pointerdown", (e) => {
+    e.preventDefault(); g.setPointerCapture(e.pointerId);
+    const id = "p" + e.pointerId; ids.add(id); g.classList.add("held"); down(id, e);
+  });
+  const end = (e) => { const id = "p" + e.pointerId; if (ids.delete(id)) { if (!ids.size) g.classList.remove("held"); up(id); } };
+  for (const t of ["pointerup", "pointercancel", "lostpointercapture"]) g.addEventListener(t, end);
+  g.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && !e.repeat && !ids.has("f")) { e.preventDefault(); ids.add("f"); g.classList.add("held"); down("f", e); }
+  });
+  g.addEventListener("keyup", (e) => { if ((e.key === "Enter" || e.key === " ") && ids.delete("f")) { if (!ids.size) g.classList.remove("held"); up("f"); } });
+}
+// an endless encoder: n detents (drag up, wheel, arrows)
+function turnable(g, turn, step = 8) {
+  let drag = null, wheel = 0;
+  g.addEventListener("pointerdown", (e) => { e.preventDefault(); g.setPointerCapture(e.pointerId); drag = { y: e.clientY, acc: 0 }; });
+  g.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    drag.acc += drag.y - e.clientY; drag.y = e.clientY;
+    const n = Math.trunc(drag.acc / step);
+    if (n) { drag.acc -= n * step; turn(n); }
+  });
+  for (const t of ["pointerup", "pointercancel"]) g.addEventListener(t, () => { drag = null; });
+  g.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const dy = e.deltaMode === 1 ? e.deltaY * 33 : e.deltaY;
+    if (Math.abs(dy) >= 50) { turn(dy < 0 ? 1 : -1); wheel = 0; return; }
+    wheel -= dy;
+    const n = Math.trunc(wheel / 25);
+    if (n) { wheel -= n * 25; turn(n); }
+  }, { passive: false });
+  g.addEventListener("keydown", (e) => {
+    const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[e.key];
+    if (d) { e.preventDefault(); e.stopPropagation(); turn(d); }
+  });
+}
+// an absolute control, 0..127 (a pot, a fader): set(v) on every change; vertical drag, wheel, arrows
+function positional(g, get, set, span = 220) {
+  let drag = null;
+  g.addEventListener("pointerdown", (e) => { e.preventDefault(); g.setPointerCapture(e.pointerId); drag = { y: e.clientY, v: get() }; });
+  g.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const v = Math.max(0, Math.min(127, Math.round(drag.v + (drag.y - e.clientY) * 127 / span)));
+    if (v !== get()) set(v);
+  });
+  for (const t of ["pointerup", "pointercancel"]) g.addEventListener(t, () => { drag = null; });
+  g.addEventListener("wheel", (e) => { e.preventDefault(); set(Math.max(0, Math.min(127, get() + (e.deltaY < 0 ? 2 : -2)))); }, { passive: false });
+  g.addEventListener("keydown", (e) => {
+    const d = { ArrowUp: 2, ArrowRight: 2, ArrowDown: -2, ArrowLeft: -2 }[e.key];
+    if (d) { e.preventDefault(); e.stopPropagation(); set(Math.max(0, Math.min(127, get() + d))); }
+  });
+}
+// gradients, filters and patterns for a panel: <defs> once per svg
+function defs() { return el("defs", {}); }
+// a linear gradient (top to bottom unless dir says otherwise), stops [offset, colour, opacity?]
+function linear(d, id, stops, dir = [0, 0, 0, 1]) {
+  const g = el("linearGradient", { id, x1: dir[0], y1: dir[1], x2: dir[2], y2: dir[3] }, d);
+  for (const [o, c, a = 1] of stops) el("stop", { offset: o, "stop-color": c, "stop-opacity": a }, g);
+  return g;
+}
+function radial(d, id, stops, cx = 0.4, cy = 0.35, r = 0.7) {
+  const g = el("radialGradient", { id, cx, cy, r }, d);
+  for (const [o, c, a = 1] of stops) el("stop", { offset: o, "stop-color": c, "stop-opacity": a }, g);
+  return g;
+}
+// a soft glow (what is lit) and a soft drop shadow (what stands off the panel)
+function glow(d, id, blur = 4) {
+  const f = el("filter", { id, x: "-50%", y: "-50%", width: "200%", height: "200%" }, d);
+  el("feGaussianBlur", { in: "SourceGraphic", stdDeviation: blur, result: "b" }, f);
+  const m = el("feMerge", {}, f);
+  el("feMergeNode", { in: "b" }, m); el("feMergeNode", { in: "SourceGraphic" }, m);
+}
+function shadow(d, id, dy = 3, blur = 3, opacity = .45) {
+  const f = el("filter", { id, x: "-30%", y: "-30%", width: "160%", height: "170%" }, d);
+  el("feDropShadow", { dx: 0, dy, stdDeviation: blur, "flood-color": "#000", "flood-opacity": opacity }, f);
+}
+// a label under (or over) a control, in several lines
+function lines(parent, x, y, s, size, font, ink, step = size + 2) {
+  s.split("\n").forEach((t, i) => label(parent, x, y + i * step, t, size, font, ink));
+}
+// ------------------------------------------------------------------ JIANT's look for a panel
+// The JIANT skin's heat (firmware/src/ui_graph.c heat_col: indigo violet red orange amber cream white), the knobs'
+// colours (tools/gen_ui_palettes.py KNOBS["JIANT"]), Plex Mono for what is printed, DotGothic16 for what JIANT does
+const HEAT = ["#3a4aad", "#8459ff", "#ff414a", "#ff7519", "#ffbe5a", "#fff3ce", "#ffffff"];
+const KNOB_COL = ["#8a6cff", "#ffd23c", "#5874ff", "#ff4b4b"];
+const ORG = "#ff7a1a", VIO = "#b870ff", CYAN = "#3fe0e6", CREAM = "#fff3ce", INK = "#ddd6ea", DIM = "#8f88a6";
+const MONO = "'IBM Plex Mono', ui-monospace, Menlo, monospace", MICH = "Michroma, 'Arial Black', sans-serif";
+function heatAt(t) {                                   // t 0..1 -> a colour on the heat ramp (without the white)
+  const s = Math.max(0, Math.min(1, t)) * (HEAT.length - 2), i = Math.min(HEAT.length - 3, Math.floor(s)), f = s - i;
+  const a = HEAT[i], b = HEAT[i + 1], c = (h, k) => parseInt(h.slice(1 + k * 2, 3 + k * 2), 16);
+  return "#" + [0, 1, 2].map((k) => Math.round(c(a, k) + (c(b, k) - c(a, k)) * f).toString(16).padStart(2, "0")).join("");
+}
+// the defs every JIANT panel uses: the glow, the heat (across and up), the charcoal key, the dot field
+function jiantDefs(d) {
+  glow(d, "j-glow", 3.2);
+  glow(d, "j-halo", 7);
+  linear(d, "j-heat", HEAT.slice(0, 6).map((c, i) => [i / 5, c]), [0, 0, 1, 0]);
+  linear(d, "j-heatv", HEAT.slice(0, 6).map((c, i) => [i / 5, c]), [0, 1, 0, 0]);
+  linear(d, "j-body", [[0, "#13111b"], [0.5, "#0c0b12"], [1, "#08070c"]]);
+  linear(d, "j-white", [[0, "#1d1b27"], [0.85, "#272533"], [1, "#32303f"]]);
+  const dots = el("pattern", { id: "j-dots", width: 14, height: 14, patternUnits: "userSpaceOnUse" }, d);
+  el("rect", { x: 6, y: 6, width: 1.4, height: 1.4, fill: "#efe6c8", opacity: .07 }, dots);
+  const grille = el("pattern", { id: "j-grille", width: 9, height: 9, patternUnits: "userSpaceOnUse" }, d);
+  el("rect", { x: 3, y: 3, width: 3, height: 3, fill: VIO, opacity: .22 }, grille);
+}
+// HUD corners (the site's .brk) around a box
+function brackets(parent, x, y, w, h, k, ink, sw = 2, cls = "") {
+  const p = `M${x} ${y + k}V${y}H${x + k} M${x + w - k} ${y}H${x + w}V${y + k} M${x + w} ${y + h - k}V${y + h}H${x + w - k} M${x + k} ${y + h}H${x}V${y + h - k}`;
+  return el("path", { d: p, fill: "none", stroke: ink, "stroke-width": sw, class: cls, "pointer-events": "none" }, parent);
+}
+// the body: near black, the dot field, a thin edge, the heat line along its top, orange corners
+function jiantBody(W, H, rx) {
+  el("rect", { x: 2, y: 2, width: W - 4, height: H - 4, rx, fill: "url(#j-body)", stroke: "rgba(184,112,255,.35)", "stroke-width": 1.5 });
+  el("rect", { x: 2, y: 2, width: W - 4, height: H - 4, rx, fill: "url(#j-dots)" });
+  el("rect", { x: rx, y: 2, width: W - 2 * rx, height: 2.5, fill: "url(#j-heat)", opacity: .9 });
+  brackets(svg, 10, 10, W - 20, H - 20, 26, ORG, 2);
+}
+// a creature, as HOME draws a track: a wobbly closed line, two eyes; drawn only, breathing
+function creature(parent, x, y, r, ink, seed, cls = "") {
+  const g = el("g", { class: "creature " + cls, "pointer-events": "none" }, parent);
+  for (const [k, sw, op] of [[1, 1.4, .55], [0.62, 1, .35]]) {
+    let p = "";
+    for (let i = 0; i <= 72; i++) {
+      const a = i / 72 * Math.PI * 2;
+      const q = r * k * (1 + .16 * Math.sin(3 * a + seed) + .09 * Math.sin(5 * a + seed * 2.3) + .05 * Math.sin(9 * a + seed * .7));
+      p += (i ? "L" : "M") + (x + Math.cos(a) * q * 1.15).toFixed(1) + " " + (y + Math.sin(a) * q).toFixed(1);
+    }
+    el("path", { d: p + "Z", fill: "none", stroke: ink, "stroke-width": sw, opacity: op }, g);
+  }
+  for (const dx of [-r * .2, r * .2]) el("rect", { x: x + dx - 2.5, y: y - r * .12 - 2.5, width: 5, height: 5, fill: CREAM, opacity: .8 }, g);
+  return g;
+}
+// the wordmark: JIANT in Michroma, FM in the heat
+function wordmark(parent, x, y, size, anchor = "middle", suffix = "") {
+  const t = el("text", { x, y, "text-anchor": anchor, "font-family": MICH, "font-size": size, fill: "#efe6c8", "letter-spacing": ".08em", "pointer-events": "none" }, parent);
+  t.textContent = "JIANT ";
+  const fm = el("tspan", { fill: "url(#j-heat)" }, t);
+  fm.textContent = "FM";
+  if (suffix) { const sx = el("tspan", { fill: DIM, "font-family": MONO, "font-size": size * .78, "letter-spacing": ".1em" }, t); sx.textContent = "  " + suffix; }
+  return t;
+}
+// a ring around a knob: the 270° track, an arc for the value (absolute: its colour the value's heat, as the JIANT skin
+// colours a knob) or, for an endless encoder, a lit point where it turned to, a fading tail behind it
+function ringKnob(g, x, y, r, opts = {}) {
+  const R = r + (opts.gap ?? 8), arc = (a0, a1) => {
+    const p = (a) => [x + Math.cos((a - 90) * Math.PI / 180) * R, y + Math.sin((a - 90) * Math.PI / 180) * R];
+    const [x0, y0] = p(a0), [x1, y1] = p(a1);
+    return `M${x0.toFixed(2)} ${y0.toFixed(2)}A${R} ${R} 0 ${a1 - a0 > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+  };
+  el("circle", { cx: x, cy: y, r: R + 6, fill: "transparent" }, g);   // (the touch area)
+  el("circle", { cx: x, cy: y, r, fill: "#0e0d15", stroke: "rgba(239,230,200,.22)", "stroke-width": 1.5, class: "face" }, g);
+  el("circle", { cx: x, cy: y, r: r * .7, fill: "none", stroke: "rgba(239,230,200,.07)", "stroke-width": 1 }, g);
+  const ptr = el("line", { x1: x, y1: y - r * .35, x2: x, y2: y - r + 4, stroke: CREAM, "stroke-width": opts.pw || 2.6, "stroke-linecap": "round" }, g);
+  let set;
+  if (opts.endless) {
+    const n = 24, dots = [];
+    for (let i = 0; i < n; i++) {
+      const a = i / n * Math.PI * 2 - Math.PI / 2;
+      dots.push(el("circle", { cx: x + Math.cos(a) * R, cy: y + Math.sin(a) * R, r: 1.7, fill: "rgba(239,230,200,.18)" }, g));
+    }
+    let last = -1;
+    set = (deg) => {
+      ptr.setAttribute("transform", `rotate(${deg} ${x} ${y})`);
+      const at = ((Math.round(deg / 15) % n) + n) % n;
+      if (at === last) return;
+      last = at;
+      dots.forEach((dt, i) => {
+        const k = (at - i + n) % n;
+        dt.setAttribute("fill", k === 0 ? opts.ink : k < 3 ? opts.ink : "rgba(239,230,200,.18)");
+        dt.setAttribute("opacity", k === 0 ? 1 : k === 1 ? .5 : k === 2 ? .22 : 1);
+        dt.setAttribute("r", k === 0 ? 3.4 : 1.7);
+        if (k === 0) dt.setAttribute("filter", "url(#j-glow)"); else dt.removeAttribute("filter");
+      });
+    };
+  } else {
+    el("path", { d: arc(-135, 135), fill: "none", stroke: "rgba(239,230,200,.12)", "stroke-width": opts.w || 4, "stroke-linecap": "round" }, g);
+    const val = el("path", { fill: "none", "stroke-width": opts.w || 4, "stroke-linecap": "round", filter: "url(#j-glow)" }, g);
+    set = (t) => {                                     // t 0..1
+      const a = -135 + 270 * t;
+      ptr.setAttribute("transform", `rotate(${a} ${x} ${y})`);
+      val.setAttribute("d", arc(-135, Math.max(-134, a)));
+      val.setAttribute("stroke", opts.ink || heatAt(.15 + .85 * t));
+    };
+  }
+  return set;
+}
+// a pad: a dark square, HUD corners, its number; padLit lights it in a colour
+function padShape(g, x, y, s, n, ink = DIM) {
+  el("rect", { x, y, width: s, height: s, rx: 4, class: "face" }, g);
+  brackets(g, x + 4, y + 4, s - 8, s - 8, Math.round(s * .16), "", 1.5, "brk-c").removeAttribute("stroke");
+  label(g, x + s / 2, y + Math.min(24, s * .24) + 4, String(n), 12, DOT, ink).classList.add("pn");
+}
+function keybed(x, y, w, h, first, count, opts) {
+  // first: the first key's MIDI note; white keys across w, black ones over them
+  const whites = [], keys = [];
+  for (let m = first; m < first + count; m++) if (![1, 3, 6, 8, 10].includes(m % 12)) whites.push(m);
+  const kw = w / whites.length;
+  el("rect", { x: x - 6, y: y - 6, width: w + 12, height: h + 12, rx: 6, fill: "#050409", stroke: "rgba(184,112,255,.3)", "stroke-width": 1.5 });
+  const make = (m, black) => {
+    const i = whites.indexOf(black ? m - 1 : m), g = control("key " + (black ? "black" : "white"), noteName(m));
+    const bx = black ? x + (i + 1) * kw - kw * 0.32 : x + i * kw + 1, bw = black ? kw * 0.64 : kw - 2, bh = black ? h * 0.6 : h;
+    el("rect", { x: bx, y, width: bw, height: bh, rx: 3, class: "face" }, g);
+    el("rect", { x: bx + bw / 2 - 2, y: y + bh - (black ? 36 : 62), width: 4, height: black ? 22 : 26, rx: 2, class: "bar" }, g);
+    if (!black && (opts.names || m % 12 === 0)) label(g, bx + (kw - 2) / 2, y + h - 12, noteName(m), 11, MONO, m % 12 === 0 ? "#c9c2dc" : "#6e6884");
+    keys.push({ m, g });
+    opts.bind(g, m);
+  };
+  whites.forEach((m) => make(m, false));
+  for (let m = first; m < first + count; m++) if ([1, 3, 6, 8, 10].includes(m % 12)) make(m, true);
+  return keys;
+}
+// a pad lit in a colour (its fill a glow of it, its edge it), or dark
+const padLit = (g, rgb) => {
+  const f = g.querySelector(".face"), b = g.querySelector(".brk-c");
+  f.style.fill = rgb || ""; f.style.fillOpacity = rgb ? .3 : ""; f.style.stroke = rgb || "";
+  if (b) b.style.stroke = rgb || "";
+  g.classList.toggle("glow", !!rgb);
+};
+// the computer keyboard as the FM-1's keys (as index.html: Z..' and Q..O), arrows SELECT / ALGORITHM
+const KEYCODES = {};
+[0, 2, 4, 6, 7, 9, 11, 12, 14, 16].forEach((k, i) => KEYCODES[["KeyZ", "KeyX", "KeyC", "KeyV", "KeyB", "KeyN", "KeyM", "Comma", "Period", "Slash"][i]] = k);
+[["KeyS", 1], ["KeyD", 3], ["KeyF", 5], ["KeyH", 8], ["KeyJ", 10], ["KeyL", 13], ["Semicolon", 15], ["Quote", 17]].forEach(([c, k]) => KEYCODES[c] = k);
+["KeyQ", "KeyW", "KeyE", "KeyR", "KeyT", "KeyY", "KeyU", "KeyI", "KeyO"].forEach((c, i) => KEYCODES[c] = 18 + i);
+const ARROWS = { ArrowUp: [EN.SELECT, 1], ArrowDown: [EN.SELECT, -1], ArrowRight: [EN.ALGORITHM, 1], ArrowLeft: [EN.ALGORITHM, -1] };
+addEventListener("keydown", (e) => {
+  if (!emu.node || e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.(".ctl")) return;
+  if (ARROWS[e.code]) { e.preventDefault(); emu.enc(...ARROWS[e.code]); return; }
+  if (KEYCODES[e.code] === undefined) return;
+  e.preventDefault();
+  if (!e.repeat) emu.keyDown("k" + e.code, KEYCODES[e.code]);
+});
+addEventListener("keyup", (e) => emu.keyUp("k" + e.code));
+addEventListener("blur", () => { for (const id of [...emu.key.keys()]) if (id[0] === "k") emu.keyUp(id); });
+
+// ------------------------------------------------------------------ the devices
+// Each: build(stage) draws its panel, binds its controls to the FM-1's and returns { frame(fb, leds), info }.
+
+// M-VAVE SMK-37 Pro / Elite: the FM-1's chip, its 240 x 240 screen; the mapping the SMK-37 build of JIANT will have
+// the buttons as printed on the SMK-37 (Melodee's SMK37.md, tried on an SMK-37 Elite): [label, the FM-1's button or a
+// port's own role]
+const SMK_BUTTONS = [
+  ["FX", "FX"], ["SCALE", "SCL"], ["CHORD", "ENV"], ["NOTE\nREPEAT", "LFO"], ["PARA", "EDIT"], ["GLOBE", "GLO"],
+  ["PATCH", "HOME"], ["BT", "SAVE"], ["ARP", "ARP"], ["SEQ", "SEQ"], ["SEQ\nPLAY", "PLAY"], ["SEQ\nREC", "REC"],
+  ["OCTAVE -", "OCT-"], ["OCTAVE +", "OCT+"], ["KNOB\nBANK", "none"], ["FADER\nBANK", "bank"], ["<", "prev"], [">", "next"],
+];
+const SMK_ENCODERS = [["K1", EN.K1], ["K2", EN.K2], ["K3", EN.K3], ["K4", EN.K4],
+                      ["K5", "master"], ["K6", EN.SELECT], ["K7", EN.ALGORITHM], ["K8", EN.PRESETS]];
+const SMK_FADER_BANKS = [   // bank A the levels of tracks 1-4 (CC7, channels 1-4); B track 1's CUTOFF, RESO, REVERB, DELAY
+  { name: "LEVEL T1-T4", cc: (i) => [0xB0 | i, 7] },
+  { name: "T1 CUT RES REV DLY", cc: (i) => [0xB0, [74, 71, 91, 94][i]] },
+];
+// the pads: the FM-1's 16 white keys (its step grid), the lowest on the bottom row
+const WHITE_KEYS = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26];
+const smkPadKey = (p) => WHITE_KEYS[p < 8 ? p + 8 : p - 8];
+// the SMK-37's printed names as they read on the panel (the aria names stay SMK_BUTTONS'), and where each sits: the
+// left column two by two (KNOB BANK FADER BANK, < >, OCTAVE - +), under the faders two rows of six
+const SMK_PRINT = { "NOTE\nREPEAT": "REPEAT", "SEQ\nPLAY": "PLAY", "SEQ\nREC": "REC", "OCTAVE -": "OCT−", "OCTAVE +": "OCT+",
+                    "KNOB\nBANK": "KNOB\nBANK", "FADER\nBANK": "FADER\nBANK", "<": "◀", ">": "▶" };
+const SMK_RIGHT = ["ARP", "NOTE\nREPEAT", "SCALE", "CHORD", "GLOBE", "BT", "PATCH", "PARA", "FX", "SEQ", "SEQ\nPLAY", "SEQ\nREC"];
+const SMK_LEFT = ["KNOB\nBANK", "FADER\nBANK", "<", ">", "OCTAVE -", "OCTAVE +"];
+function buildSMK(stage) {
+  const W = 1400, H = 584;
+  const dev = document.createElement("div");
+  dev.className = "device smk";
+  dev.style.setProperty("--start-r", "1% / 2.4%");
+  stage.appendChild(dev);
+  svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "group");
+  svg.setAttribute("aria-label", "M-VAVE SMK-37 (a drawing)");
+  dev.appendChild(svg);
+  jiantDefs(defs());
+  // the body: JIANT's, the wordmark on its top edge
+  jiantBody(W, H, 14);
+  wordmark(svg, W / 2, 30, 13, "middle", "· SMK-37");
+  const top = (x, s) => label(svg, x, 44, s, 11, MONO, DIM);
+  const jiant = (g, x, y, s) => label(g, x, y, s, 11, DOT, ORG);
+  // PITCH and MOD wheels: a slot, the value as heat from the rest point (the middle for PITCH, the bottom for MOD)
+  const wheel = (x, name, sub, onValue, spring) => {
+    const g = control("fader", name), y = 58, h = 98, w = 40;
+    top(x + w / 2, name);
+    el("rect", { x: x - 5, y: y - 5, width: w + 10, height: h + 10, rx: 6, fill: "transparent" }, g);
+    el("rect", { x, y, width: w, height: h, rx: 5, fill: "#07060b", stroke: "rgba(239,230,200,.2)", "stroke-width": 1.5, class: "face" }, g);
+    for (let i = 1; i < 12; i++) el("line", { x1: x + 8, x2: x + w - 8, y1: y + i * h / 12, y2: y + i * h / 12, stroke: "#efe6c8", "stroke-opacity": .06 }, g);
+    const fill = el("rect", { x: x + w / 2 - 3, width: 6, rx: 2, fill: "url(#j-heatv)", filter: "url(#j-glow)" }, g);
+    const mark = el("rect", { x: x + 6, y: 0, width: w - 12, height: 3, rx: 1.5, fill: CREAM }, g);
+    if (spring) el("line", { x1: x + 3, x2: x + w - 3, y1: y + h / 2, y2: y + h / 2, stroke: VIO, "stroke-opacity": .6 }, g);
+    jiant(g, x + w / 2, y + h + 20, sub);
+    let v = spring ? 64 : 0;
+    const place = () => {
+      const my = y + 6 + (1 - v / 127) * (h - 12), from = spring ? y + h / 2 : y + h - 4;
+      mark.setAttribute("y", my - 1.5);
+      fill.setAttribute("y", Math.min(my, from)); fill.setAttribute("height", Math.max(0, Math.abs(from - my)));
+    };
+    place();
+    positional(g, () => v, (nv) => { v = nv; place(); onValue(v); }, 100);
+    if (spring) g.addEventListener("pointerup", () => { v = 64; place(); onValue(64); });
+  };
+  wheel(32, "PITCH", "BEND", (v) => { const b = Math.min(16383, v * 129); emu.midi(0xE0, b & 127, b >> 7); }, true);
+  wheel(92, "MOD", "MOD", (v) => emu.midi(0xB0, 1, v), false);
+  // the screen (the FM-1's: 240 x 240), the JIANT frame in it, violet HUD corners round it
+  const S = [174, 46, 248];
+  el("rect", { x: S[0] - 14, y: S[1] - 12, width: S[2] + 28, height: S[2] + 26, rx: 6, fill: "#030206", stroke: "rgba(184,112,255,.35)", "stroke-width": 1.5 });
+  brackets(svg, S[0] - 20, S[1] - 18, S[2] + 40, S[2] + 38, 18, VIO, 2);
+  el("rect", { x: S[0] - 2, y: S[1] - 2, width: S[2] + 4, height: S[2] + 4, fill: "#000" });
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 240;
+  Object.assign(canvas.style, { left: `${S[0] / W * 100}%`, top: `${S[1] / H * 100}%`, width: `${S[2] / W * 100}%` });
+  dev.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  let bank = 0, masterValue = 700;
+  // K1..K8 in one row: rings (K1-K4 in the JIANT skin's knob colours, MASTER its level as heat), JIANT's name under each
+  const ROLE_NAME = { [EN.K1]: "KNOB 1", [EN.K2]: "KNOB 2", [EN.K3]: "KNOB 3", [EN.K4]: "KNOB 4", master: "MASTER",
+                      [EN.SELECT]: "SELECT", [EN.ALGORITHM]: "ALGO", [EN.PRESETS]: "PRESETS" };
+  const RING = { [EN.K1]: KNOB_COL[0], [EN.K2]: KNOB_COL[1], [EN.K3]: KNOB_COL[2], [EN.K4]: KNOB_COL[3],
+                 [EN.SELECT]: CYAN, [EN.ALGORITHM]: ORG, [EN.PRESETS]: VIO };
+  SMK_ENCODERS.forEach(([name, role], i) => {
+    const x = 486 + i * 68, y = 92, r = 19;
+    top(x, name);
+    const g = control("knob", name);
+    const set = ringKnob(g, x, y, r, role === "master" ? { gap: 7 } : { endless: true, ink: RING[role], gap: 7 });
+    jiant(g, x, y + r + 31, ROLE_NAME[role]);
+    let angle = 0;
+    set(role === "master" ? masterValue / 1023 : 0);
+    turnable(g, (n) => {
+      if (role === "master") {
+        masterValue = Math.max(0, Math.min(1023, masterValue + n * 16));
+        emu.master(masterValue);
+        set(masterValue / 1023);
+      } else {
+        emu.enc(role, n);
+        angle += n * 15;
+        set(angle);
+      }
+    });
+  });
+  // the 18 buttons: the name printed on each, JIANT's under it (inside the key)
+  const btns = [];
+  const ROLE_OF = Object.fromEntries(SMK_BUTTONS.map(([n, r], i) => [n, [r, i]]));
+  const JIANT_OF = { FX: "FX", SCL: "SCL", ENV: "ENV", LFO: "LFO", EDIT: "EDIT", GLO: "GLO", HOME: "HOME", SAVE: "SAVE", ARP: "ARP",
+                     SEQ: "SEQ", PLAY: "PLAY", REC: "REC", "OCT-": "OCT-", "OCT+": "OCT+", bank: "FADERS", prev: "SEL-", next: "SEL+", none: "" };
+  const smkButton = (name, x, y, w, h) => {
+    const [role, i] = ROLE_OF[name];
+    const own = !(role in B);
+    const g = control("sk" + (own ? " port" : "") + (role === "REC" ? " rec" : ""), name);
+    el("rect", { x, y, width: w, height: h, rx: 4, class: "face" }, g);
+    const text = SMK_PRINT[name] || name, ls = text.split("\n"), sub = JIANT_OF[role];
+    const size = ls.length > 1 ? 8.5 : name === "<" || name === ">" ? 12 : 9.5, ty = y + (sub ? h * 0.42 : h / 2 + 3) - (ls.length - 1) * 4.5;
+    ls.forEach((s, k) => label(g, x + w / 2, ty + k * 9.5, s, size, MONO).classList.add("kt"));
+    if (sub) label(g, x + w / 2, y + h - 6, sub, 10, DOT, ORG);
+    btns.push({ g, role });
+    holdable(g, (id) => {
+      if (role === "bank") { bank = (bank + 1) % SMK_FADER_BANKS.length; showBank(); return; }
+      if (role === "prev" || role === "next") { emu.enc(EN.SELECT, role === "next" ? 1 : -1); return; }
+      if (role === "none") return;
+      emu.press("b" + i + id, B[role]);
+    }, (id) => emu.unpress("b" + i + id));
+  };
+  SMK_LEFT.forEach((n, k) => smkButton(n, 28 + (k % 2) * 60, 186 + Math.floor(k / 2) * 44, 54, 38));
+  SMK_RIGHT.forEach((n, k) => smkButton(n, 1010 + (k % 6) * 61.5, 218 + Math.floor(k / 6) * 45, 56, 39));
+  // the 16 pads, 2 rows of 8 (1-8 on top): the FM-1's 16 white keys (its steps), the lowest on the bottom row; each lights
+  // in the heat of its place in the bar
+  const pads = [];
+  el("rect", { x: 454, y: 156, width: 540, height: 150, rx: 6, fill: "#050409", stroke: "rgba(184,112,255,.25)", "stroke-width": 1.5 });
+  for (let p = 0; p < 16; p++) {
+    const x = 466 + (p % 8) * 65.5, y = 166 + Math.floor(p / 8) * 67, s = 58;
+    const g = control("pad", "Pad " + (p + 1));
+    padShape(g, x, y, s, p + 1);
+    label(g, x + s / 2, y + 42, fm1KeyName(smkPadKey(p)).replace("♯", "#"), 11, DOT, ORG);
+    pads.push(g);
+    holdable(g, (id) => emu.keyDown("pad" + p + id, smkPadKey(p)), (id) => emu.keyUp("pad" + p + id));
+  }
+  const padHeat = (p) => heatAt(.18 + .8 * (p < 8 ? p + 8 : p - 8) / 15);
+  // F1..F4: a thin track, the level as heat up to the cap; under each, what the bank makes it
+  const fsubs = [];
+  for (let i = 0; i < 4; i++) {
+    const x = 1060 + i * 86, y = 58, h = 116, w = 36, g = control("fader", "F" + (i + 1));
+    top(x, "F" + (i + 1));
+    for (let t = 0; t <= 10; t++) el("line", { x1: x - 24, x2: x - (t % 5 ? 19 : 15), y1: y + t * h / 10, y2: y + t * h / 10, stroke: "#efe6c8", "stroke-opacity": t % 5 ? .2 : .45, "stroke-width": 1.2 }, g);
+    el("rect", { x: x - w / 2, y: y - 14, width: w, height: h + 28, fill: "transparent" }, g);
+    el("rect", { x: x - 2, y: y - 4, width: 4, height: h + 8, rx: 2, fill: "#1c1a25" }, g);
+    const lvl = el("rect", { x: x - 2, width: 4, rx: 2, fill: "url(#j-heatv)", filter: "url(#j-glow)" }, g);
+    const cap = el("g", {}, g);
+    el("rect", { x: x - w / 2, y: -9, width: w, height: 18, rx: 3, fill: "#15141d", stroke: "rgba(239,230,200,.45)", "stroke-width": 1.2, class: "face" }, cap);
+    el("rect", { x: x - w / 2 + 6, y: -1, width: w - 12, height: 2, fill: ORG }, cap);
+    fsubs.push(jiant(g, x, y + h + 24, ""));
+    let v = 100;
+    const place = () => { const cy = y + (1 - v / 127) * h; cap.setAttribute("transform", `translate(0 ${cy})`); lvl.setAttribute("y", cy); lvl.setAttribute("height", y + h + 4 - cy); };
+    place();
+    positional(g, () => v, (nv) => { v = nv; place(); const [st, cc] = SMK_FADER_BANKS[bank].cc(i); emu.midi(st, cc, v); }, 116);
+  }
+  const FADER_SUB = [["LVL T1", "LVL T2", "LVL T3", "LVL T4"], ["CUTOFF", "RESO", "REVERB", "DELAY"]];
+  function showBank() { fsubs.forEach((t, i) => { t.textContent = FADER_SUB[bank][i]; }); }
+  showBank();
+  // 37 keys, C3..C6, across the whole width: F3..G5 are the FM-1's 27; the five below and five above play nothing yet
+  const keys = keybed(30, 336, 1340, 222, 48, 37, {
+    names: true,
+    bind: (g, m) => {
+      const k = m - 53;
+      if (k < 0 || k >= FM1_KEYS) { g.classList.add("off"); g.setAttribute("aria-label", noteName(m) + " (not on the FM-1)"); return; }
+      holdable(g, (id) => emu.keyDown("key" + k + id, k), (id) => emu.keyUp("key" + k + id));
+    },
+  });
+  function frame(fb, leds) {
+    if (fb) blitScreen(ctx, fb, 0, 0);
+    if (!leds) return;
+    const [litB, litK, dimB] = leds;
+    for (const b of btns) {
+      if (!(b.role in B)) continue;
+      const bit = 1 << B[b.role], green = b.role === "PLAY" && (litB & (1 << PLAY_GREEN));
+      b.g.classList.toggle("lit", !!(litB & bit) && !green);
+      b.g.classList.toggle("green", !!green);
+      b.g.classList.toggle("dim", !!(dimB & bit));
+    }
+    for (const { m, g } of keys) { const k = m - 53; g.classList.toggle("lit", k >= 0 && k < FM1_KEYS && !!(litK & (1 << k))); }
+    pads.forEach((g, p) => padLit(g, litK & (1 << smkPadKey(p)) ? padHeat(p) : ""));
+  }
+  return { dev, frame };
+}
+const SMK_INFO = `
+<div class="map brk">
+  <p class="k">The SMK-37's controls in JIANT</p>
+  <div class="cols">
+  <p><b>Keys</b> F3–G5 are the FM-1's 27 keys, note for note; C3–E3 and G♯5–C6 play nothing yet.</p>
+  <p><b>Buttons</b> FX FX · SCALE SCL · CHORD ENV · NOTE REPEAT LFO · PARA EDIT · GLOBE GLO · PATCH HOME · BT SAVE ·
+     ARP · SEQ · SEQ PLAY PLAY · SEQ REC REC · OCTAVE − / + OCT − / +. <b>&lt; &gt;</b> one step of SELECT.
+     <b>FADER BANK</b> the faders' bank; KNOB BANK nothing yet.</p>
+  <p><b>Encoders</b> K1–K4 KNOB 1–4 · K5 MASTER · K6 SELECT · K7 ALGORITHM · K8 PRESETS.</p>
+  <p><b>Pads</b> the FM-1's 16 white keys (its steps), the lowest on the bottom row.</p>
+  <p><b>Faders</b> bank A the levels of tracks 1–4, B track 1's cutoff, resonance, reverb and delay.
+     <b>Wheels</b> pitch bend and modulation on track 1.</p>
+  <p>Computer keyboard: <kbd>Z</kbd>–<kbd>'</kbd> <kbd>Q</kbd>–<kbd>O</kbd> keys, <kbd>↑</kbd> <kbd>↓</kbd> SELECT, <kbd>←</kbd> <kbd>→</kbd> ALGORITHM.</p>
+  </div>
+</div>
+<p class="note">In development: JIANT on the SMK-37 itself runs on its own chip (the FM-1's), bare metal as on the FM-1.
+The button names are the ones printed on the keyboard (as Melodee, tried on an SMK-37 Elite, names them); this panel is
+the mapping it will have.</p>`;
+
+// ------------------------------------------------------------------ the MPC's samples
+// The SAMPLE BROWSER's files: the samples the user adds (a file picker, or dropped on the page), decoded by the browser
+// (WAV and whatever else it decodes) at 44.1 kHz, kept for the session and in this browser (IndexedDB) when it can.
+// The slots' map (as the MPC app's JIANT/Samples/slots.json: slot -> file) in localStorage; a slot JIANT changed itself
+// (a recording, DESTROY) is written back as slotNN.wav a second after it stops changing, and the map then names it.
+const SLOTS_KEY = "jiant-mpc-slots", MAX_SECONDS = 60;
+const lib = {
+  files: [],                                           // [{name, bytes, buf (AudioBuffer, once decoded)}], by name
+  map: {},                                             // slot (0..15) -> file name
+  db: null, listeners: new Set(),
+  changed() { for (const f of this.listeners) f(); },
+  async open() {
+    try { this.map = JSON.parse(localStorage.getItem(SLOTS_KEY) || "{}") || {}; } catch { this.map = {}; }
+    try {
+      this.db = await new Promise((res, rej) => {
+        const q = indexedDB.open("jiant-samples", 1);
+        q.onupgradeneeded = () => q.result.createObjectStore("files", { keyPath: "name" });
+        q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+      });
+      const all = await new Promise((res, rej) => {
+        const q = this.db.transaction("files").objectStore("files").getAll();
+        q.onsuccess = () => res(q.result || []); q.onerror = () => rej(q.error);
+      });
+      for (const f of all) if (f && f.name && f.bytes && !this.find(f.name)) this.files.push({ name: f.name, bytes: f.bytes });
+      this.sort();
+    } catch { this.db = null; }                       // (private mode, blocked: this session only)
+    this.changed();
+  },
+  saveMap() { try { localStorage.setItem(SLOTS_KEY, JSON.stringify(this.map)); } catch {} },
+  store(f) {
+    try { if (this.db) this.db.transaction("files", "readwrite").objectStore("files").put({ name: f.name, bytes: f.bytes }); } catch {}
+  },
+  unstore(name) { try { if (this.db) this.db.transaction("files", "readwrite").objectStore("files").delete(name); } catch {} },
+  find(name) { return this.files.find((f) => f.name === name) || null; },
+  sort() { this.files.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base", numeric: true })); },
+  async decode(f) {
+    if (f.buf) return f.buf;
+    const ctx = new OfflineAudioContext(1, 1, 44100);   // (decoded at the context's rate: 44.1 kHz, JIANT's)
+    f.buf = await ctx.decodeAudioData(f.bytes.slice(0));
+    return f.buf;
+  },
+  // files the user gave (File objects): each decoded first (not audio: left out); the name kept, a newer one replaces
+  async add(list) {
+    const added = [], bad = [];
+    for (const file of list) {
+      try {
+        const f = { name: file.name, bytes: await file.arrayBuffer() };
+        await this.decode(f);
+        const old = this.files.findIndex((g) => g.name === f.name);
+        if (old >= 0) this.files.splice(old, 1);
+        this.files.push(f); this.store(f); added.push(f.name);
+      } catch { bad.push(file.name); }
+    }
+    this.sort(); this.changed();
+    return { added, bad };
+  },
+  put(name, bytes) {                                   // (a slot written back: slotNN.wav)
+    const f = { name, bytes }, old = this.files.findIndex((g) => g.name === name);
+    if (old >= 0) this.files.splice(old, 1);
+    this.files.push(f); this.store(f); this.sort(); this.changed();
+    return f;
+  },
+  remove(name) {
+    this.files = this.files.filter((f) => f.name !== name); this.unstore(name);
+    for (const k of Object.keys(this.map)) if (this.map[k] === name) delete this.map[k];
+    this.saveMap(); this.changed();
+  },
+};
+const sampleName = (file) => file.replace(/\.[^.]+$/, "").slice(0, 31);
+// int16 planes -> a 16-bit PCM WAV at 44.1 kHz
+function wav16(l, r) {
+  const ch = r ? 2 : 1, n = l.length, b = new DataView(new ArrayBuffer(44 + n * ch * 2));
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) b.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); b.setUint32(4, 36 + n * ch * 2, true); str(8, "WAVEfmt "); b.setUint32(16, 16, true);
+  b.setUint16(20, 1, true); b.setUint16(22, ch, true); b.setUint32(24, 44100, true); b.setUint32(28, 44100 * ch * 2, true);
+  b.setUint16(32, ch * 2, true); b.setUint16(34, 16, true); str(36, "data"); b.setUint32(40, n * ch * 2, true);
+  for (let i = 0, o = 44; i < n; i++) { b.setInt16(o, l[i], true); o += 2; if (r) { b.setInt16(o, r[i], true); o += 2; } }
+  return b.buffer;
+}
+function download(name, bytes) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+  a.download = name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const slotFile = (k) => "slot" + String(k + 1).padStart(2, "0") + ".wav";
+
+// the SAMPLE BROWSER (ports/mpc-sample/src/jiant/sample_browser.h): SAMPLE opens it over the screen; pads pick the slot,
+// the wheel the file, above the screen CLOSE / AUDITION / LOAD, ERASE clears, SAMPLE SELECT the source, SAMPLE REC
+// records. The recording's sources here: RESAMPLE (JIANT's own output), LINE and MIC (this computer's input, asked for
+// on the click that picks them)
+const SOURCES = ["RESAMPLE", "LINE", "MIC"];
+function sampleBrowser(redraw) {
+  const B = {
+    open: false, slot: 0, file: 0, source: 0, slots: Array.from({ length: 16 }, () => ({ frames: 0, ch: 0, name: "", gen: 0, changed: false })),
+    rec: { st: 0, slot: 0, frames: 0 }, status: "", audition: null, input: null, inputKind: "", seen: {}, timer: 0,
+    setStatus(s) { this.status = s; redraw(); clearTimeout(this.statusT); if (s) this.statusT = setTimeout(() => { this.status = ""; redraw(); }, 4000); },
+    fileName() { return lib.files[this.file]?.name || ""; },
+    clamp() { this.file = Math.max(0, Math.min(this.file, lib.files.length - 1)); },
+    toggle() { this.open = !this.open; if (!this.open) this.stopAudition(); redraw(); return this.open; },
+    pick(p) { this.slot = p; redraw(); },
+    scroll(n) { if (!lib.files.length) return; this.file += n; this.clamp(); redraw(); },
+    stopAudition() { if (this.audition) { try { this.audition.stop(); } catch {} this.audition = null; redraw(); } },
+    async auditionFile() {
+      if (this.audition) { this.stopAudition(); return; }
+      const f = lib.files[this.file];
+      if (!f || !emu.ac) return;
+      try {
+        const buf = await lib.decode(f), src = emu.ac.createBufferSource(), g = emu.ac.createGain();
+        g.gain.value = 0.75; src.buffer = buf; src.connect(g).connect(emu.ac.destination);
+        src.onended = () => { if (this.audition === src) { this.audition = null; redraw(); } };
+        src.start(); this.audition = src; redraw();
+      } catch { this.setStatus("CANNOT PLAY " + f.name); }
+    },
+    // a file into a slot: decoded at 44.1 kHz, its first 60 s, handed to the device (worklet.js slotLoad)
+    async load(slot, name) {
+      const f = lib.find(name);
+      if (!f || !emu.node) return 1;
+      let buf;
+      try { buf = await lib.decode(f); } catch { this.setStatus("NOT AUDIO: " + name); return 2; }
+      const n = Math.min(buf.length, MAX_SECONDS * 44100);
+      const l = buf.getChannelData(0).slice(0, n), r = buf.numberOfChannels > 1 ? buf.getChannelData(1).slice(0, n) : null;
+      const reply = await emu.ask({ type: "slot-load", slot, name: sampleName(name), l, r, rate: buf.sampleRate }, r ? [l.buffer, r.buffer] : [l.buffer]);
+      if (!reply || reply.rc) { this.setStatus(reply ? "NO MEMORY FOR " + name : ""); return 3; }
+      lib.map[slot] = name; lib.saveMap(); this.seen[slot] = null;
+      return 0;
+    },
+    async loadFile() {
+      const name = this.fileName();
+      if (name && !(await this.load(this.slot, name))) this.setStatus("LOADED INTO SLOT " + (this.slot + 1));
+    },
+    clear() {
+      emu.send({ type: "slot-clear", slot: this.slot });
+      delete lib.map[this.slot]; lib.saveMap(); this.setStatus("SLOT " + (this.slot + 1) + " CLEARED");
+    },
+    async nextSource() {
+      this.source = (this.source + 1) % SOURCES.length;
+      redraw();
+      if (SOURCES[this.source] !== "RESAMPLE") await this.useInput(SOURCES[this.source]);
+    },
+    // this computer's input into the device's (getUserMedia, asked for on the click): LINE untouched, MIC as the
+    // browser cleans it. Refused: the source stays, a recording from it says so
+    async useInput(kind) {
+      if (this.input && this.inputKind === kind) return true;
+      this.dropInput();
+      if (!navigator.mediaDevices?.getUserMedia || !emu.ac) { this.setStatus("NO AUDIO INPUT HERE"); return false; }
+      try {
+        const raw = kind === "LINE";
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: !raw, noiseSuppression: !raw, autoGainControl: !raw, channelCount: 2 } });
+        if (!emu.ac || !emu.node) { stream.getTracks().forEach((t) => t.stop()); return false; }
+        const src = emu.ac.createMediaStreamSource(stream);
+        src.connect(emu.node);
+        this.input = { stream, src }; this.inputKind = kind; this.setStatus(kind + " IN: " + (stream.getAudioTracks()[0]?.label || "on").slice(0, 28));
+        return true;
+      } catch (err) {
+        this.setStatus(kind + ": NO ACCESS (" + (err?.name || "denied") + ")");
+        return false;
+      }
+    },
+    dropInput() {
+      if (!this.input) return;
+      try { this.input.src.disconnect(); } catch {}
+      this.input.stream.getTracks().forEach((t) => t.stop());
+      this.input = null; this.inputKind = "";
+    },
+    async record() {
+      if (this.rec.st) { emu.send({ type: "rec-stop" }); return; }
+      const kind = SOURCES[this.source];
+      if (kind !== "RESAMPLE" && !(await this.useInput(kind))) return;
+      const reply = await emu.ask({ type: "rec-start", slot: this.slot, source: kind === "RESAMPLE" ? 1 : 0, bars: 0 });
+      if (reply && reply.rc) this.setStatus(reply.rc === 2 ? "NO ROOM TO RECORD YET" : "CANNOT RECORD");
+    },
+    // the worklet's news: the slots, the recorder
+    update(m) {
+      if (m.slots) this.slots = m.slots;
+      if (m.rec) this.rec = m.rec;
+      redraw();
+    },
+    // every half second: the slots JIANT changed (a recording, DESTROY) written back when they rest a second
+    async service() {
+      emu.send({ type: "service" });
+      const now = performance.now();
+      for (let k = 0; k < 16; k++) {
+        const s = this.slots[k];
+        if (!s.changed || (this.rec.st === 2 && this.rec.slot === k)) continue;
+        const seen = this.seen[k];
+        if (!seen || seen.gen !== s.gen) { this.seen[k] = { gen: s.gen, at: now }; continue; }
+        if (now - seen.at < 1000 || seen.busy) continue;
+        seen.busy = true;
+        const reply = await emu.ask({ type: "slot-read", slot: k });
+        const pcm = reply?.pcm;
+        if (!pcm) { seen.busy = false; continue; }
+        const name = slotFile(k);
+        lib.put(name, wav16(pcm.l, pcm.r));
+        lib.map[k] = name; lib.saveMap();
+        emu.send({ type: "slot-saved", slot: k, gen: pcm.gen });
+        this.seen[k] = null;
+      }
+    },
+    async downloadSlot(k) {
+      const reply = await emu.ask({ type: "slot-read", slot: k });
+      if (reply?.pcm) download(slotFile(k).replace(".wav", "-" + (reply.pcm.name || "sample").replace(/[^\w.-]+/g, "_") + ".wav"), wav16(reply.pcm.l, reply.pcm.r));
+    },
+    // at power on: the slots the map names, loaded again
+    async restore() {
+      for (const [k, name] of Object.entries(lib.map)) if (lib.find(name)) await this.load(+k, name);
+    },
+    stop() { this.stopAudition(); this.dropInput(); clearInterval(this.timer); clearTimeout(this.statusT); },
+  };
+  return B;
+}
+
+// the browser over JIANT's screen, as the MPC app paints it (jiant_app.cpp paint_browser)
+function paintBrowser(ctx, B) {
+  const orange = "#ff7a00", grey = "#8a8a8a", white = "#e8e8e8";
+  const text = (s, x, y, w, size, ink, align = "left") => {
+    ctx.fillStyle = ink; ctx.font = `${size}px ${DOT}`; ctx.textAlign = align; ctx.textBaseline = "top";
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y - 1, w, size + 5); ctx.clip();
+    ctx.fillText(s, align === "left" ? x : align === "right" ? x + w : x + w / 2, y); ctx.restore();
+  };
+  const slot = B.slots[B.slot] || { frames: 0 };
+  ctx.fillStyle = "#101010"; ctx.fillRect(40, 0, 240, 240);
+  text("SAMPLES", 48, 5, 120, 13, orange);
+  text("SLOT " + (B.slot + 1), 190, 5, 84, 13, white, "right");
+  text(slot.frames ? `${slot.name}  ${(slot.frames / 44100).toFixed(1)} s  ${slot.ch > 1 ? "ST" : "MONO"}${slot.changed ? "  *" : ""}` : "EMPTY",
+       48, 23, 226, 11, slot.frames ? white : grey);
+  ctx.fillStyle = grey; ctx.fillRect(48, 40, 226, 1);
+  if (!lib.files.length) {
+    text("no samples yet:", 48, 84, 226, 11, grey);
+    text("ADD SAMPLES below the MPC,", 48, 100, 226, 11, grey);
+    text("or drop WAVs on the page", 48, 116, 226, 11, grey);
+  }
+  const first = B.file > 4 ? B.file - 4 : 0;
+  for (let i = first; i < lib.files.length && i < first + 9; i++) {
+    const y = 46 + (i - first) * 16;
+    if (i === B.file) { ctx.fillStyle = "rgba(255,122,0,.25)"; ctx.fillRect(46, y, 230, 16); }
+    const inSlot = Object.entries(lib.map).filter(([, n]) => n === lib.files[i].name).map(([k]) => +k + 1);
+    text(lib.files[i].name, 50, y + 2, inSlot.length ? 190 : 222, 11, i === B.file ? orange : white);
+    if (inSlot.length) text(inSlot.join(","), 240, y + 2, 32, 9, grey, "right");
+  }
+  ctx.fillStyle = grey; ctx.fillRect(48, 194, 226, 1);
+  const rec = B.rec.st;
+  text("REC " + SOURCES[B.source], 48, 199, 120, 11, rec ? orange : grey);
+  if (rec) text(rec === 2 ? `RECORDING ${(B.rec.frames / 44100).toFixed(1)} s` : "ARMED", 150, 199, 124, 11, orange, "right");
+  else if (B.status) text(B.status, 120, 199, 154, 9, white, "right");
+  text("CLOSE", 48, 222, 70, 11, white);
+  text(B.audition ? "STOP" : "PLAY", 125, 222, 70, 11, white, "center");
+  text("LOAD", 204, 222, 70, 11, white, "right");
+}
+
+// The MPC Sample: the app in ports/mpc-sample, its controls as panel_map.h maps them; the screen 320 x 240 with
+// JIANT's 240 x 240 in the middle. The firmware is the big CPUs' (felucca_hp.wasm: FELUCCA_HOST_POWER, as the app's).
+// The drawing places every control where it is on the unit (portrait: VOLUME, the screen, the meter and the speaker
+// in the dark band; MODE and SHIFT, the fader, ERASE on the left; three knobs over the 4 x 4 pads; PAD PLAY, the wheel
+// and the transport on the right; the palm rest), in plain shapes and a plain name: not the maker's artwork. Printed
+// under each control in orange: what it is in JIANT
+const MPC_INK = DIM, MPC_JIANT = ORG;
+function buildMPC(stage) {
+  const W = 990, H = 1194;
+  const dev = document.createElement("div");
+  dev.className = "device mpc";
+  dev.style.setProperty("--start-r", "1.6% / 1.4%");
+  stage.appendChild(dev);
+  svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("role", "group");
+  svg.setAttribute("aria-label", "MPC Sample (a drawing)");
+  dev.appendChild(svg);
+  jiantDefs(defs());
+  // the body, the screen's band (the heat along its foot)
+  jiantBody(W, H, 16);
+  el("rect", { x: 15, y: 27, width: 960, height: 306, rx: 8, fill: "#040307", stroke: "rgba(184,112,255,.3)", "stroke-width": 1.5 });
+  el("rect", { x: 40, y: 331, width: 910, height: 2, fill: "url(#j-heat)", opacity: .7 });
+  label(svg, 861, 82, "MPC SAMPLE", 15, MICH, "#6e6884").setAttribute("letter-spacing", ".1em");
+  label(svg, 861, 100, "running JIANT FM", 10, MONO, DIM);
+  // the meter (two columns of five, as heat) and the speaker: drawn, not wired
+  [688, 714].forEach((x) => [0, 1, 2, 3, 4].forEach((r) =>
+    el("rect", { x, y: 128 + r * 38, width: 16, height: 26, rx: 2, fill: heatAt(.85 - r * .18), opacity: .32 })));
+  el("rect", { x: 766, y: 112, width: 190, height: 196, rx: 6, fill: "#07060b", stroke: "rgba(239,230,200,.14)" });
+  el("rect", { x: 774, y: 120, width: 174, height: 180, rx: 4, fill: "url(#j-grille)" });
+  brackets(svg, 770, 116, 182, 188, 14, VIO, 1.5);
+  // the screen
+  const S = [369, 125, 262, 196.5];
+  el("rect", { x: S[0] - 8, y: S[1] - 8, width: S[2] + 16, height: S[3] + 16, rx: 4, fill: "#000", stroke: "rgba(184,112,255,.35)", "stroke-width": 1.5 });
+  brackets(svg, S[0] - 15, S[1] - 15, S[2] + 30, S[3] + 30, 16, VIO, 2);
+  const canvas = document.createElement("canvas");
+  canvas.width = 320; canvas.height = 240;
+  Object.assign(canvas.style, { left: `${S[0] / W * 100}%`, top: `${S[1] / H * 100}%`, width: `${S[2] / W * 100}%` });
+  dev.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  // the pad bank's letter and the power light, left of the screen
+  label(svg, 244, 160, "PAD BANK", 10, MONO, DIM).setAttribute("letter-spacing", ".12em");
+  const bankLetter = label(svg, 244, 228, "A", 50, MICH, ORG);
+  bankLetter.setAttribute("filter", "url(#j-glow)");
+  el("rect", { x: 232, y: 284, width: 24, height: 8, rx: 2, class: "led-pwr" });
+  // printed captions on the body: a name between two rules
+  const caption = (x1, x2, y, s) => {
+    const t = label(svg, (x1 + x2) / 2, y + 4, s, 11, MONO, MPC_INK);
+    t.setAttribute("letter-spacing", ".14em");
+    const w = s.length * 9 + 18;
+    el("line", { x1, x2: (x1 + x2 - w) / 2, y1: y, y2: y, stroke: MPC_INK, "stroke-opacity": .5, "stroke-width": 1 });
+    el("line", { x1: (x1 + x2 + w) / 2, x2, y1: y, y2: y, stroke: MPC_INK, "stroke-opacity": .5, "stroke-width": 1 });
+    return t;
+  };
+  const rule = (x1, x2, y) => el("line", { x1, x2, y1: y, y2: y, stroke: MPC_INK, "stroke-opacity": .3, "stroke-width": 1 });
+  caption(45, 225, 354, "MODE"); rule(45, 225, 514);
+  caption(780, 960, 354, "PAD PLAY"); rule(780, 960, 514);
+
+  let shift = false, win = 0;
+  const pos = { K1: 64, K2: 64, K3: 64, F: 0 };
+  const btns = [];
+  let drawQueued = false;
+  const redraw = () => {
+    if (drawQueued) return;
+    drawQueued = true;
+    requestAnimationFrame(() => { drawQueued = false; side(); });
+  };
+  const browser = sampleBrowser(redraw);
+  // the browser's buttons (by the name printed on them) while it is open; SAMPLE opens and closes it
+  const browserButton = (name) => {
+    if (name === "SAMPLE") {
+      if (browser.toggle()) for (const id of [...emu.key.keys()]) if (id.startsWith("pad")) emu.keyUp(id);
+      return true;
+    }
+    if (!browser.open) return false;
+    if (name === "◀ HOME") browser.toggle();
+    else if (name === "EDIT") browser.auditionFile();
+    else if (name === "GLO") browser.loadFile();
+    else if (name === "ERASE") browser.clear();
+    else if (name === "SAMPLE\nSELECT") browser.nextSource();
+    else if (name === "SAMPLE\nREC") browser.record();
+    return true;                                       // (every other button is the browser's while it is open)
+  };
+  // a button: its edge by family (tone), a light strip (the transport), the name printed on it, what it is in
+  // JIANT printed under it (over it: the keys above the screen)
+  const mpcButton = (x, y, w, h, name, role, opts = {}) => {
+    const own = !(role in B) && role !== "stop";
+    const g = control(`mb t-${opts.tone || "dark"}${opts.strip ? " s-" + opts.strip : ""}${own ? " port" : ""}`, name);
+    el("rect", { x, y, width: w, height: h, rx: 5, class: "face" }, g);
+    if (opts.strip) el("rect", { x: x + 10, y: y + h - 11, width: w - 20, height: 4, rx: 2, class: "strip" }, g);
+    const text = opts.text ?? name, ls = text ? text.split("\n") : [], size = (opts.size || 13) - 1;
+    const mid = y + (opts.strip ? (h - 10) / 2 : h / 2) + size * 0.36;
+    ls.forEach((s, i) => label(g, x + w / 2, mid + (i - (ls.length - 1) / 2) * (size + 1), s, size, MONO).classList.add("kt"));
+    if (opts.sub) label(g, x + w / 2, opts.over ? y - 9 : y + h + 17, opts.sub, 13, DOT, ORG);
+    btns.push({ g, role, name });
+    holdable(g, (id) => {
+      if (browserButton(name)) return;
+      if (role === "shift") { shift = true; g.classList.add("on"); return; }
+      if (role === "bank") { win = (win + (shift ? 3 : 1)) % 4; side(); return; }
+      if (role === "stop") { if (emu.playing()) emu.press("stop" + id, B.PLAY); return; }
+      if (role in B) emu.press(name + id, B[role]);
+    }, (id) => {
+      if (role === "shift") { shift = false; g.classList.remove("on"); return; }
+      emu.unpress(name + id); emu.unpress("stop" + id);
+    });
+    return g;
+  };
+  // above the screen: HOME, EDIT, GLO (the soft keys, unprinted on the unit; in the browser CLOSE, PLAY, LOAD)
+  [["◀ HOME", "HOME"], ["EDIT", "EDIT"], ["GLO", "GLO"]].forEach(([n, r], i) =>
+    mpcButton(380 + i * 88, 62, 64, 30, n, r, { text: "", sub: n === "◀ HOME" ? "HOME" : n, over: true }));
+  // the left column: MODE (SAMPLE, SEQ, PAD FX, KNOB FX), SHIFT and PAD BANK, then ERASE and NOTE REPEAT under the fader
+  const L = 45, L2 = 144, R = 780, R2 = 879, BW = 81;
+  mpcButton(L, 374, BW, 42, "SAMPLE", "sample", { sub: "SAMPLES" });
+  mpcButton(L2, 374, BW, 42, "SEQ", "SEQ", { sub: "SEQ" });
+  mpcButton(L, 446, BW, 42, "PAD FX", "FX", { tone: "orange", text: "PAD\nFX", size: 12, sub: "FX" });
+  mpcButton(L2, 446, BW, 42, "KNOB FX", "LFO", { tone: "orange", text: "KNOB\nFX", size: 12, sub: "LFO" });
+  mpcButton(L, 530, BW, 62, "SHIFT", "shift", { size: 12 });
+  mpcButton(L2, 530, BW, 42, "PAD BANK", "bank", { tone: "grey", text: "PAD\nBANK", size: 12, sub: "A-D" });
+  mpcButton(L, 946, BW, 42, "ERASE", "erase", { tone: "grey", size: 12 });
+  mpcButton(L2, 946, BW, 42, "NOTE\nREPEAT", "none", { tone: "grey", size: 11 });
+  // the right column: PAD PLAY (CHOP, MUTE, LOOP, 16 LEVELS), SAMPLE SELECT and TAP TEMPO, the wheel, - +, the transport
+  mpcButton(R, 374, BW, 42, "CHOP", "ENV", { tone: "blue", size: 12, sub: "ENV" });
+  mpcButton(R2, 374, BW, 42, "MUTE", "none", { tone: "blue", size: 12 });
+  mpcButton(R, 446, BW, 42, "LOOP", "ARP", { tone: "blue", size: 12, sub: "ARP" });
+  mpcButton(R2, 446, BW, 42, "16 LEVELS", "SCL", { tone: "blue", text: "16\nLEVELS", size: 11, sub: "SCL" });
+  mpcButton(R, 530, BW, 42, "SAMPLE\nSELECT", "SAVE", { size: 11, sub: "SAVE" });
+  mpcButton(R2, 530, BW, 42, "TAP\nTEMPO", "none", { size: 11 });
+  mpcButton(R, 782, BW, 36, "−", "OCT-", { size: 22, sub: "OCT-" });
+  mpcButton(R2, 782, BW, 36, "+", "OCT+", { size: 22, sub: "OCT+" });
+  mpcButton(R, 852, BW, 50, "SAMPLE\nREC", "REC", { strip: "red", size: 10.5, sub: "REC" });
+  mpcButton(R2, 852, BW, 50, "SEQ REC", "REC", { strip: "red", text: "SEQ\nREC", size: 10.5, sub: "REC" });
+  mpcButton(R, 930, BW, 50, "STOP", "stop", { strip: "white", text: "■", size: 16, sub: "STOP" });
+  mpcButton(R2, 930, BW, 50, "PLAY", "PLAY", { strip: "green", text: "▶", size: 16, sub: "PLAY" });
+  // the microphone's mark over the wheel (the unit's built-in mic): a thin line, drawn only
+  const mic = el("g", { stroke: MPC_INK, "stroke-width": 1.6, fill: "none", "stroke-linecap": "round" });
+  el("rect", { x: 933, y: 598, width: 12, height: 22, rx: 6 }, mic);
+  el("path", { d: "M927 612 a12 12 0 0 0 24 0 M939 624 v8 M932 632 h14" }, mic);
+  // knobs K1..K3 (pots: their positions as heat on their rings) and VOLUME
+  const knobAt = (x, y, r, name, sub, subY) => {
+    const g = control("knob", name);
+    const set = ringKnob(g, x, y, r, { gap: 10, w: 5, pw: 3 });
+    if (sub) label(g, x, subY, sub, 13, DOT, ORG);
+    return { g, set };
+  };
+  const pot = (x, name, sub, onMove) => {
+    const k = knobAt(x, 432, 30, name, sub, 500);
+    k.set(pos[name] / 127);
+    positional(k.g, () => pos[name], (v) => { const dd = v - pos[name]; pos[name] = v; k.set(v / 127); onMove(dd, v); }, 160);
+  };
+  pot(312, "K1", "KNOB 1", (dd) => emu.enc(shift ? EN.ALGORITHM : EN.K1, dd));
+  pot(495, "K2", "KNOB 2", (dd) => emu.enc(EN.K2, dd));
+  pot(678, "K3", "KNOB 3", (dd) => emu.enc(EN.K3, dd));
+  pos.VOL = 88;
+  const vol = knobAt(126, 180, 40, "VOL", "", 0);
+  label(svg, 126, 268, "VOLUME", 11, MONO, DIM).setAttribute("letter-spacing", ".14em");
+  label(svg, 126, 292, "MASTER", 13, DOT, ORG);
+  vol.set(pos.VOL / 127);
+  positional(vol.g, () => pos.VOL, (v) => { pos.VOL = v; vol.set(v / 127); emu.master(v * 1023 / 127); }, 160);
+  // the wheel (DATA): a dark dial, a ring of points, the lit one where it turned to (cyan: SELECT)
+  const wg = control("knob", "WHEEL"), WX = 852, WY = 676, WR = 60;
+  el("circle", { cx: WX, cy: WY, r: WR + 8, fill: "transparent" }, wg);
+  el("circle", { cx: WX, cy: WY, r: WR, fill: "#0e0d15", stroke: "rgba(239,230,200,.22)", "stroke-width": 1.5, class: "face" }, wg);
+  el("circle", { cx: WX, cy: WY, r: WR - 22, fill: "none", stroke: "rgba(63,224,230,.18)", "stroke-width": 1 }, wg);
+  creature(wg, WX, WY + 2, 13, CYAN, 1.7, "b");
+  const wdots = [];
+  for (let i = 0; i < 32; i++) {
+    const a = i / 32 * Math.PI * 2 - Math.PI / 2;
+    wdots.push(el("circle", { cx: WX + Math.cos(a) * (WR - 10), cy: WY + Math.sin(a) * (WR - 10), r: 1.6, fill: "rgba(239,230,200,.2)" }, wg));
+  }
+  label(wg, WX, WY + WR + 24, "SELECT", 13, DOT, ORG);
+  let wa = 0;
+  const wset = () => {
+    const at = ((Math.round(wa / 11.25) % 32) + 32) % 32;
+    wdots.forEach((dt, i) => {
+      const k = (at - i + 32) % 32, on = k < 3;
+      dt.setAttribute("fill", on ? CYAN : "rgba(239,230,200,.2)");
+      dt.setAttribute("opacity", k === 0 ? 1 : k === 1 ? .5 : k === 2 ? .22 : 1);
+      dt.setAttribute("r", k === 0 ? 4 : 1.6);
+      if (k === 0) dt.setAttribute("filter", "url(#j-glow)"); else dt.removeAttribute("filter");
+    });
+  };
+  wset();
+  turnable(wg, (n) => {
+    if (browser.open) browser.scroll(-n);              // (the browser: the files, clockwise down the list)
+    else emu.enc(shift ? EN.PRESETS : EN.SELECT, n);
+    wa += n * 11.25; wset();
+  }, 10);
+  // the fader (KNOB 4): a thin track, its level as heat up to the cap, the light beside it
+  const fg = control("fader", "FADER"), FX = 98, FY = 626, FW = 66, FH = 262, FT = 196;
+  el("rect", { x: FX, y: FY, width: FW, height: FH, rx: 5, fill: "#07060b", stroke: "rgba(239,230,200,.16)", "stroke-width": 1.5 }, fg);
+  for (let t = 0; t <= 10; t++) el("line", { x1: FX + 8, x2: FX + (t % 5 ? 14 : 18), y1: FY + 18 + t * FT / 10 + 4, y2: FY + 18 + t * FT / 10 + 4, stroke: "#efe6c8", "stroke-opacity": t % 5 ? .2 : .45 }, fg);
+  el("rect", { x: FX + FW / 2 - 2, y: FY + 18, width: 4, height: FH - 36, rx: 2, fill: "#1c1a25" }, fg);
+  const flvl = el("rect", { x: FX + FW / 2 - 2, width: 4, rx: 2, fill: "url(#j-heatv)", filter: "url(#j-glow)" }, fg);
+  const fcap = el("g", {}, fg);
+  el("rect", { x: FX + 6, y: 0, width: FW - 12, height: 34, rx: 4, fill: "#15141d", stroke: "rgba(239,230,200,.45)", "stroke-width": 1.2, class: "face" }, fcap);
+  el("rect", { x: FX + 14, y: 16, width: FW - 28, height: 2, fill: ORG }, fcap);
+  el("rect", { x: 182, y: 753, width: 20, height: 8, rx: 2, class: "led-fader" });
+  label(fg, FX + FW / 2, FY + FH + 22, "KNOB 4", 13, DOT, ORG);
+  const place = (v) => {
+    const cy = FY + 18 + (1 - v / 127) * FT;
+    fcap.setAttribute("transform", `translate(0 ${cy})`);
+    flvl.setAttribute("y", cy + 17); flvl.setAttribute("height", Math.max(0, FY + FH - 18 - cy - 17));
+  };
+  place(pos.F);
+  positional(fg, () => pos.F, (v) => { const dd = v - pos.F; pos.F = v; place(v); emu.enc(EN.K4, dd); }, 160);
+  // the pads: 1 bottom left, 16 top right (in the browser: the slots), in their tray, the violet light around them
+  el("rect", { x: 240, y: 502, width: 510, height: 510, rx: 6, fill: "#050409", stroke: "rgba(184,112,255,.3)", "stroke-width": 1.5 });
+  el("rect", { x: 244, y: 506, width: 502, height: 502, rx: 5, fill: "none", stroke: "#8459ff", "stroke-width": 2, class: "pad-glow", filter: "url(#j-halo)" });
+  const pads = [];
+  for (let p = 0; p < 16; p++) {
+    const c = p % 4, r = 3 - Math.floor(p / 4), x = 257 + c * 121, y = 519 + r * 121, s = 108;
+    const g = control("pad", "Pad " + (p + 1));
+    padShape(g, x, y, s, p + 1);
+    pads.push(g);
+    holdable(g, (id) => { if (browser.open) browser.pick(p); else emu.keyDown("pad" + p + id, WINDOWS[win] + p); },
+             (id) => emu.keyUp("pad" + p + id));
+  }
+  // the palm rest: JIANT's, a creature on it
+  el("rect", { x: 30, y: 1028, width: 930, height: 140, rx: 8, fill: "#050409", stroke: "rgba(239,230,200,.12)", "stroke-width": 1.5 });
+  el("rect", { x: 30, y: 1028, width: 930, height: 140, rx: 8, fill: "url(#j-dots)" });
+  wordmark(svg, 66, 1108, 22, "start");
+  label(svg, 66, 1134, "BIO-SYNTHETIC OPERATING SYSTEM", 10, MONO, DIM).setAttribute("text-anchor", "start");
+  creature(svg, 800, 1098, 34, ORG, 0.6);
+  creature(svg, 880, 1092, 22, VIO, 2.9, "b");
+  creature(svg, 724, 1104, 16, CYAN, 4.2, "b");
+  // the screen, larger, beside the panel (the MPC's own is small, as on the unit)
+  const fig = document.createElement("figure");
+  fig.className = "mirror brk";
+  fig.innerHTML = '<canvas width="320" height="240" role="img" aria-label="The MPC\'s screen, larger"></canvas><figcaption class="cap"><span><b>The screen</b> · ×2</span><span>JIANT in the middle, the pad bank left</span></figcaption>';
+  document.getElementById("side").prepend(fig);
+  const mctx = fig.querySelector("canvas").getContext("2d");
+  let mirrorRaf = 0;
+  const mirror = () => { mctx.drawImage(canvas, 0, 0); mirrorRaf = requestAnimationFrame(mirror); };
+  mirror();
+  // the MPC's screen as the app draws it: JIANT's frame in the middle (or the SAMPLE BROWSER over it), the pad bank on
+  // the left
+  const side = () => {
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, 40, 240); ctx.fillRect(280, 0, 40, 240);
+    ctx.textAlign = "center"; ctx.textBaseline = "alphabetic"; ctx.fillStyle = "#8a8a8a"; ctx.font = "600 9px " + SANS;
+    ctx.fillText("PADS", 20, 16);
+    ctx.fillStyle = "#ff7a00"; ctx.font = "600 24px " + SANS; ctx.fillText("ABCD"[win], 20, 44);
+    ctx.fillStyle = "#8a8a8a"; ctx.font = "600 9px " + SANS;
+    ctx.fillText(fm1KeyName(WINDOWS[win]).replace("♯", "#"), 20, 66); ctx.fillText(fm1KeyName(WINDOWS[win] + 15).replace("♯", "#"), 20, 80);
+    if (shift) { ctx.fillStyle = "#ff7a00"; ctx.fillText("SHIFT", 20, 226); }
+    ctx.fillStyle = "#ff7a00"; ctx.fillText("JIANT", 300, 16);
+    if (browser.rec.st) { ctx.fillStyle = "#ff453a"; ctx.fillText(browser.rec.st === 2 ? "● REC" : "ARMED", 300, 226); }
+    bankLetter.textContent = "ABCD"[win];
+    dev.classList.toggle("on", !!emu.node);
+    if (browser.open) paintBrowser(ctx, browser);
+    else if (emu.fb) blitScreen(ctx, emu.fb, 40, 0);
+    frame(null, emu.leds);
+  };
+  function frame(fb, leds) {
+    if (fb && !browser.open) blitScreen(ctx, fb, 40, 0);
+    if (!leds) return;
+    const [litB, litK, dimB] = leds;
+    for (const b of btns) {
+      if (browser.open) {                              // (the browser's buttons lit, the others dark)
+        const mine = ["SAMPLE", "◀ HOME", "EDIT", "GLO", "ERASE", "SAMPLE\nSELECT", "SAMPLE\nREC"].includes(b.name);
+        b.g.classList.toggle("lit", b.name === "SAMPLE" || (b.name === "SAMPLE\nREC" && !!browser.rec.st) || (b.name === "EDIT" && !!browser.audition));
+        b.g.classList.toggle("green", false);
+        b.g.classList.toggle("dim", mine && b.name !== "SAMPLE");
+        continue;
+      }
+      if (b.role === "sample" || b.role === "erase") { b.g.classList.remove("lit", "dim"); continue; }
+      if (b.role === "stop") { b.g.classList.toggle("lit", emu.playing()); continue; }
+      if (!(b.role in B)) continue;
+      const bit = 1 << B[b.role], green = b.role === "PLAY" && (litB & (1 << PLAY_GREEN));
+      b.g.classList.toggle("lit", !!(litB & bit) && !green);
+      b.g.classList.toggle("green", !!green);
+      b.g.classList.toggle("dim", !!(dimB & bit));
+    }
+    // the pads: violet when their key is lit (the browser: orange the slot picked, violet those that hold a sample);
+    // a pad held is orange (CSS)
+    if (browser.open)
+      pads.forEach((g, p) => padLit(g, p === browser.slot ? "#ff7a1a" : browser.slots[p]?.frames ? "#6a52c8" : ""));
+    else pads.forEach((g, p) => padLit(g, litK & (1 << (WINDOWS[win] + p)) ? "#9d84ff" : ""));
+  }
+  side();
+  const shiftWatch = setInterval(side, 250);          // (SHIFT on the screen)
+  const panel = samplesPanel(browser);
+  return {
+    dev, frame, browser,
+    start: { wasm: "felucca_hp.wasm", input: true, onMessage: (m) => { if (m.slots || m.rec) browser.update(m); } },
+    async started() {
+      if (!emu.hostPower) { browser.setStatus("NOT THE BIG-CPU BUILD"); return; }
+      browser.timer = setInterval(() => browser.service(), 500);
+      await browser.restore();
+      redraw();
+    },
+    stop: () => { clearInterval(shiftWatch); cancelAnimationFrame(mirrorRaf); fig.remove(); browser.stop(); panel.stop(); },
+  };
+}
+
+// the samples under the MPC: add (a picker; or drop them on the page), the files (play, download, remove), the slots
+// (download what each holds: a recording, a destroyed sample), this computer's input for MIC / LINE
+function samplesPanel(B) {
+  const box = document.createElement("section");
+  box.className = "samples";
+  box.innerHTML = `
+    <div class="samples-head"><b>Samples</b>
+      <label class="add">Add samples<input type="file" accept="audio/*,.wav,.wave,.aif,.aiff,.flac,.mp3,.ogg,.m4a" multiple hidden></label>
+      <button type="button" class="mic">Use this computer's input (MIC / LINE)</button>
+      <span class="hint">or drop audio files onto the page. Kept in this browser; nothing is uploaded.</span></div>
+    <p class="msg" role="status"></p>
+    <div class="samples-cols"><div><h3>Files <small>(the browser's list)</small></h3><ol class="files"></ol></div>
+    <div><h3>Slots <small>(pads 1–16 in the browser)</small></h3><ol class="slots"></ol></div></div>`;
+  info.before(box);
+  const msg = box.querySelector(".msg"), filesEl = box.querySelector(".files"), slotsEl = box.querySelector(".slots");
+  const say = (s) => { msg.textContent = s; };
+  const add = async (list) => {
+    const audio = [...list].filter((f) => /^audio\//.test(f.type) || /\.(wav|wave|aiff?|flac|mp3|ogg|m4a|opus)$/i.test(f.name));
+    if (!audio.length) { say("No audio files there."); return; }
+    say("Reading " + audio.length + " file" + (audio.length > 1 ? "s" : "") + "…");
+    const { added, bad } = await lib.add(audio);
+    say((added.length ? "Added " + added.join(", ") + ". " : "") + (bad.length ? "Not audio this browser can read: " + bad.join(", ") + "." : "") +
+        (added.length ? " Open the browser with SAMPLE, pick a pad, scroll with the wheel, LOAD (the button over the screen's right)." : ""));
+  };
+  const input = box.querySelector("input[type=file]");
+  input.addEventListener("change", () => { add(input.files); input.value = ""; });
+  box.querySelector(".mic").addEventListener("click", async () => {
+    if (!emu.node) { say("Switch the MPC on first."); return; }
+    const kind = SOURCES[B.source] === "RESAMPLE" ? "LINE" : SOURCES[B.source];
+    if (await B.useInput(kind)) { B.source = SOURCES.indexOf(kind); say(kind + " in: SAMPLE REC in the browser records it."); }
+    else say("No access to the input: the browser or the system refused it. RESAMPLE (JIANT's own sound) still records.");
+  });
+  const btn = (label, title, fn) => { const b = document.createElement("button"); b.type = "button"; b.textContent = label; b.title = title; b.addEventListener("click", fn); return b; };
+  const render = () => {
+    filesEl.innerHTML = "";
+    if (!lib.files.length) filesEl.innerHTML = '<li class="none">none yet</li>';
+    lib.files.forEach((f, i) => {
+      const li = document.createElement("li");
+      const name = document.createElement("span"); name.className = "name"; name.textContent = f.name;
+      if (B.open && i === B.file) li.className = "cur";
+      li.append(name, btn("▶", "Play it", () => { B.file = i; B.auditionFile(); }), btn("⤓", "Download", () => download(f.name, f.bytes)),
+                btn("✕", "Remove it from this browser", () => lib.remove(f.name)));
+      filesEl.appendChild(li);
+    });
+    slotsEl.innerHTML = "";
+    B.slots.forEach((s, k) => {
+      const li = document.createElement("li");
+      if (k === B.slot) li.className = "cur";
+      const name = document.createElement("span"); name.className = "name";
+      name.textContent = s.frames ? `${s.name} · ${(s.frames / 44100).toFixed(1)} s ${s.ch > 1 ? "stereo" : "mono"}${s.changed ? " · changed" : ""}` : "empty";
+      li.append(name);
+      if (s.frames) li.append(btn("⤓", "Download what this slot holds (a WAV)", () => B.downloadSlot(k)));
+      slotsEl.appendChild(li);
+    });
+  };
+  let last = "";
+  const watch = setInterval(() => {                    // (the slots and the browser's place, as they change)
+    const key = JSON.stringify([B.slots, B.slot, B.open, B.file, lib.files.map((f) => f.name)]);
+    if (key !== last) { last = key; render(); }
+  }, 300);
+  lib.listeners.add(render);
+  render();
+  // dropped on the page (while the MPC is the device shown)
+  const over = (e) => { if ([...(e.dataTransfer?.types || [])].includes("Files")) { e.preventDefault(); document.body.classList.add("dropping"); } };
+  const leave = () => document.body.classList.remove("dropping");
+  const drop = (e) => { if (!e.dataTransfer?.files?.length) return; e.preventDefault(); leave(); add(e.dataTransfer.files); };
+  addEventListener("dragover", over); addEventListener("dragleave", leave); addEventListener("drop", drop);
+  panelAdd = add;
+  return { stop() { clearInterval(watch); lib.listeners.delete(render); removeEventListener("dragover", over); removeEventListener("dragleave", leave); removeEventListener("drop", drop); box.remove(); panelAdd = null; } };
+}
+let panelAdd = null;                                   // (the tests: window.__mpc.add)
+const MPC_INFO = `
+<div class="map brk">
+  <p class="k">The MPC's controls in JIANT</p>
+  <div class="cols">
+  <p><b>Pads</b> 16 of the FM-1's keys: PAD BANK moves them (A F3–G♯4, B A3–C5, C C♯4–E5, D E4–G5; SHIFT back).</p>
+  <p><b>Above the screen</b> HOME, EDIT, GLO. <b>PAD FX</b> FX · <b>KNOB FX</b> LFO · <b>CHOP</b> ENV · <b>16 LEVELS</b> SCL ·
+     <b>LOOP</b> ARP · <b>SEQ</b> SEQ · <b>SAMPLE SELECT</b> SAVE.</p>
+  <p><b>PLAY</b> PLAY, <b>STOP</b> stops it, <b>SEQ REC</b> / <b>SAMPLE REC</b> REC, <b>− +</b> OCT − / OCT +.</p>
+  <p><b>Wheel</b> SELECT (SHIFT: PRESETS). <b>K1 K2 K3</b> and the <b>fader</b> KNOB 1–4 (SHIFT + K1: ALGORITHM).
+     <b>VOL</b> MASTER. Pushing the wheel goes back to the MPC's own app.</p>
+  <p><b>SAMPLE</b> opens the SAMPLE BROWSER over the screen (SAMPLE again, or the left button above the screen, closes it):
+     <b>pads</b> pick the slot (lit: it holds a sample), the <b>wheel</b> scrolls the files, above the screen
+     CLOSE · PLAY (the file; again: stop) · LOAD (the file into the slot), <b>ERASE</b> clears the slot,
+     <b>SAMPLE SELECT</b> the source (RESAMPLE: JIANT's own sound; LINE, MIC: this computer's input, when you allow it),
+     <b>SAMPLE REC</b> records into the slot (again: stop; 60 s at most). A slot JIANT changed (a recording, DESTROY) comes
+     back as <i>slotNN.wav</i> in the files.</p>
+  <p>Computer keyboard: <kbd>Z</kbd>–<kbd>'</kbd> <kbd>Q</kbd>–<kbd>O</kbd> keys, <kbd>↑</kbd> <kbd>↓</kbd> SELECT.</p>
+  </div>
+</div>
+<p class="note big"><b>The big-CPU build.</b> This panel runs JIANT as the MPC Sample app does (felucca_hp.wasm,
+FELUCCA_HOST_POWER): every track its own 8 voices, the <b>SAMPLE</b> and <b>GRAIN</b> engines, <b>DRUM-X</b>'s sample
+layer, 16 sample slots of up to 60 s and recording. The FM-1 has none of these: a project with SAMPLE or GRAIN tracks
+opens there with them as ANALOG, DRUM-X as its synthesized kit.</p>
+<p class="note">Preview: the MPC Sample app (ports/mpc-sample) is built and tested, not yet tried on an MPC.</p>`;
+
+// the FM-1: the emulator's own page, index.html (on the site, the shell of the edition web/EMULATOR_EDITION names,
+// written as emu/index.html by .github/workflows/emulator.yml)
+const FM1_INFO = `
+<p class="note">The FM-1 is the emulator's own page, as at <a href="index.html">the emulator</a>: its keys, buttons and
+encoders where they are on the FM-1, its computer-keyboard keys, and FM-1 ⇄ emulator to move your music.</p>`;
+
+// ------------------------------------------------------------------ each device's links
+// [label, href (null: not yet), what it is, kind (hot: the main one, here: this page, na: not yet)]. The installer and the
+// editor are the site's (.github/workflows/emulator.yml: webapp/installer, webapp/editor); the docs on GitHub
+const SITE = "https://juanjiant-bit.github.io/JIANT/", GH = "https://github.com/juanjiant-bit/JIANT/blob/main/";
+const RELEASES = "https://github.com/juanjiant-bit/JIANT/releases";
+const LINKS = {
+  fm1: [["Install", SITE + "webapp/installer/", "the web installer, two minutes", "hot"],
+        ["Emulator", "index.html", "the FM-1 alone"],
+        ["Editor", SITE + "webapp/editor/", "your sounds, in the browser"],
+        ["Manual", SITE + "manual/", "every page, every knob"]],
+  smk37: [["Install: not yet", GH + "docs/SMK37.md", "build from source", "na"],
+          ["Emulator", "#smk37", "this panel", "here"],
+          ["Editor", SITE + "webapp/editor/", "the FM-1's, the same sounds"],
+          ["Manual", GH + "docs/SMK37.md", "the SMK-37 build, its mapping"]],
+  mpc: [["Download", RELEASES, "the zip for the microSD card", "hot"],
+        ["How to install", GH + "ports/mpc-sample/README.md", "the card, the app, the samples"],
+        ["Emulator", "#mpc", "this panel", "here"],
+        ["Editor: coming", null, "for the MPC, later", "na"]],
+  plugins: [["Download", RELEASES, "MPC plugin · VST3 · LV2 · standalone", "hot"],
+            ["How it works", GH + "ports/README.md", "the ports, how to build them"]],
+};
+const ext = (h) => /^https?:/.test(h) ? ' target="_blank" rel="noopener"' : "";
+const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+// the card's row (short) and the panel's (with what each is)
+const linkRow = (dev) => LINKS[dev].map(([t, h, , k]) => h ? `<a href="${h}"${ext(h)}${k === "na" ? ' class="na"' : ""}>${esc(t)}</a>` : `<span class="na">${esc(t)}</span>`).join("");
+const linkButtons = (dev) => LINKS[dev].map(([t, h, what, k]) => {
+  const inner = `${esc(t)}<small>${esc(what)}</small>`, cls = k ? ` class="${k}"` : "";
+  return h ? `<a href="${h}"${ext(h)}${cls}${k === "here" ? ' aria-current="page"' : ""}>${inner}</a>` : `<span${cls}>${inner}</span>`;
+}).join("");
+for (const n of document.querySelectorAll("[data-links]"))
+  n.innerHTML = n.classList.contains("devlinks") ? linkButtons(n.dataset.links) : linkRow(n.dataset.links);
+
+// ------------------------------------------------------------------ the picker
+const stage = document.getElementById("stage"), info = document.getElementById("info");
+let current = null;
+function teardown() {
+  emu.stop();
+  if (current?.stop) current.stop();
+  stage.innerHTML = ""; info.innerHTML = ""; current = null; svg = null;
+}
+function overlay(dev, onFrame, opts, started) {
+  const start = document.createElement("div");
+  start.className = "start";
+  start.innerHTML = '<button type="button">Switch on</button><p hidden></p>';
+  dev.appendChild(start);
+  const go = start.querySelector("button"), msg = start.querySelector("p");
+  go.addEventListener("click", async () => {
+    go.disabled = true; go.textContent = "Starting…";
+    try {
+      await emu.start(onFrame, 700, opts);
+      start.hidden = true; dev.classList.add("on");
+      if (started) await started();
+    } catch (err) {
+      emu.stop();
+      go.disabled = false; go.textContent = "Switch on";
+      msg.hidden = false; msg.textContent = "Could not start: " + (err?.message || err) + ". A current Chrome, Edge, Firefox or Safari should work.";
+    }
+  });
+}
+function select(name) {
+  if (!["fm1", "smk37", "mpc"].includes(name)) name = "fm1";
+  teardown();
+  for (const b of document.querySelectorAll(".picker button")) b.setAttribute("aria-pressed", String(b.dataset.dev === name));
+  document.getElementById("bench").className = "bench dev-" + name;
+  if (name === "fm1") {
+    const f = document.createElement("iframe");
+    f.className = "fm1"; f.src = "index.html"; f.title = "JIANT FM on the FM-1"; f.allow = "midi; autoplay";
+    f.addEventListener("load", () => {                // (as tall as the emulator's page)
+      try { const fit = () => { f.style.height = f.contentDocument.documentElement.scrollHeight + "px"; }; fit(); new ResizeObserver(fit).observe(f.contentDocument.body); } catch {}
+    });
+    stage.appendChild(f);
+    info.innerHTML = FM1_INFO;
+  } else {
+    current = name === "smk37" ? buildSMK(stage) : buildMPC(stage);
+    const dev = current;
+    overlay(current.dev, (fb, leds) => current?.frame(fb, leds), current.start, current.started ? () => libReady.then(() => current === dev && dev.started()) : null);
+    info.innerHTML = name === "smk37" ? SMK_INFO : MPC_INFO;
+  }
+  const row = document.createElement("nav");
+  row.className = "devlinks"; row.setAttribute("aria-label", "Links for this device");
+  row.innerHTML = linkButtons(name);
+  stage.appendChild(row);
+  if (location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+  try { localStorage.setItem("jiant-device", name); } catch {}
+}
+// the theme: dark first, as the site; light on request, kept in this browser
+const themeBtn = document.getElementById("theme");
+const showTheme = () => { themeBtn.textContent = document.documentElement.dataset.theme === "light" ? "Dark" : "Light"; };
+themeBtn.addEventListener("click", () => {
+  const light = document.documentElement.dataset.theme !== "light";
+  if (light) document.documentElement.dataset.theme = "light"; else delete document.documentElement.dataset.theme;
+  try { localStorage.setItem("jiant-theme", light ? "light" : "dark"); } catch {}
+  showTheme();
+});
+showTheme();
+for (const b of document.querySelectorAll(".picker button")) b.addEventListener("click", () => select(b.dataset.dev));
+const libReady = lib.open();                           // (the MPC's samples kept in this browser)
+window.__devices = { emu, lib, current: () => current, add: (files) => panelAdd && panelAdd(files) };   // (the tests)
+addEventListener("hashchange", () => { const n = location.hash.slice(1); if (n && !document.querySelector(`.picker [data-dev="${n}"][aria-pressed="true"]`)) select(n); });
+let first = location.hash.slice(1);
+try { first = first || localStorage.getItem("jiant-device") || "fm1"; } catch { first = first || "fm1"; }
+document.fonts?.load("13px DotGothic16").finally(() => select(first));
+</script>
+</body>
+</html>
