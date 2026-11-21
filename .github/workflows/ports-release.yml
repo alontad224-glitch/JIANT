@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: GPL-3.0-only
 # JIANT beyond the FM-1, published: the ports' builds (ports.yml, the same jobs) attached to a GitHub pre-release
 # tagged ports-<ports/RELEASE_VERSION>, its text ports/RELEASE.md. Runs when ports/RELEASE_VERSION changes on main,
-# or by hand; a tag already released is left as it is. The SMK-37 packages are not attached (not tried on hardware).
+# or by hand; a tag already released keeps its files and only takes ports/RELEASE.md's text again. The SMK-37 packages are not attached (not tried on hardware).
 name: ports release
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["ports/RELEASE_VERSION"]
+    paths: ["ports/RELEASE_VERSION", "ports/RELEASE.md"]
 permissions:
   contents: write
 jobs:
@@ -38,7 +38,9 @@ jobs:
           V: ${{ needs.version.outputs.v }}
         run: |
           TAG="ports-$V"
-          if gh release view "$TAG" >/dev/null 2>&1; then echo "$TAG already released"; exit 0; fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file ports/RELEASE.md; echo "$TAG already released: its notes updated"; exit 0
+          fi
           mkdir -p up
           find dist -name '*.zip' -exec cp {} up/ \;
           for f in up/JIANT-FM-Linux.zip up/JIANT-FM-Windows.zip; do
