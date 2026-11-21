@@ -121,6 +121,62 @@ int main(void)
     CHECK(!jiant_playing(), "and stops it");
     jiant_clock_external(0);
 
+    {                                          /* (ports/) the sample slots (firmware/src/smp_slots.c) */
+        static float sl[48000], sr[48000];
+        jiant_slot_info_t in;
+        uint32_t s, fr, want, bpm = jiant_bpm();
+        const int16_t *pcm;
+        int peak = 0;
+        for (i = 0; i < 48000u; i++) {
+            sl[i] = 0.5f * (float)sin(2.0 * M_PI * 440.0 * i / 48000.0);
+            sr[i] = -sl[i];
+        }
+        CHECK(jiant_slot_load(2, sl, sr, 48000, 48000, "SINE") == 0 && jiant_slot_info(2, &in) == 0 &&
+              in.frames == 44100u && in.channels == 2u && !strcmp(in.name, "SINE") && !in.changed,
+              "a 48 kHz stereo sample loads into slot 3 at 44.1 kHz (%u frames)", in.frames);
+        pcm = jiant_slot_pcm(2, 0);
+        for (i = 1000; i < 43000u; i++)
+            peak = pcm[i] > peak ? pcm[i] : peak;
+        CHECK(peak > 16000 && peak < 16700 && jiant_slot_pcm(2, 1)[1000] == -pcm[1000],
+              "its level and channels kept (peak %d of 16384)", peak);
+        jiant_slot_clear(2);
+        CHECK(jiant_slot_info(2, &in) == 0 && !in.frames && !jiant_slot_pcm(2, 0) && jiant_service() == 1,
+              "a slot cleared, its object freed by the service");
+        jiant_input(sl, sr, 4410);
+        CHECK(jiant_rec_start(5, JIANT_REC_MASTER, 1) == 0 && jiant_rec_state(&s, 0) == 1 && s == 5,
+              "a recording of the master armed (slot 6)");
+        jiant_midi(0x90, 60, 100);
+        want = 44100u * 60u / bpm * 4u;
+        for (i = 0; i < 200u && jiant_rec_state(0, &fr); i++)
+            rms(4410);
+        jiant_midi(0x80, 60, 0);
+        CHECK(jiant_slot_info(5, &in) == 0 && in.frames == want && in.changed && in.channels == 2u,
+              "one bar at %u BPM recorded, stopped: %u frames (%u wanted), changed", bpm, in.frames, want);
+        peak = 0;
+        pcm = jiant_slot_pcm(5, 0);
+        for (i = 0; i < in.frames; i++)
+            peak = abs(pcm[i]) > peak ? abs(pcm[i]) : peak;
+        CHECK(peak > 300, "it holds the note played (peak %d)", peak);
+        jiant_slot_saved(5, in.gen);
+        jiant_slot_info(5, &in);
+        CHECK(!in.changed, "saved: unchanged");
+        CHECK(jiant_rec_start(6, JIANT_REC_INPUT, 2) == 2, "no spare object before the service runs");
+        jiant_service();
+        jiant_play(1);
+        CHECK(jiant_rec_start(6, JIANT_REC_INPUT, 2) == 0, "with it, a recording of the input armed while playing");
+        for (i = 0; i < 400u && jiant_rec_state(0, 0); i++) {
+            jiant_input(sl, sr, 1024);
+            rms(1024);
+        }
+        jiant_play(0);
+        rms(4410);
+        jiant_slot_info(6, &in);
+        CHECK(in.frames == 2u * want && jiant_slot_pcm(6, 0)[1000] != 0, "two bars of the input from the next bar: %u frames",
+              in.frames);
+        CHECK(jiant_rec_start(16, 0, 1) == 3 && jiant_rec_start(0, 9, 1) == 3, "a bad slot or source refused");
+        jiant_service();
+    }
+
     printf(fails ? "core: %d FAILED\n" : "core: all passed\n", fails);
     return fails != 0;
 }

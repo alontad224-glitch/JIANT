@@ -107,6 +107,63 @@ uint32_t jiant_genre_count(void);
 const char *jiant_genre_name(uint32_t i);
 int jiant_song_select(uint32_t song);      /* 0..: 0 = done (stopped first) */
 
+/* ------------------------------------------------------------------ samples (16 slots) ---
+ * The SAMPLE and GRAIN engines and DRUM-X's sample layer play 16 slots of up to 60 s each, mono or stereo, at
+ * JIANT_RATE, held by the core (firmware/src/smp_slots.c). Threads: as everything else, the slot calls below are the
+ * audio thread's, except jiant_sample_make* / jiant_sample_free / jiant_service, which touch no device state the
+ * audio thread writes but through atomics, and are meant for another thread (the host's loader or service thread),
+ * so a big load never copies or allocates in the audio callback:
+ *
+ *   loader thread:  o = jiant_sample_make(l, r, frames, rate, "KICK")     (resampled to 44.1 kHz there)
+ *   audio thread:   jiant_slot_put(3, o)                                  (a pointer swap)
+ *   service thread: jiant_service()      every ~100 ms: frees what the slots let go of, keeps a spare object ready
+ *                                        for the recorder (without it a recording has no room after the first)
+ *
+ * jiant_slot_info / jiant_slot_pcm read a slot for saving it: changed is 1 after a recording or DESTROY wrote it
+ * since the host called jiant_slot_saved with its gen. Read the PCM from the thread that calls jiant_service (an
+ * object is freed only there) and copy it before the next jiant_service. */
+#define JIANT_SLOTS 16u
+#define JIANT_SLOT_MAX_FRAMES (60u * JIANT_RATE)
+typedef struct jiant_sample jiant_sample;
+/* a sample from the host's PCM: l (and r, 0 = mono) float -1..1 at rate Hz (any: resampled), frames long (the first
+ * 60 s at 44.1 kHz kept); name (31 characters). 0: no memory or no frames. Any thread */
+jiant_sample *jiant_sample_make(const float *l, const float *r, uint32_t frames, uint32_t rate, const char *name);
+/* .. the same from interleaved int16 (ch 1 or 2) */
+jiant_sample *jiant_sample_make_i16(const int16_t *pcm, uint32_t ch, uint32_t frames, uint32_t rate, const char *name);
+void jiant_sample_free(jiant_sample *o);
+/* slot (0..15) now plays o (0: empty), which belongs to the core from here; what the slot held is freed by
+ * jiant_service. 0 done, 1 a bad slot */
+int jiant_slot_put(uint32_t slot, jiant_sample *o);
+/* make + put + service at once (allocates and resamples on this thread: a test's, a host's at start). 0 done */
+int jiant_slot_load(uint32_t slot, const float *l, const float *r, uint32_t frames, uint32_t rate, const char *name);
+int jiant_slot_clear(uint32_t slot);
+typedef struct {
+    uint32_t frames;                       /* 0: empty */
+    uint32_t channels;
+    char name[32];
+    uint32_t gen;                          /* changed: gen != the last jiant_slot_saved's */
+    int changed;
+} jiant_slot_info_t;
+int jiant_slot_info(uint32_t slot, jiant_slot_info_t *info);
+/* the slot's PCM as it plays (DESTROY's working copy), channel ch (0 L, 1 R; mono: both the same), int16; 0 empty */
+const int16_t *jiant_slot_pcm(uint32_t slot, uint32_t ch);
+void jiant_slot_saved(uint32_t slot, uint32_t gen);
+/* thread safe (above): the objects freed */
+uint32_t jiant_service(void);
+
+/* the device's audio input, stereo at JIANT_RATE, each block before jiant_render (recording, GRAIN's LIVE) */
+void jiant_input(const float *l, const float *r, uint32_t n);
+
+/* recording into a slot: source JIANT_REC_INPUT, JIANT_REC_MASTER (JIANT's own output: resampling) or
+ * JIANT_REC_TRACK1 + k (track k's output); bars at the tempo, from the next bar (at once when stopped), 0 = until
+ * jiant_rec_stop (or 60 s). 0 armed; 1 a recording under way; 2 no spare object yet (jiant_service); 3 bad arguments.
+ * The engines' REC (SAMPLE, GRAIN) arm the same recorder from inside JIANT */
+enum { JIANT_REC_INPUT, JIANT_REC_MASTER, JIANT_REC_TRACK1 };
+int jiant_rec_start(uint32_t slot, uint32_t source, uint32_t bars);
+void jiant_rec_stop(void);
+/* 0 idle, 1 armed (waiting for the bar), 2 recording; *slot its slot, *frames recorded so far (either may be 0) */
+int jiant_rec_state(uint32_t *slot, uint32_t *frames);
+
 #ifdef __cplusplus
 }
 #endif

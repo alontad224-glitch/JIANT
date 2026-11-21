@@ -5,7 +5,9 @@
  *   cc -O2 -ffp-contract=off -std=gnu99 -w -Ibuild/gen -Ifirmware/src -c ports/core/jiant_core.c
  * (after the generated headers: python3 -c "import sys; sys.path.insert(0, 'tools'); import build; build.generate()") */
 /* a computer's CPU (core.h FELUCCA_HOST_POWER), its real time in the load (felucca_web.c JIANT_REAL_LOAD) */
-#define FELUCCA_HOST_POWER 1
+#ifndef FELUCCA_HOST_POWER
+#define FELUCCA_HOST_POWER 1                  /* (0: ports/core/build.sh test's FM-1 personality only) */
+#endif
 #define JIANT_REAL_LOAD 1
 #include <stdint.h>
 #include <time.h>
@@ -302,3 +304,177 @@ JC_API void jiant_generate(uint32_t genre, uint32_t seed, uint32_t energy, uint3
 JC_API uint32_t jiant_genre_count(void) { return web_gen_count(); }
 JC_API const char *jiant_genre_name(uint32_t i) { return web_gen_name(i); }
 JC_API int jiant_song_select(uint32_t s) { return (int)web_song_select(s); }
+
+/* ------------------------------------------------------------------ samples (firmware/src/smp_slots.c) --- */
+#if FELUCCA_HOST_POWER
+#include <stdlib.h>
+/* a sample object: the header and its planes (orig, work; one each a channel) in one allocation */
+static smp_obj_t *jc_obj_new(uint32_t frames, uint32_t ch, const char *name)
+{
+    size_t plane = (size_t)frames * sizeof(int16_t);
+    smp_obj_t *o;
+    if (!frames || frames > SMP_MAXF || ch < 1u || ch > 2u)
+        return 0;
+    o = (smp_obj_t *)calloc(1, sizeof *o + 2u * ch * plane + 16u);
+    if (!o)
+        return 0;
+    o->cap = o->frames = frames;
+    o->ch = ch;
+    o->orig[0] = (int16_t *)(void *)(o + 1);
+    o->work[0] = o->orig[0] + (size_t)frames * ch;
+    o->orig[1] = ch > 1u ? o->orig[0] + frames : o->orig[0];
+    o->work[1] = ch > 1u ? o->work[0] + frames : o->work[0];
+    if (name)
+        str_cpy(o->name, name, sizeof o->name);
+    return o;
+}
+/* a frame of x (n frames) at time t (its frames), band-limited to fc (of its Nyquist): a windowed sinc, 16 taps a
+ * side (Blackman), normalised */
+static float jc_src_at(const float *x, uint32_t n, double t, double fc)
+{
+    int32_t i0 = (int32_t)floor(t), k;
+    double s = 0, w = 0;
+    for (k = -15; k <= 16; k++) {
+        int32_t i = i0 + k;
+        double d = t - (double)i, a = d * fc, h, win;
+        if (i < 0 || i >= (int32_t)n || fabs(d) >= 16.0)
+            continue;
+        h = fabs(a) < 1e-9 ? 1.0 : sin(M_PI * a) / (M_PI * a);
+        win = 0.42 + 0.5 * cos(M_PI * d / 16.0) + 0.08 * cos(2.0 * M_PI * d / 16.0);
+        s += x[i] * h * win;
+        w += h * win;
+    }
+    return (float)(w > 1e-3 ? s / w : s);
+}
+/* one plane of n frames at rate -> frames frames at JIANT_RATE (the host's thread) */
+static void jc_plane(int16_t *d, const float *x, uint32_t n, uint32_t rate, uint32_t frames)
+{
+    uint32_t i;
+    double step = (double)rate / (double)JIANT_RATE, fc = step > 1.0 ? 1.0 / step : 1.0;
+    for (i = 0; i < frames; i++) {
+        float v = rate == JIANT_RATE ? (i < n ? x[i] : 0.0f) : jc_src_at(x, n, (double)i * step, fc);
+        d[i] = smp_i16(smp_finite(v) * 32767.0f);
+    }
+}
+JC_API jiant_sample *jiant_sample_make(const float *l, const float *r, uint32_t frames, uint32_t rate, const char *name)
+{
+    uint32_t out, ch = r ? 2u : 1u;
+    smp_obj_t *o;
+    if (!l || !frames || rate < 1000u || rate > 768000u)
+        return 0;
+    out = (uint32_t)((double)frames * JIANT_RATE / rate);
+    if (out > SMP_MAXF)
+        out = SMP_MAXF;
+    o = jc_obj_new(out ? out : 1u, ch, name);
+    if (!o)
+        return 0;
+    jc_plane(o->orig[0], l, frames, rate, o->frames);
+    if (ch > 1u)
+        jc_plane(o->orig[1], r, frames, rate, o->frames);
+    memcpy(o->work[0], o->orig[0], (size_t)o->frames * ch * sizeof(int16_t));
+    return o;
+}
+JC_API jiant_sample *jiant_sample_make_i16(const int16_t *pcm, uint32_t ch, uint32_t frames, uint32_t rate, const char *name)
+{
+    float *l, *r = 0;
+    uint32_t i;
+    jiant_sample *o;
+    if (!pcm || ch < 1u || ch > 2u || !frames)
+        return 0;
+    l = (float *)malloc((size_t)frames * sizeof *l);
+    if (ch > 1u)
+        r = (float *)malloc((size_t)frames * sizeof *r);
+    if (!l || (ch > 1u && !r)) {
+        free(l);
+        free(r);
+        return 0;
+    }
+    for (i = 0; i < frames; i++) {
+        l[i] = pcm[(size_t)i * ch] / 32768.0f;
+        if (r)
+            r[i] = pcm[(size_t)i * ch + 1u] / 32768.0f;
+    }
+    o = jiant_sample_make(l, r, frames, rate, name);
+    free(l);
+    free(r);
+    return o;
+}
+JC_API void jiant_sample_free(jiant_sample *o) { free(o); }
+JC_API int jiant_slot_put(uint32_t slot, jiant_sample *o)
+{
+    if (slot >= SMP_NSLOT)
+        return 1;
+    smp_put(slot, o);
+    return 0;
+}
+JC_API uint32_t jiant_service(void)
+{
+    uint32_t n = 0, r = __atomic_load_n(&smp_ret_r, __ATOMIC_RELAXED);
+    while (r != __atomic_load_n(&smp_ret_w, __ATOMIC_ACQUIRE)) {
+        free(smp_ret[r % SMP_NRET]);
+        __atomic_store_n(&smp_ret_r, ++r, __ATOMIC_RELEASE);
+        n++;
+    }
+    if (!__atomic_load_n(&smp_spare, __ATOMIC_ACQUIRE)) {   /* the recorder's next room: 60 s stereo */
+        smp_obj_t *o = jc_obj_new(SMP_MAXF, 2u, "REC");
+        if (o) {
+            o->frames = 0;
+            __atomic_store_n(&smp_spare, o, __ATOMIC_RELEASE);
+        }
+    }
+    return n;
+}
+JC_API int jiant_slot_load(uint32_t slot, const float *l, const float *r, uint32_t frames, uint32_t rate, const char *name)
+{
+    jiant_sample *o;
+    if (slot >= SMP_NSLOT)
+        return 1;
+    o = jiant_sample_make(l, r, frames, rate, name);
+    if (!o)
+        return 2;
+    smp_put(slot, o);
+    jiant_service();
+    return 0;
+}
+JC_API int jiant_slot_clear(uint32_t slot) { return jiant_slot_put(slot, 0); }
+JC_API int jiant_slot_info(uint32_t slot, jiant_slot_info_t *info)
+{
+    const smp_obj_t *o;
+    if (slot >= SMP_NSLOT || !info)
+        return 1;
+    o = smp_get(slot);
+    memset(info, 0, sizeof *info);
+    if (o) {
+        info->frames = o->frames;
+        info->channels = o->ch;
+        str_cpy(info->name, o->name, sizeof info->name);
+    }
+    info->gen = smp_slot[slot].gen;
+    info->changed = o && smp_slot[slot].gen != smp_slot[slot].saved;
+    return 0;
+}
+JC_API const int16_t *jiant_slot_pcm(uint32_t slot, uint32_t ch)
+{
+    const smp_obj_t *o = slot < SMP_NSLOT ? smp_get(slot) : 0;
+    return o ? o->work[ch & 1u] : 0;
+}
+JC_API void jiant_slot_saved(uint32_t slot, uint32_t gen)
+{
+    if (slot < SMP_NSLOT)
+        smp_slot[slot].saved = gen;
+}
+JC_API void jiant_input(const float *l, const float *r, uint32_t n) { smp_input(l, r, n); }
+JC_API int jiant_rec_start(uint32_t slot, uint32_t source, uint32_t bars)
+{
+    return smp_rec_arm(slot, source, bars, SR_HOST);
+}
+JC_API void jiant_rec_stop(void) { smp_rec_stop(); }
+JC_API int jiant_rec_state(uint32_t *slot, uint32_t *frames)
+{
+    if (slot)
+        *slot = smp_rec.slot;
+    if (frames)
+        *frames = smp_rec.st == SR_REC ? smp_rec.pos : 0u;
+    return smp_rec.st;
+}
+#endif
