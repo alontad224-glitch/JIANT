@@ -61,6 +61,17 @@ void jiant_render(float *l, float *r, uint32_t n);
 /* a MIDI message as USB MIDI brings it: channel messages (0x80..0xEF) and the realtime clock (0xF8 clock, 0xFA
  * start, 0xFB continue, 0xFC stop: they count only with jiant_clock_external(1)). 0 = the input ring was full. */
 int jiant_midi(uint8_t status, uint8_t d1, uint8_t d2);
+/* the web editor (web/editor.html, web/EDITOR_PROTOCOL.md) over the host's MIDI, as the FM-1 answers it over USB: the
+ * firmware's own handler. jiant_sysex takes one complete request (F0 7D 46 4C .. F7): 0 handled (its reply is queued),
+ * 1 not the editor's (another SysEx: the host may route it elsewhere). jiant_sysex_out gives the next queued message
+ * (a reply, or a live push while the editor WATCHes) into buf, its length; 0 none; more than cap: the length it needs,
+ * nothing taken. jiant_editor_poll (every ~10 ms, or after each jiant_render) lets the device push what changed on its
+ * panel. jiant_editor_host says which device answers (INFO's 'D' tag, the editor's label): 3 a computer (the default:
+ * a plugin, the standalone app), 4 the MPC Sample app, 5 the MPC plugin. All on the core's thread, as the rest */
+int jiant_sysex(const uint8_t *msg, size_t n);
+size_t jiant_sysex_out(uint8_t *buf, size_t cap);
+void jiant_editor_poll(void);
+void jiant_editor_host(uint32_t board);
 /* 1: the sequencer follows the MIDI clock given to jiant_midi (GLO > CLOCK USB); 0: its own tempo */
 void jiant_clock_external(int on);
 void jiant_play(int on);                   /* PLAY / STOP, as the button does */

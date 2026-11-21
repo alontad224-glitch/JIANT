@@ -292,6 +292,9 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/editor_test" tests/editor_test.c -lm
     run "editor: real C protocol, malformed transfers, queue recovery, MENU settings (writes build/host/menu.json)" \
         env MENU_JSON="$OUT/menu.json" "$OUT/editor_test"
+    $CC -w -DFELUCCA_HOST_POWER=1 -Ibuild/gen -Ifirmware/src -o "$OUT/editor_test_hp" tests/editor_test.c -lm
+    run "editor: the same with FELUCCA_HOST_POWER=1 (ports/): INFO's 'D' and 'H' tags, DESC of SAMPLE / GRAIN / DRUM-X's samples by engine" \
+        "$OUT/editor_test_hp"
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/robust_test" tests/robust_test.c -lm
     run "robustness: engine numbers, retained old projects, preset patterns, malformed requests" \
         "$OUT/robust_test"
@@ -323,6 +326,8 @@ if [ -f build/gen/felucca_tables.h ]; then
     $CC -w -Ibuild/gen -Ifirmware/src -o "$OUT/descdump" tests/descdump.c -lm
     echo "== parameter and engine tables as JSON (for the editor mock test)"
     "$OUT/descdump" > "$OUT/desc.json" || fail=1
+    $CC -w -DFELUCCA_HOST_POWER=1 -Ibuild/gen -Ifirmware/src -o "$OUT/descdump_hp" tests/descdump.c -lm
+    "$OUT/descdump_hp" > "$OUT/desc_hp.json" || fail=1     # (ports/: the big CPUs' tables, the editor's mock with hostPower)
     $CC -O2 -w -Ibuild/gen -Ifirmware/src -o "$OUT/drumx_test" tests/drumx_test.c -lm
     mkdir -p build/drumx_demo
     run "DRUM-X: every lane sounds and ends, MORPH, PITCH, NOIS, hat choke, group mutes, demos" "$OUT/drumx_test" build/drumx_demo
@@ -435,6 +440,10 @@ run "navigation map (docs/navigation-map*.svg) matches the firmware's chains" py
 
 if command -v node >/dev/null 2>&1; then
     run "web pages: editor protocol, package builder, update protocol" node web/test_web.mjs
+    if node -e "require('playwright')" >/dev/null 2>&1; then
+        run "editor in Chromium: FM-1, SMK-37 and a big CPU (SAMPLE, GRAIN, DRUM-X's samples) on its mock" \
+            node web/editor_browser_test.mjs
+    fi
     run "web backup: capture, validation before writes, restore order" node web/test_backup.mjs
     run "web manual: every control has an entry, the search, the screens, the map is the firmware's (web/manual)" node web/test_manual.mjs
 else

@@ -465,6 +465,18 @@ const parse = {
     /* (JIANT 0.8.5) 'Y' 1 n, the last tag: LYRIC (cmd 39), a track's lyric of at most n bytes; 0 = none */
     const ty = trailer.length - 3;
     o.lyric = ty >= 0 && trailer[ty] === 0x59 && trailer[ty + 1] === 1 ? trailer[ty + 2] : 0;
+    /* (SMK-37, ports/) just before 'Y': 'D' 1 board (none: an FM-1), 'H' 2 caps slots (a big CPU's engines) */
+    o.board = 0; o.hostPower = null;
+    if (o.lyric) {
+      let k = ty;
+      if (trailer[k - 4] === 0x48 && trailer[k - 3] === 2) {
+        const c = trailer[k - 2];
+        o.hostPower = { caps: c, slots: trailer[k - 1], sample: !!(c & 1), grain: !!(c & 2), drumSamples: !!(c & 4), extra: !!(c & 8) };
+        k -= 4;
+      }
+      if (trailer[k - 3] === 0x44 && trailer[k - 2] === 1) o.board = trailer[k - 1];
+    }
+
     return o;
   },
   [CMD.LYRIC](a) { const r = new Reader(a); return { track: r.b(), rc: r.b(), text: r.s() }; },
@@ -782,9 +794,19 @@ class Link {
   }
 }
 
+/* (SMK-37, ports/) the device that answers: INFO's 'D' tag, else (an FM-1, or SMK-37 firmware from before the tag)
+   the port's name */
+const BOARDS = ["FM-1", "SMK-37 Pro", "SMK-37 Elite", "JIANT FM app / plugin", "MPC Sample", "MPC plugin"];
+function deviceName(info, port) {
+  if (info && info.board && BOARDS[info.board]) return BOARDS[info.board];
+  const n = String(port || "");
+  if (/smk[ _-]*37/i.test(n)) return /elite/i.test(n) ? "SMK-37 Elite" : "SMK-37";
+  if (/mpc/i.test(n)) return "MPC";
+  return "FM-1";
+}
 /* the names an FM-1 shows under (the installer's fm1ota.js PORT_RE: JIANT, Felucca, Skiff, the stock firmware's, the
    USB composite's, and the generic names Windows gives a USB MIDI device whose name it cached or never read) */
-const editorPort = (p) => /felucca|jiant|skiff|fm[ _-]*1|m[ _-]*vave|cuvave|composite|sinco|usb[ _-]*midi|usb audio/i.test(p.name || "") && p.state !== "disconnected";
+const editorPort = (p) => /felucca|jiant|skiff|fm[ _-]*1|smk[ _-]*37|mpc sample|m[ _-]*vave|cuvave|composite|sinco|usb[ _-]*midi|usb audio/i.test(p.name || "") && p.state !== "disconnected";   /* (SMK-37: "JIANT SMK-37"; the MPC Sample's gadget: "MPC Sample") */
 /* (2026-10-30) never asked: software ports and other makers' synths a user is likely to have plugged in */
 const notEditorPort = (p) => /wavetable|iac driver|midi through|loopmidi|loopbe|virtual|rtpmidi|network|bluetooth/i.test(p.name || "");
 let seenPorts = "";
@@ -1549,6 +1571,7 @@ function fromPerc(pt, engines, pe0) {
   if (!(name === "SAMPLE" || (pt.engine === 4 && (!name || name === "-"))) || !Array.isArray(p) || drum < 0) return null;   /* (4: "-" once retired) */
   const e0 = pe0 ?? p.length - 8;
   if (p[e0] !== PERC_SET) return null;
+  if (names && names[4] === "SAMPLE") return null;   /* ((ports/) a big CPU plays SAMPLE: its sounds stay, core.h drum_from_perc) */
   const q = p.slice();
   DRUM_KIT_E.forEach((v, i) => { q[e0 + i] = v; });
   return { ...pt, engine: drum, engineName: "DRUM", p: q, params: undefined };
@@ -1768,6 +1791,27 @@ function makeMockDevice(opt = {}) {
         P("TRANCE GATE", [3, 64, 0, 1, 127, 0, 0, 0], [0, 40, 0, 10], 1, 0), P("RING IN", [0, 64, 0, 1, 127, 90, 0, 0], [0, 64, 127, 30], 1, 0),
         P("CRUSH IN", [2, 72, 0, 0, 127, 0, 90, 60], [0, 64, 127, 20], 1, 0)] },
   ];
+  /* (ports/) a big CPU's device (opt.hostPower: the MPC Sample, the plugins, the app; INFO 'D' and 'H'): SAMPLE in 4 and
+     GRAIN in 8 (engines.c with FELUCCA_HOST_POWER), and the values their pages and DRUM-X's sample layer keep in other
+     engines' slots, named by the track's engine (engines.c hp_xdesc) */
+  const HP_ENG = {
+    /* (ports/, generated from tests/descdump.c built with FELUCCA_HOST_POWER=1: test_web.mjs compares) */
+    4: { name: "SAMPLE", titles: ["SAMPLE", "WARP"], edit: [E("SLOT", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), D("START", F.PCT, 0, 127, 0), D("LENGTH", F.PCT, 0, 127, 127), E("MODE", ["ONE", "GATE", "LOOP", "PING", "REV", "SLICE", "SCRUB", "TAPE"], 0), D("TUNE", F.SEMI, -24, 24, 0), D("FEEDBK", F.PCT, 0, 127, 0), D("TONE", F.PCT, 0, 127, 64), D("DSTROY", F.PCT, 0, 127, 0)],
+      presets: [P("ONE SHOT", [0, 0, 127, 0, 0, 0, 64, 0], [0, 100, 127, 40], 0, 0), P("GATE", [0, 0, 127, 1, 0, 0, 64, 0], [0, 100, 127, 30], 0, 0), P("LOOP", [0, 0, 127, 2, 0, 0, 64, 0], [4, 100, 127, 60], 0, 0), P("PING PONG", [0, 20, 60, 3, 0, 0, 64, 0], [10, 100, 127, 70], 0, 0), P("REVERSE", [0, 0, 127, 4, 0, 0, 64, 0], [0, 100, 127, 40], 0, 0), P("SLICE 16", [0, 0, 127, 5, 0, 0, 64, 0], [0, 100, 127, 20], 0, 11), P("SLICE 8", [0, 0, 127, 5, 0, 0, 64, 0], [0, 100, 127, 20], 0, 10), P("RANDOM SLC", [0, 0, 127, 5, 0, 0, 64, 0], [0, 100, 127, 20], 0, 11), P("VEL SLICE", [0, 0, 127, 5, 0, 0, 64, 0], [0, 100, 127, 20], 0, 9), P("SCRUB", [0, 0, 127, 6, 0, 0, 64, 0], [10, 100, 127, 50], 0, 0), P("TAPE STOP", [0, 0, 127, 7, 0, 0, 64, 0], [0, 100, 127, 100], 0, 0), P("RATCHET", [0, 0, 127, 0, 0, 0, 64, 0], [0, 100, 127, 30], 0, 12), P("CHOKE", [0, 0, 127, 0, 0, 0, 64, 0], [0, 100, 127, 20], 0, 12), P("ROUND ROBIN", [0, 0, 127, 0, 0, 0, 64, 0], [0, 100, 127, 30], 0, 12), P("LEGATO", [0, 0, 127, 1, 0, 0, 64, 0], [4, 100, 127, 40], 0, 4), P("CHANCE", [0, 0, 127, 0, 0, 0, 64, 0], [0, 100, 127, 30], 0, 12), P("FEEDBACK", [0, 0, 127, 0, 0, 90, 60, 0], [0, 100, 127, 50], 0, 3), P("METAL COMB", [0, 0, 127, 1, 0, 118, 110, 0], [0, 100, 127, 60], 0, 7), P("DESTROY", [0, 0, 127, 0, 0, 40, 50, 70], [0, 100, 127, 40], 0, 0), P("RESAMPLE", [0, 0, 127, 2, 0, 0, 64, 0], [0, 100, 127, 40], 0, 0)] },
+    8: { name: "GRAIN", titles: ["GRAIN", "CLOUD"], edit: [E("SLOT", ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"], 0), D("POS", F.PCT, 0, 127, 0), D("SCAN", F.BIPCT, -64, 63, 0), D("SIZE", F.PCT, 0, 127, 64), D("DENSE", F.PCT, 0, 127, 70), D("SPRAY", F.PCT, 0, 127, 10), D("SPREAD", F.PCT, 0, 127, 0), D("REVRS", F.PCT, 0, 127, 0)],
+      presets: [P("CLOUD", [0, 0, 8, 70, 70, 20, 0, 0], [40, 100, 127, 70], 0, 5), P("FROZEN CLOUD", [0, 40, 0, 80, 85, 10, 2, 0], [60, 100, 127, 90], 0, 5), P("SCAN", [0, 0, 20, 60, 70, 5, 0, 0], [20, 100, 127, 60], 0, 5), P("STRETCH 0.5X", [0, 0, -36, 75, 80, 4, 0, 0], [10, 100, 127, 60], 0, 5), P("STRETCH 2X", [0, 0, 21, 65, 80, 4, 0, 0], [10, 100, 127, 60], 0, 5), P("SHIMMER", [0, 30, 4, 90, 80, 30, 0, 0], [80, 100, 127, 110], 0, 5), P("SPRAY", [0, 20, 0, 40, 100, 90, 30, 30], [20, 100, 127, 60], 0, 5), P("OCTAVES", [0, 30, 4, 70, 80, 20, 60, 0], [30, 100, 127, 80], 0, 5), P("REVERSE", [0, 0, 10, 80, 60, 10, 0, 127], [20, 100, 127, 60], 0, 5), P("GLITCH", [0, 0, 40, 20, 90, 40, 20, 40], [0, 100, 127, 30], 0, 3), P("KEY POSITION", [0, 0, 0, 55, 70, 4, 0, 0], [10, 100, 127, 50], 0, 6), P("LIVE DELAY", [0, 30, 0, 60, 60, 20, 0, 0], [10, 100, 127, 80], 0, 0), P("LIVE FREEZE", [0, 10, 0, 85, 90, 15, 0, 0], [40, 100, 127, 100], 0, 0), P("FEEDBACK", [0, 10, 6, 70, 75, 20, 4, 10], [30, 100, 127, 90], 0, 5)] },
+  };
+  const HP_PAGES = [
+    { engine: "SAMPLE", name: "TRIG", ids: [83, 84, 85, 86], descs: [E("TRIG", ["NORM", "CHOKE", "RATCH", "RAND", "ROUND", "VEL", "LEGAT", "CHNCE"], 0), D("-", F.PCT, 0, 127, 64), E("RATE", ["1/4", "1/8", "1/8T", "1/16", "16T", "1/32"], 3), D("SLICES", F.INT, 2, 64, 16)] },
+    { engine: "SAMPLE", name: "REC", ids: [87, 88, 89, 90], descs: [E("REC", ["OFF", "IN 1", "IN 2", "IN 4", "IN 8", "IN H", "MST 1", "MST 2", "MST 4", "MST 8", "MST H", "T1 1", "T1 2", "T1 4", "T1 8", "T1 H", "T2 1", "T2 2", "T2 4", "T2 8", "T2 H", "T3 1", "T3 2", "T3 4", "T3 8", "T3 H", "T4 1", "T4 2", "T4 4", "T4 8", "T4 H", "T5 1", "T5 2", "T5 4", "T5 8", "T5 H", "T6 1", "T6 2", "T6 4", "T6 8", "T6 H"], 0), D("WOW", F.PCT, 0, 127, 40), D("STOP", F.PCT, 0, 127, 64), D("DECAY", F.PCT, 0, 127, 64)] },
+    { engine: "GRAIN", name: "TRAVEL", ids: [83, 84, 85, 86], descs: [E("TRAVEL", ["FWD", "REV", "PING", "RAND", "STRCH", "FREEZ", "KEY"], 0), D("REGION", F.PCT, 0, 127, 127), D("FEEDBK", F.PCT, 0, 127, 0), E("SHIMMR", ["OFF", "+OCT", "+5TH", "-OCT", "+2OCT"], 0)] },
+    { engine: "GRAIN", name: "SOURCE", ids: [87, 88, 89, 90], descs: [E("WINDOW", ["HANN", "TRI", "FLAT", "PERC", "SWELL"], 0), D("WIDTH", F.PCT, 0, 127, 64), E("SOURCE", ["SLOT", "IN", "MST"], 0), E("REC", ["OFF", "IN 1", "IN 2", "IN 4", "IN 8", "IN H", "MST 1", "MST 2", "MST 4", "MST 8", "MST H", "T1 1", "T1 2", "T1 4", "T1 8", "T1 H", "T2 1", "T2 2", "T2 4", "T2 8", "T2 H", "T3 1", "T3 2", "T3 4", "T3 8", "T3 H", "T4 1", "T4 2", "T4 4", "T4 8", "T4 H", "T5 1", "T5 2", "T5 4", "T5 8", "T5 H", "T6 1", "T6 2", "T6 4", "T6 8", "T6 H"], 0)] },
+    { engine: "GRAIN", name: "PITCH", ids: [72, 78], descs: [E("QUANT", ["FREE", "OCT", "5TH"], 0), D("DAMP", F.PCT, 0, 127, 127)] },
+    { engine: "DRUM", name: "SAMPLES", ids: [61, 72, 80, 78], descs: [D("SMORPH", F.PCT, 0, 127, 0), E("BLEND", ["XFADE", "S>B", "B>S", "FOLW", "RING"], 0), D("SLOT", F.ENUM, 112, 127, 112, ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]), D("MAP", F.ENUM, 125, 127, 125, ["SLOTS", "LANES", "KEYS"])] },
+    { engine: "DRUM", name: "SAMPLES 2", ids: [75], descs: [D("SLEVEL", F.PCT, 0, 127, 127)] },
+  ];
+  const HP_AMT = ["-", "-", "COUNT", "RANGE", "SLOTS", "RANGE", "-", "CHANCE"];   /* SAMPLE's AMOUNT by TRIG (eng_sample.c SMP_AMT) */
+  if (opt.hostPower) { ENG[4] = HP_ENG[4]; ENG[8] = HP_ENG[8]; }
   const FM6_E = ENG.findIndex((e) => e.name === "FM6"), FM6_OWN = FM6.FACTORY_PK.length, DRUM_E = ENG.findIndex((e) => e.name === "DRUM");
   /* factory PATTERNS[] (engines.c; the device loads them from SEQ > PATTERNS, presets only suggest one): absolute
      notes, 0 rest; flags 1 accent, 2 slide, 4 tie (holds the previous note) */
@@ -1821,7 +1865,13 @@ function makeMockDevice(opt = {}) {
     Object.defineProperty(st, k, { enumerable: false, get: () => st.tracks[st.sel][k], set: (v) => { st.tracks[st.sel][k] = v; } });
   }
   const watchMs = opt.watchMs || 3000;
-  const desc = (scope, id) => (scope === 0 && id < P_COUNT ? (id >= P_E0 ? ENG[st.engine].edit[id - P_E0] : TP[id])
+  const hpDesc = (id) => {                         /* (ports/) editor.c ed_tdesc: engines.c hp_xdesc */
+    if (!opt.hostPower) return null;
+    const pg = HP_PAGES.find((x) => x.engine === ENG[st.engine].name && x.ids.includes(id));
+    const d = pg && pg.descs[pg.ids.indexOf(id)];
+    return d && pg.engine === "SAMPLE" && id === pg.ids[1] && pg.name === "TRIG" ? { ...d, label: HP_AMT[st.p[pg.ids[0]]] || "-" } : d;
+  };
+  const desc = (scope, id) => (scope === 0 && id < P_COUNT ? hpDesc(id) || (id >= P_E0 ? ENG[st.engine].edit[id - P_E0] : TP[id])
     : scope === 1 && id < G_COUNT ? GP[id] : null);
   const EMPTY = { n: 0, notes: [0, 0, 0, 0], time: 2, flags: 0, vel: 0, hit: 0, acc: 0, chance: 100, ratchet: 1 };
   const isDrum = () => ENG[st.engine].name === "DRUM";
@@ -1859,6 +1909,8 @@ function makeMockDevice(opt = {}) {
     for (let i = P_SLCR + 4; i < P_E0; i++) if (!trackOwn(i, P_E0)) st.p[i] = TP[i].def;   /* a factory preset turns the
                                                      matrix off; the SLICER, the chord keys, the steps and the other track
                                                      settings stay (ui.c apply_preset_to) */
+    if (opt.hostPower)                            /* (ports/) engines.c hp_preset_x: the extra values' defaults */
+      for (const pg of HP_PAGES) if (pg.engine === e.name) pg.ids.forEach((id, k) => { st.p[id] = pg.descs[k].def; });
     if (st.engine === FM6_E) {                    /* eng_fm6.c fm6_track_loaded */
       const t = st.tracks[st.sel];
       t.own = null;
@@ -1884,7 +1936,7 @@ function makeMockDevice(opt = {}) {
   }
   function setEngine(ei) {
     if (ei % ENG.length === 1) { fm4Load(0); return; }   /* DIGITAL (retired): its first preset, as FM6 (ui.c set_engine_of) */
-    if ([4, 6, 9].includes(ei % ENG.length)) ei = 0;    /* SAMPLE TRIO PHYS (retired, core.h eng_gone): ANALOG; (snd5) 8 STRING 13 ADD */
+    if ([4, 6, 9].includes(ei % ENG.length) && !(opt.hostPower && ei % ENG.length === 4)) ei = 0;   /* ((ports/) SAMPLE is there) */    /* SAMPLE TRIO PHYS (retired, core.h eng_gone): ANALOG; (snd5) 8 STRING 13 ADD */
     st.engine = ei % ENG.length;
     for (let i = 0; i < 8; i++) st.p[P_E0 + i] = ENG[st.engine].edit[i].def;
     applyPreset(0);
@@ -2083,6 +2135,8 @@ function makeMockDevice(opt = {}) {
             if (syncCaps()) { b(0x53); b(1); b(syncCaps()); if (!opt.noFm6) { b(0x50); b(1); b(3); } if (ratchetOn()) { b(0x52); b(1); b(4); }
               if (!opt.noFm6 && !opt.noVbank && ratchetOn()) { b(0x56); b(1); b(32); }
               if (lanesOn()) { b(0x4F); b(1); b(7); } } }   /* (FM6 v2: no bank, preset patches; 0.6.11: the voice bank; 0.8.5: the lanes' modes) */
+          if (opt.board || opt.hostPower) { b(0x44); b(1); b(opt.board || 3); }   /* (SMK-37, ports/) 'D': the device */
+          if (opt.hostPower) { b(0x48); b(2); b(15); b(16); }   /* (ports/) 'H': SAMPLE GRAIN DRUM-X's samples, 16 slots */
           if (st.uiCaps && !opt.noLyric) { b(0x59); b(1); b(63); }   /* (0.8.5) LYRIC, the last tag */
         }
         break;
@@ -2230,7 +2284,7 @@ function makeMockDevice(opt = {}) {
       case CMD.PRESET:
         if (a.length < 2 || a[0] >= ENG.length) return null;
         if (a[0] === 1) fm4Load(a[1]);              /* a DIGITAL preset: its sound, as FM6 */
-        else if (a[0] === 4 && a[1] === PERC_SET) setEngine(DRUM_E);   /* SAMPLE preset 4, once PERC: DRUM's kit */
+        else if (a[0] === 4 && a[1] === PERC_SET && !opt.hostPower) setEngine(DRUM_E);   /* SAMPLE preset 4, once PERC: DRUM's kit */
         else {
           if (a[0] !== st.engine) setEngine(a[0]);
           applyPreset(a[1]);
@@ -2289,10 +2343,11 @@ function makeMockDevice(opt = {}) {
   }
 
   /* a WebMIDI-like access object: one input and one output named "Felucca" */
-  const input = { id: "mock-in", name: "JIANT", type: "input", state: "connected", onmidimessage: null };
+  const portName = opt.portName || "JIANT";
+  const input = { id: "mock-in", name: portName, type: "input", state: "connected", onmidimessage: null };
   let busy = false;
   const output = {
-    id: "mock-out", name: "JIANT", type: "output", state: "connected",
+    id: "mock-out", name: portName, type: "output", state: "connected",
     send(data) {
       const f = unframe(data);
       if (!f) { console.error("mock: refused a frame that is not F0 7D 46 4C ... F7", data); return; }
@@ -2377,7 +2432,7 @@ function makeMockDevice(opt = {}) {
   ];
   return {
     state: st, sim,
-    tables: { TP, GP, ENG, PATTERNS, P_COUNT, G_COUNT, NSTEP, P_E0, G_ENGSEL, P_SLCR, NTRK,
+    tables: { HP_PAGES, HP_ENG, TP, GP, ENG, PATTERNS, P_COUNT, G_COUNT, NSTEP, P_E0, G_ENGSEL, P_SLCR, NTRK,
       FM6: { bank: 0, own: FM6_OWN, init: FM6.INIT_PK, factory: FM6.FACTORY_PK } },   /* test_web.mjs: == the firmware */
     stop: () => timers.forEach(clearInterval),
     access: { sysexEnabled: true, inputs: new Map([[input.id, input]]), outputs: new Map([[output.id, output]]), onstatechange: null },
@@ -2438,7 +2493,7 @@ function enumShown(d) {
 /* the order the device shows its engines in (src/engines.c ENGINE_ORDER): the lists here follow it, the protocol keeps
    the engine numbers. engineOrder(names): the indices of names in that order, "-" (a reserved number) left out; a name
    the list does not know (another firmware) follows in index order */
-const ENGINE_ORDER = ["DRUM", "VOICE", "ANIMAL", "LOFI", "ANALOG", "FM6", "PHASE", "WHEEL", "NOISE", "STRING", "ADD", "INPUT", "SAMPLE", "DIGITAL"];   /* (0.9.9: DRUM-X, VOICE,
+const ENGINE_ORDER = ["DRUM", "VOICE", "ANIMAL", "LOFI", "ANALOG", "FM6", "PHASE", "WHEEL", "NOISE", "STRING", "ADD", "INPUT", "SAMPLE", "GRAIN", "DIGITAL"];   /* (0.9.9: DRUM-X, VOICE,
    ANIMAL first, as the parts at power-on; DIGITAL, FELUCCA_FM4 builds only, last; was ANALOG FM6 DIGITAL PHASE LOFI VOICE WHEEL NOISE
    DRUM ANIMAL, the order PROGRAM CHANGE still numbers the sounds in: engines.c ENGINE_PC_ORDER) */
 function engineOrder(names) {
@@ -2457,6 +2512,15 @@ function devicePresetRows(info, names, preferences) {
     .filter((row) => !preferences.state.filter || row.favorite);
 }
 
+/* (ports/) the big CPUs' pages beyond EDIT 1 / 2 (params.c PAGES from HP_PAGE0, ui.c page_visible): the ids of other
+   engines' slots their values live in (core.h P_LN0..7 83..90, P_LRTRG 61, P_FM3_DEC 72, P_FM3_LEVEL 75, P_FM4_SUS 78,
+   P_FM4_LEVEL 80), shown only for a device whose INFO says it has them ('H'), on a track of that engine; DESC names them */
+const HP_PAGES = {
+  SAMPLE: [["TRIG", 0, [83, 84, 85, 86]], ["REC", 0, [87, 88, 89, 90]]],
+  GRAIN: [["TRAVEL", 0, [83, 84, 85, 86]], ["SOURCE", 0, [87, 88, 89, 90]], ["PITCH", 0, [72, 78]]],
+  DRUM: [["SAMPLES", 0, [61, 72, 80, 78]], ["SAMPLES 2", 0, [75]]],
+};
+const hpIds = (name) => (HP_PAGES[name] || []).flatMap((pg) => pg[2]);
 /*PROTO-END*/
 
 /* ===================================================================== UI === */
@@ -2493,7 +2557,7 @@ const GLYPH = {
 /* section headings (LAYOUT titles) and page titles */
 const HEAD_IC = { ENV: "function_env_adsr_exp", LFO: "waveform_sine", MOD: "symbol_waves", EDIT: "ui_knob", VOICE: "symbol_keyboard",
   FX: "symbol_effector", SCL: "symbol_tuning", ARP: "control_arrow_up_down", "SEQ PATTERN": "symbol_grid",
-  GLOBAL: "symbol_cog", INSTRUMENT: "symbol_keyboard" };
+  GLOBAL: "symbol_cog", INSTRUMENT: "symbol_keyboard", FILTER: "function_filter_lpf_peak" };
 const PAGE_IC = { FLT: "function_filter_lpf_peak", FILT: "function_filter_lpf_peak", DLY: "symbol_echo", REVERB: "symbol_spring", CHORUS: "symbol_waves",
   SLICER: "symbol_grid", CHORD: "symbol_keyboard" };
 /* WAVE / WAVE2 choices; phase-distortion shapes without a close glyph (SPLS, RSAW, RTRI, RTRP) get none */
@@ -2521,7 +2585,7 @@ const TEXT = {
     fm6Init: "初期音色", fm6Voice: "ボイス", fm6Ops: "オペレーター", fm6Carriers: "キャリア", fm6Feedback: "フィードバック",
     fm6PitchEg: "ピッチ EG", fm6Freq: "周波数",
     fm6Legend: "R1〜R4 / L1〜L4: EG のレートとレベル、BP LD RD LC RC: キーボードレベルスケーリング、RS: レートスケーリング、AMS: LFO 音量変調、KVS: ベロシティ、OL: 出力レベル、MODE: 比率 / 固定、FC FF: 周波数（粗・細）、DET: デチューン（7 が中央）。● はキャリア。",
-    midiPorts: "MIDI ポート（自動接続できない場合）", midiPortHelp: "ブラウザが認識したポートです。入力と出力が両方必要です。空の場合は MIDI ポートが認識されていません。", midiInput: "入力", midiOutput: "出力",
+    midiPorts: "MIDI ポート（自動接続できない場合）", midiPortHelp: "ブラウザが認識したポートです。入力と出力が両方必要です。空の場合は MIDI ポートが認識されていません。SMK-37 は FM-1 と同じく USB で接続します。JIANT FM アプリ（スタンドアロン）は設定で MIDI 入力と出力を選び、その相手のポート（仮想 MIDI ケーブルなど）をここで選んでください。MPC Sample のアプリはまだエディターに応答しません。", midiInput: "入力", midiOutput: "出力",
     fm6BankSend: "本体のボイスバンクへ送る (B1–B32)", fm6BankSent: "ボイスバンクを送りました:", fm6BankFail: "ボイスバンクを送れませんでした (rc ", fm6BankNow: "本体のボイスバンク:", fm6BankNone: "なし",
     fm6Pick: "読み込んだファイルの音色（押すと編集へ）:", fm6Picked: "編集中:", fm6Sent: "トラックへ送りました:", fm6Read: "トラックから読みました",
     fm6Loaded: "読み込みました", fm6BadSum: "チェックサム不一致あり",
@@ -2615,7 +2679,7 @@ const TEXT = {
     level: "レベル", pan: "パン", mute: "ミュート", rec: "REC", selectTrack: "選択", selectedTrack: "選択中",
     projHelp: "プロジェクトは本体の状態をまとめて保存します: 全トラックの音色とパターン、曲の並び順、選択中のトラック、グローバル設定。",
     slot: "スロット", songTitle: "ソング", songHelp: "保存スロットのパターンと繰り返す回数を順に並べます。音色は現在のまま。並び順を残すには、上のプロジェクトを保存してください。切替はトラック1のパターン終端、曲末で停止します。", songAdd: "行を追加", songRemove: "最後の行を削除", songPlay: "先頭から再生", songStop: "停止", songReps: "回", songEmpty: "行を追加してください", songBusy: "停止してから編集してください", songInvalid: "スロットと回数を確認してください", songPlaying: "再生中の行", songSaved: "並び順を変更しました。プロジェクトを保存すると残せます。",
-    system: "システム", firmware: "ファームウェア", sync: "同期", tracksN: "トラック", stepsN: "ステップ数", enginesL: "エンジン",
+    system: "システム", deviceL: "デバイス", firmware: "ファームウェア", sync: "同期", tracksN: "トラック", stepsN: "ステップ数", enginesL: "エンジン",
     userBank: "ユーザープリセット", none: "なし",
   },
   en: {
@@ -2625,7 +2689,7 @@ const TEXT = {
     fm6Init: "Init voice", fm6Voice: "Voice", fm6Ops: "Operators", fm6Carriers: "carriers", fm6Feedback: "feedback",
     fm6PitchEg: "Pitch EG", fm6Freq: "Frequency",
     fm6Legend: "R1..R4 / L1..L4: EG rates and levels; BP LD RD LC RC: keyboard level scaling; RS: rate scaling; AMS: LFO amplitude modulation; KVS: velocity; OL: output level; MODE: ratio / fixed; FC FF: coarse / fine frequency; DET: detune (7 = centre). ● = carrier.",
-    midiPorts: "MIDI ports (choose manually if Auto fails)", midiPortHelp: "These are the ports reported by the browser. Both an input and an output are required; empty lists mean the browser is not seeing a MIDI port.", midiInput: "Input", midiOutput: "Output",
+    midiPorts: "MIDI ports (choose manually if Auto fails)", midiPortHelp: "These are the ports reported by the browser. Both an input and an output are required; empty lists mean the browser is not seeing a MIDI port. An SMK-37 connects by USB as the FM-1 does. The JIANT FM app (standalone): pick a MIDI input and output in its settings, then their other ends here (a virtual MIDI cable, for example). The MPC Sample's app does not answer the editor yet.", midiInput: "Input", midiOutput: "Output",
     fm6BankSend: "Send to the device's voice bank (B1–B32)", fm6BankSent: "Voice bank sent:", fm6BankFail: "The voice bank was not sent (rc ", fm6BankNow: "The device's voice bank:", fm6BankNone: "none",
     fm6Pick: "Voices of the imported file (click to edit):", fm6Picked: "Editing:", fm6Sent: "Sent to track", fm6Read: "Read from track",
     fm6Loaded: "Loaded", fm6BadSum: "a checksum did not match",
@@ -2719,7 +2783,7 @@ const TEXT = {
     level: "Level", pan: "Pan", mute: "Mute", rec: "REC", selectTrack: "Select", selectedTrack: "Selected",
     projHelp: "A project keeps the sounds and patterns of all tracks, the song chain, the selected track and the global settings.",
     slot: "Slot", songTitle: "Song", songHelp: "Arrange sections (the saved projects A–D, with their sounds) and choose how many bars each plays (1–64). Save a project above to keep the chain. Rows change on the bar; the song stops at the end and the music before it comes back.", songAdd: "Add row", songRemove: "Remove last row", songPlay: "Play from start", songStop: "Stop", songReps: "bars", songEmpty: "Add a row first", songBusy: "Stop before editing", songInvalid: "Check sections and bars", songPlaying: "Playing row", songSaved: "Chain changed. Save a project to keep it.",
-    system: "System", firmware: "Firmware", sync: "Sync", tracksN: "Tracks", stepsN: "Steps", enginesL: "Engines",
+    system: "System", deviceL: "Device", firmware: "Firmware", sync: "Sync", tracksN: "Tracks", stepsN: "Steps", enginesL: "Engines",
     userBank: "User presets", none: "none",
   },
 };
@@ -2848,8 +2912,8 @@ const stepEdit = new Map(); /* index -> time of the last edit */
 const EXPECT = { pcount: 91, gcount: 27, pe0: 83 };
 /* the same layout without the chord keys (P_COUNT 89, P_E0 81), the FM operator ENVs too (69, 61) or the matrix
    (firmware 1.0: 57, 49) */
-const knownLayout = (info) => [EXPECT.gcount, 32, 36, 37, 66, 67, 69, 71].includes(info.gcount) &&   /* (JIANT FUNB: 5, 9, then 10 more globals; 0.6.3: the SLICER's 29) */
-  [[120, 112], [99, 91], [91, 83], [89, 81], [69, 61], [57, 49]].some(([c, e]) => info.pcount === c && info.pe0 === e);
+const knownLayout = (info) => [EXPECT.gcount, 32, 36, 37, 66, 67, 69, 71, 73].includes(info.gcount) &&   /* (JIANT FUNB: 5, 9, then 10 more globals; 0.6.3: the SLICER's 29) */
+  [[123, 115], [120, 112], [99, 91], [91, 83], [89, 81], [69, 61], [57, 49]].some(([c, e]) => info.pcount === c && info.pe0 === e);
 const P = { LEVEL: 0, SLEN: 29 };
 const LAYOUT = (pe0) => [
   { t: "ENV", pages: [["ENV", 0, [1, 2, 3, 4]], ["ENV DEST", 0, [5, 6, 7, 8]]] },
@@ -2858,7 +2922,9 @@ const LAYOUT = (pe0) => [
       [96 + 4 * k, 97 + 4 * k, 98 + 4 * k, 99 + 4 * k]])] : [])] },   /* (JIANT) the modulation sequence: LEN DIV SLEW, its 16 levels */
   ...(pe0 >= 61 ? [{ t: "MOD", mod: 49 }] : []),   /* the matrix: P_M1SRC 49 .. P_M4AMT 60, one row per slot */
   { t: "EDIT", engine: true, pages: [["EDIT 1", 0, [pe0, pe0 + 1, pe0 + 2, pe0 + 3]], ["EDIT 2", 0, [pe0 + 4, pe0 + 5, pe0 + 6, pe0 + 7]],
-    ...(pe0 >= 91 && engName() === "DRUM" ? [["LANES", 0, P_LANES.slice(0, 4)], ["LANES 2", 0, P_LANES.slice(4)]] : [])] },   /* lane levels 83..90 */
+    ...(pe0 >= 91 && engName() === "DRUM" ? [["LANES", 0, P_LANES.slice(0, 4)], ["LANES 2", 0, P_LANES.slice(4)]] : []),   /* lane levels 83..90 */
+    ...hpPages(pe0)] },   /* (ports/) SAMPLE's TRIG REC, GRAIN's TRAVEL SOURCE PITCH, DRUM-X's SAMPLES */
+  ...(pe0 >= 115 ? [{ t: "FILTER", pages: [["FILTER", 0, [112, 113, 114]]] }] : []),   /* (JIANT 0.5) TYPE CUT RES (P_FTYPE ..) */
   ...(pe0 >= 81 && engName() === "DIGITAL" ? [{ t: "OP ENV", pages: [   /* P_FM1_ATK 61: ATK DEC SUS REL LVL per operator (a
                                                     FELUCCA_FM4=1 firmware only: DIGITAL retired, its engine is "-") */
     ...[0, 1, 2, 3].map((k) => [`OP${k + 1}`, 0, [61 + 5 * k, 62 + 5 * k, 63 + 5 * k, 64 + 5 * k]]),
@@ -2875,6 +2941,12 @@ const LAYOUT = (pe0) => [
   { t: "SEQ PATTERN", tab: "seqgroups", pages: [["PATTERN", 0, [29, 30, 31, 32]], ...(pe0 >= 83 ? [["STRETCH · TRACK", 0, P_SHIFT]] : [])] },   /* ROTATE PITCH 81, 82 (SHIFT until 0.6.91) */
   { t: "GLOBAL", tab: "setgroups", pages: [["GLOBAL", 1, [0, 1, 2, 3]], ["SYSTEM", 1, [14]]] },   /* G_ROUTE: MIDI IN */
 ];
+function hpPages(pe0) {
+  const hp = dev && dev.info && dev.info.hostPower;
+  const name = engName();
+  if (!hp || pe0 < 115 || !(name === "SAMPLE" && hp.sample || name === "GRAIN" && hp.grain || name === "DRUM" && hp.drumSamples)) return [];
+  return HP_PAGES[name];
+}
 /* globals that are actions or placeholders on the device: buttons instead, or hidden */
 const G_SKIP = new Set(["SLOT", "NAME", "LOAD", "SAVE", "ENG", "SET", "CLRSQ", "INIT", "MIDI", "SYNC", "CPU", "CLK"]);
 const key = (s, id) => s + ":" + id;
@@ -2922,7 +2994,8 @@ async function connect() {
   sayK("connecting");
   try {
     if (!access) {
-      if (MOCK) { mock = makeMockDevice({ legacy: QS.get("legacy") === "1" }); access = mock.access; }
+      if (MOCK) { mock = makeMockDevice({ legacy: QS.get("legacy") === "1", hostPower: QS.get("hp") === "1",   /* (?hp=1: a big CPU, ?board=1: an SMK-37) */
+        board: +QS.get("board") || 0, portName: QS.get("port") || undefined }); access = mock.access; }
       else {
         try { access = await navigator.requestMIDIAccess({ sysex: true }); }
         catch (e) { sayK("denied"); return; }
@@ -3055,12 +3128,17 @@ async function load(d) {
 async function getDescOrNull(s, i, d = dev) { try { return await getDesc(s, i, d); } catch (e) { if (e.message === "closed") throw e; return null; } }
 
 /* rebuilds the controls only when the engine or its parameters changed (a slider being dragged survives) */
+const HP_ALL = [...new Set(Object.keys(HP_PAGES).flatMap(hpIds))];
 async function rereadEngineDesc(d = dev) {
   assertSession(d);
   const pe0 = d.info.pe0;
   const before = JSON.stringify(d.pdesc.slice(pe0));
   for (let i = 0; i < 8 && pe0 + i < d.info.pcount; i++) d.pdesc[pe0 + i] = await getDescOrNull(0, pe0 + i, d);
-  if (d.built !== d.dump.engine || JSON.stringify(d.pdesc.slice(pe0)) !== before) buildGroups();
+  /* (ports/) the values a big CPU keeps in other engines' slots: their descriptors are the track engine's (and its
+     SAMPLE TRIG's: AMOUNT's name); read again for every engine that has them, and when leaving one (the slots' own) */
+  const hpBefore = JSON.stringify(HP_ALL.map((i) => d.pdesc[i]));
+  if (d.info.hostPower) for (const i of HP_ALL) if (i < d.info.pcount) d.pdesc[i] = await getDescOrNull(0, i, d);
+  if (d.built !== d.dump.engine || JSON.stringify(d.pdesc.slice(pe0)) !== before || JSON.stringify(HP_ALL.map((i) => d.pdesc[i])) !== hpBefore) buildGroups();
 }
 
 async function loadSteps(d = dev) {
@@ -3114,8 +3192,9 @@ function renderSysinfo() {
   const box = $("sysinfo");
   if (!dev || !dev.info) { box.replaceChildren(); return; }
   const i = dev.info;
+  $("version").textContent = `${deviceName(i, dev.input && dev.input.name)} · ${i.version}`;   /* (SMK-37, ports/) which device */
   const rows = [
-    ["firmware", i.version], ["sync", t(dev.watch ? "live" : "polling")], ["enginesL", i.engines.join(", ")],
+    ["deviceL", deviceName(i, dev.input && dev.input.name)], ["firmware", i.version], ["sync", t(dev.watch ? "live" : "polling")], ["enginesL", i.engines.join(", ")],
     ["tracksN", i.ntrk ? String(i.ntrk) : "1"], ["stepsN", String(i.nstep)],
     ["userBank", dev.bank ? String(dev.bank.total) : t("none")],
   ];
@@ -3348,7 +3427,7 @@ async function sendSet(s, id, k) {
       showValue(k, r.value, false);
       mixFromDump();
     }
-    if (!s && dev && id === dev.info.pe0) { dev.dump = await getDump(); await rereadEngineDesc(); refreshAll(); }   /* (V10.40) WAVE / EXCITE / MODE:
+    if (!s && dev && (id === dev.info.pe0 || dev.info.hostPower && hpIds(engName())[0] === id)) { dev.dump = await getDump(); await rereadEngineDesc(); refreshAll(); }   /* (ports/: SAMPLE's TRIG names AMOUNT) */   /* (V10.40) WAVE / EXCITE / MODE:
                                                          * some knobs change name and range (ANALOG SAW3's INT 3, STRING FDBK) */
   } catch (e) { if (e.message !== "closed") console.warn(e); }
 }

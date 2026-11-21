@@ -68,7 +68,8 @@ const E = vm.runInNewContext(proto + `
    mixer, parseNotes, parseHits, hitsText, gridFromSteps, LANE_NOTE, LANE_OF, readDevicePreferences, devicePresetRows, engineOrder, ENGINE_ORDER, aliasOf, fmtValue, FM6, enumShown, F,
    FM4, fromDigital, fromPerc, DRUM_KIT_E,
    MENU: typeof MENU === "undefined" ? null : MENU, MENU_TABS: typeof MENU_TABS === "undefined" ? null : MENU_TABS,
-   readDeviceMenu: typeof readDeviceMenu === "undefined" ? null : readDeviceMenu, fm6Bank, crc32, lyricText })`,
+   readDeviceMenu: typeof readDeviceMenu === "undefined" ? null : readDeviceMenu, fm6Bank, crc32, lyricText,
+   deviceName, editorPort, HP_PAGES, hpIds })`,
 { setTimeout, clearTimeout, setInterval, clearInterval, console });
 
 /* (JIANT 0.6.11, from Felucca 1.4.1's test) FM6's voice bank (cmds 74..77; the editor's fm6Bank) against the mock: INFO 56 01 32, a 32-voice .syx
@@ -512,6 +513,69 @@ function mockTables() {
   ok(swg.length === 3 && swg.every((d) => E.fmtValue(d, 100)[0] === "100" && E.fmtValue(d, 50)[0] === "50") &&
      E.fmtValue({ fmt: swg[0].fmt, min: 0, max: 127 }, 127)[0] === "100" && E.fmtValue({ fmt: swg[0].fmt, min: 0, max: 127 }, 64)[0] === "50",
      "editor: SWG 100 shows 100 % (not 79), 0..127 percents unchanged");
+}
+
+
+/* (SMK-37, ports/) the devices beside the FM-1: INFO's 'D' (the device: 1 SMK-37 Pro, 2 Elite, 3 a computer, 4 the MPC
+   Sample app, 5 the MPC plugin) and 'H' (a big CPU's engines: SAMPLE, GRAIN, DRUM-X's samples, the slots), both just
+   before 'Y'; an FM-1 sends neither. The editor's pages for the big CPUs' engines (HP_PAGES) == the firmware's
+   (params.c PAGES from HP_PAGE0: build/host/desc_hp.json, tests/descdump.c with FELUCCA_HOST_POWER=1), and the mock with
+   hostPower is that device: its SAMPLE / GRAIN tables and the values DESC names by the track's engine */
+async function editorDevices() {
+  const C = E.CMD;
+  const infoOf = async (opt) => { const { rq, done } = attachMock(opt); const i = E.parse[C.INFO](await rq(E.req.info())); done(); return i; };
+  const fm1 = await infoOf({}), smk = await infoOf({ board: 1, portName: "JIANT SMK-37" }), hp = await infoOf({ hostPower: true });
+  ok(fm1.board === 0 && !fm1.hostPower && fm1.lyric === 63 && fm1.laneModes === 7, "devices: an FM-1's INFO: no 'D', no 'H' (its tags as before)");
+  ok(smk.board === 1 && !smk.hostPower && smk.lyric === 63 && smk.laneModes === 7, "devices: an SMK-37's INFO: 'D' 1 1, no 'H'");
+  ok(hp.board === 3 && hp.hostPower && hp.hostPower.caps === 15 && hp.hostPower.slots === 16 && hp.hostPower.sample &&
+     hp.hostPower.grain && hp.hostPower.drumSamples && hp.lyric === 63 && hp.engines[4] === "SAMPLE" && hp.engines[8] === "GRAIN",
+     "devices: a big CPU's INFO: 'D' 1 3, 'H' 2 15 16 (SAMPLE in 4, GRAIN in 8), 'Y' still last");
+  ok(E.deviceName(fm1, "JIANT") === "FM-1" && E.deviceName(smk, "JIANT SMK-37") === "SMK-37 Pro" &&
+     E.deviceName({ board: 2 }, "") === "SMK-37 Elite" && E.deviceName(fm1, "JIANT SMK-37") === "SMK-37" &&
+     E.deviceName(hp, "") === "JIANT FM app / plugin" && E.deviceName({ board: 4 }, "MPC Sample") === "MPC Sample",
+     "devices: the name shown (the tag, else the port: an SMK-37 before the tag)");
+  ok(["JIANT SMK-37", "MIDIIN2 (JIANT SMK-37)", "MPC Sample", "JIANT", "FM-1"].every((n) => E.editorPort({ name: n, state: "connected" })) &&
+     !E.editorPort({ name: "IAC Driver Bus 1", state: "connected" }), "devices: the SMK-37's and the MPC Sample's ports are asked first");
+  /* DESC by the track's engine on the big CPUs */
+  const { rq, done } = attachMock({ hostPower: true });
+  const info = E.parse[C.INFO](await rq(E.req.info()));
+  const desc = async (id) => E.parse[C.DESC](await rq(E.req.desc(0, id)));
+  await rq(E.req.preset(4, 0));
+  const trig = await desc(83), amt0 = await desc(84);
+  await rq(E.req.set(0, 83, 2));
+  const amt2 = await desc(84);
+  ok(trig.label === "TRIG" && trig.names[2] === "RATCH" && amt0.label === "-" && amt2.label === "COUNT",
+     "devices: SAMPLE's TRIG over DESC; AMOUNT named by it (NORM: hidden, RATCH: COUNT)");
+  await rq(E.req.preset(8, 0));
+  const tr = await desc(83), q = await desc(72);
+  await rq(E.req.preset(10, 0));
+  const sm = await desc(61), slot = await desc(80), dump = E.parse[C.DUMP](await rq(E.req.dump()), info);
+  ok(tr.label === "TRAVEL" && q.label === "QUANT" && sm.label === "SMORPH" && slot.min === 112 && slot.names[0] === "1" &&
+     dump.p[80] === 112 && dump.p[78] === 125, "devices: GRAIN's TRAVEL / QUANT, DRUM-X's SMORPH, SLOT 112..127 named 1..16");
+  await rq(E.req.preset(0, 0));
+  ok((await desc(61)).label !== "SMORPH", "devices: on another engine those ids are the track's own again");
+  done();
+  ok(E.fromPerc({ engine: 4, p: [...new Array(115).fill(0), 4, 0, 0, 0, 0, 0, 0, 0] }, info.engines, 115) === null &&
+     !!E.fromPerc({ engine: 4, p: [...new Array(115).fill(0), 4, 0, 0, 0, 0, 0, 0, 0] }, fm1.engines, 115),
+     "devices: a SAMPLE sound (SLOT 5) stays SAMPLE on a big CPU; on an FM-1 a PERC one still becomes DRUM");
+  ok(E.hpIds("DRUM").join() === "61,72,80,78,75" && E.hpIds("ANALOG").length === 0, "devices: the editor's DRUM-X SAMPLES pages");
+  const dj = join(DESC, "../desc_hp.json");
+  if (!existsSync(dj)) { console.log("devices: big CPU tables == firmware (no build/host/desc_hp.json)".padEnd(64) + " skip"); return; }
+  const fw = JSON.parse(readFileSync(dj, "utf8"));
+  const norm = (d) => ({ label: d.label, fmt: d.fmt, min: d.min, max: d.max, def: d.def, names: d.names || null, unit: d.unit || "" });
+  const pages = fw.HP.pages.map((pg) => ({ engine: pg.engine, name: pg.name, ids: pg.ids }));
+  const mine = Object.entries(E.HP_PAGES).flatMap(([engine, pgs]) => pgs.map(([name, , ids]) => ({ engine, name, ids })));
+  ok(JSON.stringify(mine) === JSON.stringify(pages) && fw.HP.caps === 15 && fw.HP.slots === 16,
+     "devices: the editor's SAMPLE / GRAIN / DRUM-X pages == the firmware's (params.c from HP_PAGE0)");
+  const m = E.makeMockDevice({ auto: false, hostPower: true }), T = m.tables;
+  m.stop();
+  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  const engOk = [4, 8].every((e) => T.ENG[e].name === fw.ENG[e].name && same(T.ENG[e].titles, fw.ENG[e].titles) &&
+    same(T.ENG[e].edit.map(norm), fw.ENG[e].edit) && same(T.ENG[e].presets.map((p) => [p.name, p.e, p.env, p.mono, p.pat]),
+      fw.ENG[e].presets.map((p) => [p.name, p.e, p.env, p.mono, p.pat])));
+  ok(engOk && same(T.HP_PAGES.map((pg) => ({ engine: pg.engine, name: pg.name, ids: pg.ids, descs: pg.descs.map(norm) })), fw.HP.pages) &&
+     same(E.ENGINE_ORDER.filter((n) => fw.ENG.some((e) => e.name === n)), fw.ORDER),
+     "devices: the mock's SAMPLE, GRAIN, their pages and the engine order == the big CPUs' firmware");
 }
 
 /* ------------------------------------------------------------------ DIGITAL retired --- */
@@ -1997,6 +2061,7 @@ await editorFm6Bank();
 await editorLyric();
 await editorSamplePresets();
 mockTables();
+await editorDevices();
 await editorLibrarian();
 await editorGrid();
 await editorRatchet();

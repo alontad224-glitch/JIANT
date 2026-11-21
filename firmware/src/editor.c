@@ -21,6 +21,19 @@ enum { ED_INFO = 1, ED_GET, ED_SET, ED_DUMP, ED_DESC, ED_STEP_GET, ED_STEP_SET, 
        ED_LYRIC,                                                                /* (JIANT 0.8.5) VOICE's lyric */
        ED_MOTION = 64, ED_BACKUP_LIST, ED_BACKUP_GET, ED_BACKUP_PUT };                              /* v6: song chain */
 
+/* (SMK-37, ports/) INFO's 'D' tag: which device answers, so the editor can say so (an FM-1 sends no tag: its
+ * binary stays as it was). 1 SMK-37 Pro, 2 SMK-37 Elite, 3 a computer (a plugin, the standalone app), 4 the MPC Sample
+ * app, 5 the MPC plugin; the core's host names itself (ports/core jiant_editor_host). 'H' (big CPUs only): bit 0
+ * SAMPLE (engine 4), bit 1 GRAIN (engine 8), bit 2 DRUM-X's sample layer, bit 3 the values beyond EDIT's eight that
+ * DESC names by the track's engine (engines.c hp_xdesc) */
+#if BOARD_SMK37
+#define ED_BOARD (SMK_MODEL[7] == 'E' ? 2u : 1u)
+#elif FELUCCA_HOST_POWER
+static uint8_t ed_board = 3u;
+#define ED_BOARD ed_board
+#endif
+#define ED_HP_CAPS 15u
+
 static uint8_t ed_out[600];
 static uint32_t ed_n;
 
@@ -228,7 +241,17 @@ static void ed_sync(void)                                /* main loop */
 
 /* descriptor of parameter id of track t: the engine parameters of the engine it asked for
  * (t->engine follows in the audio ISR, after a short fade) */
-static const param_desc_t *ed_tdesc(const track_t *t, uint32_t id) { return param_desc_of(trk_eng(t), id); }
+static const param_desc_t *ed_tdesc(const track_t *t, uint32_t id)
+{
+#if FELUCCA_HOST_POWER
+    /* (ports/) SAMPLE's and GRAIN's values beyond EDIT, DRUM-X's sample layer: in other engines' slots, named by the
+     * track's engine (engines.c hp_xdesc), so DESC, SET's clamp and TRACK_PARAM take them as the device's pages do */
+    const param_desc_t *x = id < P_COUNT ? hp_xdesc(t, id) : 0;
+    if (x)
+        return x;
+#endif
+    return param_desc_of(trk_eng(t), id);
+}
 /* descriptor and value slot of (scope, id): scope 0 = the selected track, 1 = global */
 static const param_desc_t *ed_desc(uint32_t scope, uint32_t id, int16_t **vp)
 {
@@ -431,6 +454,13 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
         ed_b(0x56); ed_b(1); ed_b(FM6_NBANK);   /* (JIANT 0.6.11, Felucca 1.4.1) FM6's voice bank: cmds 74..77, SLOT 9..40 */
         ed_b(0x4A); ed_b(1); ed_b(1);   /* (JIANT 0.6.62) 'J': this is JIANT (the web installer writes over it, web/index_pkg.html) */
         ed_b(0x4F); ed_b(1); ed_b(LM_N);   /* (0.8.5) 'O': the DRUM-X octaves, a step's lane modes 0..6 after its ratchet */
+#if BOARD_SMK37 || FELUCCA_HOST_POWER
+        ed_b(0x44); ed_b(1); ed_b(ED_BOARD);   /* 'D': the device answering (no tag: an FM-1); EDITOR_PROTOCOL.md "Device" */
+#endif
+#if FELUCCA_HOST_POWER
+        ed_b(0x48); ed_b(2); ed_b(ED_HP_CAPS); ed_b(SMP_NSLOT);   /* 'H': a big CPU's engines (ports/): SAMPLE, GRAIN, DRUM-X's
+                                                                     * samples and their values beyond EDIT; the slots */
+#endif
         ed_b(0x59); ed_b(1); ed_b(LYR_LEN - 1u);   /* (JIANT 0.8.5) 'Y': LYRIC (cmd 39), a track's lyric, at most 63 bytes */
         break;
     case ED_GET:
@@ -481,7 +511,11 @@ static void ed_handle(const uint8_t *f, uint32_t n)   /* f: the bytes between F0
         ed_str(d->unit, 8);
         if (d->fmt == F_ENUM && d->names)                  /* up to 32 (0.7.0: the matrix DST has 30; was 24) */
             for (i = 0; i <= (uint32_t)(d->max - d->min) && i < 32u; i++)
+#if FELUCCA_HOST_POWER
+                ed_str(d->names[d->min + (int32_t)i], 8);   /* (ports/) names by value, as param_format: DRUM-X's SLOT 112.. */
+#else
                 ed_str(d->names[i], 8);
+#endif
         break;
     case ED_STEP_GET:
     case ED_STEP_SET: {

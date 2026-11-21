@@ -15,6 +15,7 @@ SHIFT-click holds a button, and the computer keyboard as the emulator's (Z..' an
 | --- | --- |
 | Formats | VST3 (macOS, Windows, Linux), AU and AUv3 (macOS), AUv3 and the app (iOS / iPadOS), LV2 (Linux), standalone |
 | MIDI | channels 1-4 play tracks 1-4 (GLO > MIDI IN ROUTE CH1-4); CCs as JIANT's MIDI map |
+| Web editor | the standalone app answers [the web editor](../../web/editor.html) (its SysEx in, the replies out of the MIDI output chosen in its settings: connect the two through a virtual MIDI cable, e.g. IAC on macOS, loopMIDI on Windows); it shows as "JIANT FM app / plugin" with SAMPLE, GRAIN and DRUM-X's samples. The plugins take the editor's SysEx but have no MIDI output (their buses as before), so a DAW does not pass the replies back |
 | Sync | **Host** (default): the sequencer follows the host's transport and tempo; **Internal**: its own tempo |
 | Parameters | Volume (the MASTER knob), Sync |
 | Saved | in the host's project: the live section, the songs, the user presets |
@@ -26,7 +27,7 @@ SHIFT-click holds a button, and the computer keyboard as the emulator's (Z..' an
 
 ```sh
 ports/juce-plugin/build.sh                    # this computer's formats -> build/juce-plugin/JiantFM_artefacts/Release
-ports/juce-plugin/build.sh -DJIANT_CHECK=ON   # and the checks: tests/plugin_check.cpp, tests/editor_shot.cpp
+ports/juce-plugin/build.sh -DJIANT_CHECK=ON   # and the checks: tests/plugin_check.cpp, tests/editor_shot.cpp, tests/sysex_check.cpp
 ```
 
 JUCE 9.0.5 is fetched (or `JUCE_DIR=<a checkout>`). macOS: `-G Xcode` (AUv3). iOS:
@@ -36,7 +37,8 @@ every platform on each push to `ports/`, and keeps the results as the run's arti
 The check (`plugin_check <plugin>`) loads the built plugin as a host loads it (JUCE's VST3 / AU hosting): its
 description, a chord at 44.1, 48 and 96 kHz in blocks of 32 to 1024 frames (it sounds, then it is silent after the
 note-offs, nothing non-finite), the state out and back, a second instance silent, the editor made. macOS adds Apple's
-`auval`.
+`auval`. `sysex_check` makes the processor as the standalone app does and sends the web editor's INFO, PRESET and DESC
+through processBlock: the replies come back in its MIDI (the device as a computer, its big CPU's engines).
 
 ## Installing
 

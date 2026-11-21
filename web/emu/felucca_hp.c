@@ -16,6 +16,7 @@
  *   web/emu/build.sh  ->  build/emu/felucca_hp.wasm */
 #define FELUCCA_HOST_POWER 1
 #define JIANT_NO_REAL_LOAD 1
+#define JIANT_NO_EDITOR 1            /* (no MIDI in the browser page: the editor's SysEx handler not built) */
 #include "../../ports/core/jiant_core.c"
 
 EXPORT uint32_t web_host_power(void) { return 1u; }

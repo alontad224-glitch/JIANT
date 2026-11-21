@@ -28,7 +28,7 @@ try:
         page.locator('[role="button"][aria-label="SAVE"]').click(delay=100)
         page.wait_for_timeout(150)
         page.locator('[role="slider"][aria-label="SELECT"]').focus()
-        for _ in range(6):
+        for _ in range(12):   # (to the chain's last page whatever its length: SELECT stops there; V10.7.23 needs 7, later 6)
             page.keyboard.press('ArrowRight');page.wait_for_timeout(150)
         page.locator('[role="slider"][aria-label="KNOB 2"]').focus()
         page.keyboard.press('ArrowLeft');page.wait_for_timeout(150)   # (V10.54: INPUT is the last engine, ADD before it)

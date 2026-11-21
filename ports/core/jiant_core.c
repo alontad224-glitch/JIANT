@@ -119,6 +119,87 @@ JC_API int jiant_boot(uint32_t seed, int skip_splash)
 }
 JC_API int jiant_booted(void) { return (int)web_booted; }
 
+#ifndef JIANT_NO_EDITOR
+/* ------------------------------------------------------------------ the web editor's SysEx (jiant_core.h) ---
+ * The firmware's own handler (firmware/src/editor.c, web/EDITOR_PROTOCOL.md), as the FM-1 runs it over USB: a request
+ * goes in whole (jiant_sysex), the replies and the live pushes come out whole (jiant_sysex_out). In place of usb.c's
+ * SysEx plumbing (FELUCCA_OTA: the firmware updates, never here): one frame in, a ring of messages out */
+static uint8_t jc_ed_in[640];
+static uint32_t jc_ed_in_n, jc_ed_ready, jc_ed_on;
+static uint8_t jc_ed_out[16384];                           /* F0..F7 messages, back to back */
+static uint32_t jc_ed_w, jc_ed_r;                          /* (free-running) */
+#if !FELUCCA_OTA
+#define SXQ 64u                                            /* (usb.c's outgoing ring, which editor.c ed_room asks: never full here) */
+static uint32_t so_w, so_r;
+#endif
+static uint32_t ota_now_ms(void) { return fm1_ms; }
+static int ota_wire_send(const uint8_t *p, uint32_t n)
+{
+    uint32_t i;
+    if (n > sizeof jc_ed_out - (jc_ed_w - jc_ed_r))
+        return -1;                                          /* (nobody reads: dropped whole) */
+    for (i = 0; i < n; i++)
+        jc_ed_out[(jc_ed_w + i) % sizeof jc_ed_out] = p[i];
+    jc_ed_w += n;
+    return 0;
+}
+static int ota_frame_get(const uint8_t **p, uint32_t *n)
+{
+    if (!jc_ed_ready)
+        return 0;
+    *p = jc_ed_in;
+    *n = jc_ed_in_n;
+    return 1;
+}
+static void ota_frame_done(void) { jc_ed_ready = 0; }
+#include "../../firmware/src/editor.c"
+
+JC_API int jiant_sysex(const uint8_t *msg, size_t n)
+{
+    if (!web_booted || !msg || n < 6u || msg[0] != 0xF0u || msg[n - 1u] != 0xF7u || msg[1] != ED_HDR0 || msg[2] != ED_HDR1 ||
+        msg[3] != ED_HDR2 || n - 2u > sizeof jc_ed_in)
+        return 1;
+    if (!jc_ed_on) {                                        /* the editor's link is up (editor.c ed_sync: WATCH) */
+        jc_ed_on = 1;
+        usb.config = 1;
+    }
+    memcpy(jc_ed_in, msg + 1, n - 2u);
+    jc_ed_in_n = (uint32_t)(n - 2u);
+    jc_ed_ready = 1;
+    ed_service();
+    jc_ed_ready = 0;
+    return 0;
+}
+JC_API void jiant_editor_poll(void)
+{
+    if (jc_ed_on && web_booted)
+        ed_service();                                       /* the live pushes (WATCH) */
+}
+JC_API size_t jiant_sysex_out(uint8_t *buf, size_t cap)
+{
+    uint32_t n = 0;
+    if (jc_ed_r == jc_ed_w)
+        return 0;
+    while (jc_ed_r + n != jc_ed_w && jc_ed_out[(jc_ed_r + n) % sizeof jc_ed_out] != 0xF7u)
+        n++;
+    n++;                                                    /* (its F7) */
+    if (!buf || n > cap)
+        return n;                                           /* the length it needs */
+    for (uint32_t i = 0; i < n; i++)
+        buf[i] = jc_ed_out[(jc_ed_r + i) % sizeof jc_ed_out];
+    jc_ed_r += n;
+    return n;
+}
+JC_API void jiant_editor_host(uint32_t board)
+{
+#if FELUCCA_HOST_POWER
+    ed_board = (uint8_t)(board ? board : 3u);
+#else
+    (void)board;
+#endif
+}
+#endif
+
 JC_API void jiant_render(float *l, float *r, uint32_t n)
 {
     while (n) {

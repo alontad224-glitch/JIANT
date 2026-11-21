@@ -41,7 +41,7 @@ static void js_desc(const param_desc_t *d)
         for (i = 0; i <= d->max - d->min; i++) {
             if (i)
                 putchar(',');
-            js_str(d->names[i]);
+            js_str(d->names[FELUCCA_HOST_POWER ? d->min + i : i]);   /* (ports/: as editor.c's DESC) */
         }
         putchar(']');
     } else {
@@ -241,6 +241,38 @@ int main(void)
             printf("]]");
         }
     }
-    printf("]}\n");
+    printf("]");
+#if FELUCCA_HOST_POWER
+    /* (ports/, built with -DFELUCCA_HOST_POWER=1 into desc_hp.json) the big CPUs' pages beyond EDIT 1 / 2 (params.c
+     * PAGES from HP_PAGE0, ui.c page_visible): each with its engine, ids and the descriptors DESC sends for them on a
+     * track of that engine at its first preset (editor.c ed_tdesc: engines.c hp_xdesc) */
+    printf(",\n\"HP\":{\"caps\":%u,\"slots\":%u,\"pages\":[", 15u, (unsigned)SMP_NSLOT);
+    for (k = HP_PAGE0; k < NPAGES; k++) {
+        uint32_t en = k < HP_PAGE0 + 2u ? ENGI_SAMPLE : k < HP_PAGE0 + 5u ? ENGI_GRAIN : ENGI_DRUM;
+        track_t *t = &trk[0];
+        for (i = 0; i < P_COUNT; i++)
+            t->p[i] = param_desc_of(en, i)->def;
+        host_preset_values(t, en, 0, &ENGINES[en]->presets[0]);
+        hp_preset_x(t, ENGINES[en], 0);
+        t->engine = t->eng_req;
+        printf("%s\n {\"engine\":", k > HP_PAGE0 ? "," : "");
+        js_str(ENGINES[en]->name);
+        printf(",\"name\":");
+        js_str(PAGES[k].title);
+        printf(",\"ids\":[");
+        for (i = 0, e = 0; i < 4u; i++)
+            if (PAGES[k].id[i] != 0xFFu)
+                printf("%s%u", e++ ? "," : "", (unsigned)PAGES[k].id[i]);
+        printf("],\"descs\":[");
+        for (i = 0, e = 0; i < 4u; i++)
+            if (PAGES[k].id[i] != 0xFFu) {
+                printf("%s", e++ ? "," : "");
+                js_desc(hp_xdesc(t, PAGES[k].id[i]));
+            }
+        printf("]}");
+    }
+    printf("]}");
+#endif
+    printf("}\n");
     return 0;
 }

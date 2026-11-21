@@ -153,6 +153,18 @@ the sum as ever, and a closed hat chokes the open one's sample as its synth. CHA
 sequencer's, as for the synth.
 
 
+## The web editor: not yet
+
+The MPC Sample is a USB MIDI device to a computer (its USB-C gadget, `f_midi`, shown as "MPC Sample"), both ways, and
+sample-base hands the app every packet from it, SysEx included (`App::midi`), and lets it send (`App::midi_output`).
+But this app drops SysEx and sends nothing, so [the web editor](../../web/editor.html) gets no answer from it (the editor
+says so in its MIDI ports' help). The firmware's side is ready: the core answers the editor (`jiant_sysex`,
+`jiant_sysex_out`, `jiant_editor_host(4)` so it shows as "MPC Sample"; `ports/core/core_test.c`), and the JUCE standalone
+app uses it. What the app still needs, untested without a unit: the requests from the MIDI thread to the audio thread
+(where the core runs) through a lock-free byte ring, the replies back the same way and out to the port the request came
+from; and a reply longer than sample-base's 256-byte `MidiPacket` (DUMP is about 400 bytes) sent as consecutive
+packets, which needs checking that its output queue keeps a SysEx split that way in one piece.
+
 ## Release
 
 ```sh

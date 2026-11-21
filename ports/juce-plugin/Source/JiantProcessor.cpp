@@ -229,6 +229,8 @@ void JiantProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
             const uint8_t* d = m.getRawData();
             if (m.getRawDataSize() >= 1 && d[0] >= 0x80 && d[0] < 0xF0)
                 jiant_midi(d[0], m.getRawDataSize() > 1 ? d[1] : 0, m.getRawDataSize() > 2 ? d[2] : 0);
+            else if (m.isSysEx())                        // the web editor (web/editor.html), as the FM-1 takes it
+                jiant_sysex(d, size_t(m.getRawDataSize()));
             ++it;
         }
         while (ck < nclk && clock_[size_t(ck)].offset <= at)
@@ -242,6 +244,21 @@ void JiantProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBu
             next = at + 1;
         render(outL + at, outR ? outR + at : nullptr, next - at);   // (mono: the left side)
         at = next;
+    }
+
+    // the editor's replies and its live pushes: out of the standalone app's MIDI output; a plugin has none (dropped)
+    jiant_editor_poll();
+    bool out = producesMidi();
+    if (out)
+        midi.clear();
+    for (size_t n; (n = jiant_sysex_out(sysexOut_.data(), sysexOut_.size())) != 0;) {
+        if (n > sysexOut_.size()) {                     // (never: editor.c's replies are at most 600 bytes) skipped
+            std::vector<uint8_t> big(n);
+            jiant_sysex_out(big.data(), n);
+            continue;
+        }
+        if (out)
+            midi.addEvent(sysexOut_.data(), int(n), juce::jmax(0, frames - 1));
     }
 
     publish();
