@@ -424,7 +424,7 @@ for m in pro elite; do
     [ $m = pro ] && S=SMK37-Pro-V16.fwsc || S=SMK37-Elite-V16.fwsc
     STOCK=""
     [ -n "${SMK_STOCK:-}" ] && [ -f "$SMK_STOCK/$S" ] && STOCK="$SMK_STOCK/$S"
-    run "SMK-37 $m package: identity, flash.bin 0x9D000, the stock v016 region table${STOCK:+ (= $S's bytes)}" \
+    run "SMK-37 $m package: identity, flash.bin 0x9D000, the stock v016 region table${STOCK:+ (= the bytes of $S)}" \
         python3 tests/smk_pkg_test.py "$P" "${N}_900" "build/smk37-$m/felucca.bin" $STOCK
 done
 
