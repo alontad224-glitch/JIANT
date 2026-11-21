@@ -28,5 +28,9 @@ if [ "${1:-}" = test ]; then
     # the sample engines (SAMPLE, GRAIN, DRUM-X's samples) with the firmware's internals at hand
     $CC -O2 -ffp-contract=off -std=gnu99 -w "-DFELUCCA_VERSION=\"$VERSION\"" -Ibuild/gen -Ifirmware/src -Iports/core \
         ports/core/sample_test.c -lm -o "$OUT/sample_test"
-    "$OUT/sample_test"
+    "$OUT/sample_test" "$OUT/hp_state.bin"
+    # .. and the FM-1's side: that project loaded by the core built as the FM-1 is (no host power)
+    $CC -O2 -ffp-contract=off -std=gnu99 -w "-DFELUCCA_VERSION=\"$VERSION\"" -Ibuild/gen -Ifirmware/src -Iports/core \
+        ports/core/fm1_load_test.c -lm -o "$OUT/fm1_load_test"
+    "$OUT/fm1_load_test" "$OUT/hp_state.bin"
 fi

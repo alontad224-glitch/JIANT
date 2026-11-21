@@ -4,6 +4,9 @@
 /* Engine table (order = PRESETS browsing order and the engine numbers of the editor protocol), the
  * factory patterns (SEQ > PATTERNS) and the parts' sounds at power-on. */
 #include "dsp.c"
+#if FELUCCA_HOST_POWER
+#include "smp_slots.c"          /* (ports/) the sample slots, the recorder, the LIVE buffers */
+#endif
 #include "eng_analog.c"
 #include "eng_phase.c"
 #include "eng_lofi.c"
@@ -15,7 +18,6 @@
 #include "eng_animal.c"         /* (JIANT 0.8.3) ANIMAL: animal calls (CMOS PULSE WHSTL WING GLOTT) */
 #include "fm4_convert.c"        /* DIGITAL's tables, and its sounds -> FM6 */
 #if FELUCCA_HOST_POWER
-#include "smp_slots.c"          /* (ports/) the sample slots, the recorder, the LIVE buffers */
 static void voice_kill(voice_t *v);   /* (voice.c) */
 #include "eng_sample.c"         /* (ports/) SAMPLE: one shot, experimental modes, feedback, DESTROY, REC */
 #include "eng_grain.c"          /* (ports/) GRAIN: granular, on a slot or LIVE */
@@ -89,6 +91,8 @@ static const param_desc_t *hp_xdesc(const track_t *t, uint32_t id)
     const engine_t *e = ENGINES[t->eng_req < NENGINES ? t->eng_req : 0u];
     if (e == &ENG_SAMPLE && id >= P_LN0 && id <= P_LN7)
         return smp_xdesc(t, id - P_LN0);
+    if (e == &ENG_DRUM && (id == P_DXSMORPH || id == P_DXSBLEND || id == P_DXSSLOT || id == P_DXSMAP || id == P_DXSLEVEL))
+        return dxs_desc(id);
     if (e == &ENG_GRAIN && ((id >= P_LN0 && id <= P_LN7) || id == P_GXQUANT || id == P_GXDAMP))
         return gr_xdesc(t, id);
     return 0;
@@ -99,6 +103,10 @@ static void hp_preset_x(track_t *t, const engine_t *e, uint32_t pi)
     if (e == &ENG_SAMPLE)
         for (i = 0; i < 8u; i++)
             t->p[P_LN0 + i] = SMP_PRESET_X[pi % NELEM(SMP_PRESETS)][i];
+    if (e == &ENG_DRUM) {                       /* (DRUM-X's sample layer: off, slot 1, SLOTS) */
+        t->p[P_DXSSLOT] = 112;
+        t->p[P_DXSMAP] = 125;
+    }
     if (e == &ENG_GRAIN) {
         const uint8_t *x = GR_PRESET_X[pi % NELEM(GR_PRESETS)];
         for (i = 0; i < 8u; i++)

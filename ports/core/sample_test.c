@@ -7,6 +7,8 @@
  * heavy settings printed. */
 #include "jiant_core.c"
 #include <stdio.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 static int fails;
 #define CHECK(c, ...) do { if (c) printf("  ok    " __VA_ARGS__); else { printf("  FAIL  " __VA_ARGS__); fails++; } \
@@ -121,8 +123,64 @@ static void heavy_grain(track_t *t)
     t->p[P_GXWIDTH] = 127;
 }
 
+/* DRUM-X with its sample layer set up but SMORPH 0 (variant 1) or as it boots, no slots (0): a pattern of hits rendered
+ * from boot, its hash. In a child process (each from its own boot) */
+static uint64_t drum_hash(int variant)
+{
+    int fd[2];
+    uint64_t h = 0;
+    pid_t pid;
+    if (pipe(fd))
+        return 1;
+    pid = fork();
+    if (pid == 0) {
+        uint32_t k, j;
+        uint64_t x = 1469598103934665603ull;
+        static float a[44100];
+        jiant_boot(11, 1);                     /* (booted before the fork: the parent's state, the same for both) */
+        for (k = 0; k < 16u; k++)
+            jiant_slot_clear(k);
+        for (k = 1; k < 6u; k++)
+            trk[k].p[P_MUTE] = 1;
+        set_engine_of(&trk[0], ENGI_DRUM);
+        ren(4096);
+        if (variant) {
+            for (k = 0; k < 44100u; k++)
+                a[k] = 0.5f * (float)sin(2.0 * M_PI * 1000.0 * k / 44100.0);
+            for (k = 0; k < 16u; k++)
+                jiant_slot_load(k, a, a, 22050, 44100, "SINE");
+            trk[0].p[P_DXSBLEND] = DXB_RING;
+            trk[0].p[P_DXSMAP] = 126;
+            trk[0].p[P_DXSSLOT] = 115;
+            trk[0].p[P_DXSLEVEL] = 30;
+        }
+        for (k = 0; k < 16u; k++) {
+            static const uint8_t N[4] = {36, 42, 38, 46};
+            note(N[k & 3u], 90 + k);
+            ren(5512);
+            for (j = 0; j < 5512u; j++) {
+                uint32_t b;
+                memcpy(&b, &ol[j], 4);
+                x = (x ^ b) * 1099511628211ull;
+                memcpy(&b, &or_[j], 4);
+                x = (x ^ b) * 1099511628211ull;
+            }
+            off(N[k & 3u]);
+        }
+        if (write(fd[1], &x, sizeof x) != sizeof x)
+            _exit(2);
+        _exit(0);
+    }
+    close(fd[1]);
+    if (read(fd[0], &h, sizeof h) != sizeof h)
+        h = 2;
+    close(fd[0]);
+    waitpid(pid, 0, 0);
+    return h;
+}
+
 static float S1[44100], S2[44100];
-int main(void)
+int main(int argc, char **argv)
 {
     track_t *t = &trk[0];
     uint32_t i;
@@ -567,6 +625,110 @@ int main(void)
                nv, x, 100.0 / x / (nv ? nv : 1u));
         CHECK(nv == 48u && x > 1.0, "48 GRAIN voices at once (clouds of up to %u grains), faster than real time", GR_N);
     }
+    printf("DRUM-X's sample layer\n");
+    {
+        uint64_t h0 = drum_hash(0), h1 = drum_hash(1);
+        CHECK(h0 == h1 && h0 > 2u, "SMORPH 0, slots loaded, BLEND SLOT MAP SLEVEL set: bit for bit DRUM-X as it is (%016llx)",
+              (unsigned long long)h0);
+    }
+    for (i = 0; i < 44100u; i++) {             /* slots 9..16: 1 kHz, 16 slices of 100 Hz steps in slot 9 */
+        S1[i] = 0.6f * (float)sin(2.0 * M_PI * 1000.0 * i / 44100.0);
+        S2[i] = 0.6f * (float)sin(2.0 * M_PI * 100.0 * (1u + i / 2756u) * i / 44100.0);
+    }
+    for (i = 9; i < 16u; i++)
+        jiant_slot_load(i, S1, 0, 44100, 44100, "KHZ");
+    jiant_slot_load(8, S2, 0, 44100, 44100, "STEPS");
+    use(ENGI_DRUM, 0);
+    CHECK(t->p[P_DXSSLOT] == 112 && t->p[P_DXSMAP] == 125 && !t->p[P_DXSMORPH] &&
+          !strcmp(track_desc(t, P_DXSMORPH)->label, "SMORPH") && !strcmp(track_desc(t, P_DXSSLOT)->names[112], "1"),
+          "a DRUM preset: the layer off, SLOT 1, MAP SLOTS");
+    t->p[P_DXSSLOT] = 112 + 9;                 /* SLOTS from 10: the kick (lane 0) slot 10 */
+    t->p[P_DXSMORPH] = 127;
+    t->p[P_E3] = 127;
+    {
+        uint32_t c;
+        note(36, 90);
+        ren(22050);
+        off(36);
+        c = zc(ol, 4410, 13230) * 5u;
+        CHECK(c > 950u && c < 1050u && wrms(ol, 4410, 13230) > 0.01, "SMORPH 127 XFADE: the kick is its sample (%u Hz)", c);
+        t->p[P_DXSMORPH] = 64;
+        note(36, 90);
+        ren(22050);
+        off(36);
+        CHECK(wrms(ol, 4410, 13230) > 0.005, "SMORPH 64: both (%.3f)", wrms(ol, 4410, 13230));
+    }
+    {
+        uint32_t b, bad = 0;
+        nonfinite = 0;
+        t->p[P_DXSMORPH] = 127;
+        for (b = 0; b < DXB_N; b++) {
+            t->p[P_DXSBLEND] = (int16_t)b;
+            note(36, 90);
+            note(38, 90);
+            note(42, 90);
+            ren(11025);
+            off(36); off(38); off(42);
+            bad += wrms(ol, 0, 11025) < 0.001;
+            if (b == DXB_SB)                       /* the synth's transient first, the sample's body after */
+                CHECK(zc(ol, 8000, 11025) * 44100u / 3025u > 900u, "S>B: the sample's body after the hit (%u Hz)",
+                      zc(ol, 8000, 11025) * 44100u / 3025u);
+        }
+        CHECK(!bad && !nonfinite, "every BLEND sounds, finite (XFADE S>B B>S FOLW RING)");
+    }
+    t->p[P_DXSBLEND] = DXB_XFADE;
+    ren(2u * 44100u);
+    t->p[P_DXSMAP] = 127;                      /* KEYS: slot 9 in 16, 36 + n its slice n */
+    t->p[P_DXSSLOT] = 112 + 8;
+    {
+        uint32_t c;
+        note(36 + 5, 100);                     /* (41: a tom: slice 6, 600 Hz) */
+        ren(4410);
+        off(41);
+        c = zc(ol, 400, 2400) * 44100u / 2000u;
+        CHECK(c > 520u && c < 680u, "KEYS: note 41 plays slice 6 (%u Hz, 600)", c);
+        ren(11025);
+    }
+    t->p[P_DXSMAP] = 125;
+    t->p[P_DXSSLOT] = 112 + 9;
+    {   /* a closed hat chokes the open hat's sample */
+        note(46, 100);
+        ren(4410);
+        note(42, 100);
+        ren(4410);
+        {
+            uint32_t k, open = 0;
+            for (k = 0; k < NVOICE; k++)
+                open += dxs_v[0][k].on && dxs_v[0][k].lane == DV_HATO && !dxs_v[0][k].choke;
+            CHECK(!open, "the closed hat chokes the open one's sample");
+        }
+        off(46); off(42);
+        ren(22050);
+    }
+    t->p[P_DXSMORPH] = 0;
     CHECK(!nonfinite, "the output always finite");
+    if (argc > 1) {                            /* a project for the FM-1's side (fm1_load_test): T1 DRUM-X with its
+                                                * samples on, T2 SAMPLE, T3 GRAIN */
+        FILE *f;
+        size_t n;
+        uint8_t *st;
+        use(ENGI_DRUM, 0);
+        t->p[P_DXSMORPH] = 100;
+        t->p[P_DXSBLEND] = DXB_SB;
+        set_engine_of(&trk[1], ENGI_SAMPLE);
+        set_engine_of(&trk[2], ENGI_GRAIN);
+        ren(4096);
+        apply_preset_to(&trk[1], 16);
+        apply_preset_to(&trk[2], 5);
+        ren(4096);
+        n = jiant_state_save(0, 0);
+        st = malloc(n);
+        f = fopen(argv[1], "wb");
+        CHECK(st && f && jiant_state_save(st, n) == n && fwrite(st, 1, n, f) == n && trk[1].engine == ENGI_SAMPLE &&
+              trk[2].engine == ENGI_GRAIN, "a project with SAMPLE, GRAIN and DRUM-X's samples saved for the FM-1 (%zu bytes)", n);
+        if (f)
+            fclose(f);
+        free(st);
+    }
     return fails != 0;
 }
