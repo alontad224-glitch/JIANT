@@ -33,7 +33,7 @@ jobs:
           req=urllib.request.Request(f'https://api.github.com/repos/{os.environ["GITHUB_REPOSITORY"]}/actions/runs/{m["run_id"]}',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN']})
           run=json.load(urllib.request.urlopen(req))
           assert run['status']=='completed' and run['conclusion']=='success','candidate checks failed'
-          assert run['head_sha']==m['source'] and run['head_branch'] in ('codex/beta-bass-continuity','codex/v56-fm'),'candidate provenance mismatch'   # (V10.7.56: the V10.7.23-based line)
+          assert run['head_sha']==m['source'] and run['head_branch'] in ('codex/beta-bass-continuity','codex/v56-fm','codex/v65-punch','codex/v66-clean'),'candidate provenance mismatch'   # (V10.7.56: the V10.7.23-based line)
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
               f.write('source='+m['source']+'\n')
               f.write('run_id='+str(m['run_id'])+'\n')
