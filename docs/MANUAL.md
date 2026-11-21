@@ -1,6 +1,6 @@
 # JIANT FM — User Manual
 
-**JIANT FM V10.7.16 for the M-VAVE FM-1**
+**JIANT FM V10.7.81 for the M-VAVE FM-1**
 
 > *Versión en español: [MANUAL.es.md](MANUAL.es.md).*
 
@@ -35,6 +35,57 @@ public version) or earlier: [What's new in this version](#whats-new-in-this-vers
 ---
 
 ## What's new in this version
+
+### New in V10.7.81 (since V10.7.16)
+
+The betas V10.7.17 to V10.7.80 in one list. Where a chapter below still describes the older screen, this list wins.
+
+**Drums**
+- **DRUM-X in 8 pages**: KIT (MORPH SNAP TONE DECAY), KIT 2 (NOISE BODY GLUE GAIN), SOUND (PITCH DECAY LEVEL),
+  SOUND 2 (NOISE COLOR PMOD), SOUND 3 (WAVE FILTER P.ENV), SOUND 4 (SIDE SEND KEY MAP), CROSS MOD, FILTER. **BODY** is
+  the shell's resonance; **GAIN** is clean, 0 to +12 dB.
+- **MATH formulas**: SOUND 3's WAVE goes on past SINE FM METAL BELL to **F01–F48**, a MATH formula as the sound's FM
+  modulator, played as a wavetable and drawn on screen (four moments, cold to hot). **RATIO** (¼ … 16, 24 values) on
+  KNOB 4, **MOD AMT** in COLOR's place. Two kits are made of formulas, **GLITCH FM** and **MATH LAB**; EDIT + SELECT
+  (DICE) gives about half the sounds a formula of their own.
+
+**Engines**
+- **MATH MORPH**: ALGO B (where CHIP was) and MORPH A → B (where BEND was) glide from one formula to another.
+- Every engine like the kit: FILTER (TYPE CUT RES IMAGE), PLAY (POLY GLIDE UNISON VEL), **GAIN** 0 … +12 dB clean.
+- EDIT's pages by their names, the extras on one **MORE**, now **before PLAY**; **FOCUS** drawn in heat colours.
+
+**Harmony and sequences**
+- **SCL › HARMONY**, its own tab (KEY CHORD HARMONY SCENE): PROG LENGTH EVOLVE SKIP; every melodic sequence follows the
+  progression, shown as roman numerals in the key, the playing chord lit. CHORD's sets: POP JAZZ SOUL DREAM QUART.
+- **EUCLID › MODES › ROLE** (MELODY CHORDS BASS ARP) writes over the harmony the other tracks play; CONTOUR RANGE
+  MOTIF shape the melody.
+- Step components: **RAMP** (END: BACK HOLD PING), **FILL** (where LOCK was); STUT and RATCH on the tempo grid.
+
+**Performance**
+- Hold **FX**: a map of **named cells** (the effects by name, M1–M4 on top, the mutes T1–T6 below).
+- **Punch-in editor**: OCT+ on FX › PUNCH IN (or FX + OCT+). Each key: WHAT (an effect, or a parameter: M1–M4, CUT,
+  PITCH, TIMBRE, VOLUME, PAN, DIST, CHORUS, DELAY, REVERB, VIBRATO), HOW (HOLD LATCH QUANT, or RAMP UP / DN, SINE,
+  STUTTER, S&H), AMOUNT (−100 … +100 %) and TIME (1/16 … 8 bars); two slots, A and B. New effects: REVERSE, FREEZE,
+  TAPE STOP, PITCH UP / DOWN, STRETCH. FX › PUNCH IN's knobs are the macros M1–M4.
+- **LIFE** (HOME › LIFE): the tracks move each other (FILTER TIMBRE PUMP FX).
+- SCENE plays on the live tracks only; its **LEADER** can be the keys or a track's notes.
+
+**Generator (GENE)**
+- Seeds are fused (A+B in the name), never the same throw twice; it waits for the bar while playing; GENE 4: KEY NEW / KEEP.
+- DUBSTEP (the wobble, its rate moving; MATH basses), SHOEGAZE, METALCORE, CUMBIA villera, eight more progressions
+  (neo-soul, jazz, IDM, progressive); each genre its FX STYLE; MATH, WEST and STRING more often.
+
+**Screens and settings**
+- The song's pages live in HOME › SONG: TIMELINE ARRANGE PARTS CLIPS (SAVE saves and loads).
+- **MENU › DISPLAY › PRESETS**: SCROLL (the knob walks the sounds) or MENU (the list opens as you turn).
+- **MENU › HELP**: a knob's meaning in the header where it is not obvious. Oscilloscopes instead of decorative bars.
+- Defaults: LARGE off, CLICK on REC, COUNT-IN 1 BAR.
+- **GLO held + G4: UNDO.**
+
+The **beta V10.8.1** redesigns the song mode (each track its sequences A–D, CAMBIO, a JAM take with LOCK); it is not
+in this version. See the README.
+
+### Since V10.6c
 
 Everything since V10.6c, the last public version, in one list; each item links to its place in the manual.
 
