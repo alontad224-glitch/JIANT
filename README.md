@@ -9,7 +9,14 @@
 > (plugin), **VST3 / LV2 / standalone** for Linux and Windows, and soon the **M-VAVE SMK-37**. On these bigger CPUs it
 > adds a **SAMPLE** engine, a **GRAIN** engine and **DRUM-X with samples**. Free, GPL-3.0, looking for testers.
 > **▶ [Try every device in the browser](https://juanjiant-bit.github.io/JIANT/emu/devices.html)** ·
-> **[Downloads (pre-release)](https://github.com/juanjiant-bit/JIANT/releases)** · **[How it works](ports/README.md)**
+> **[Downloads (pre-release)](https://github.com/juanjiant-bit/JIANT/releases)** · **[How it works](https://github.com/juanjiant-bit/JIANT/blob/main/ports/README.md)**
+>
+> | Device | Install | Emulator | Editor |
+> | --- | --- | --- | --- |
+> | **M-VAVE FM-1** | [Web installer](https://juanjiant-bit.github.io/JIANT/webapp/installer/) | [FM-1 emulator](https://juanjiant-bit.github.io/JIANT/emu/index.html) | [Web editor](https://juanjiant-bit.github.io/JIANT/webapp/editor/) |
+> | **M-VAVE SMK-37** | not yet: [build from source](https://github.com/juanjiant-bit/JIANT/blob/main/docs/SMK37.md) | [SMK-37 panel](https://juanjiant-bit.github.io/JIANT/emu/devices.html#smk37) | [Web editor](https://juanjiant-bit.github.io/JIANT/webapp/editor/) |
+> | **Akai MPC Sample** | [Download](https://github.com/juanjiant-bit/JIANT/releases) (the zip for the microSD card) · [how to install](https://github.com/juanjiant-bit/JIANT/blob/main/ports/mpc-sample/README.md) | [MPC panel](https://juanjiant-bit.github.io/JIANT/emu/devices.html#mpc) | coming |
+> | **Plugins** (MPC standalones, VST3 / LV2 / standalone) | [Download](https://github.com/juanjiant-bit/JIANT/releases) · [how they work](https://github.com/juanjiant-bit/JIANT/blob/main/ports/README.md) | | |
 
 ![JIANT FM: the signature and screens of the firmware](docs/jiant-hero.png)
 
