@@ -30,31 +30,31 @@ a generator and effects, all inside the little keyboard. It is a fork of [Felucc
 The emulator runs the same code as the FM-1, with sound, played with the computer keyboard or the mouse. The installer
 always offers the current public version first, and the earlier ones under it.
 
-## This release: V10.7.58 · beta V10.7.63
+## This release: V10.7.81 · beta V10.8.1
 
-The installer offers **V10.7.58**, the public version (six tracks without glitches or lost notes; STRING, WEST and
-VOICE at half rate before anything is cut; lighter ROOM and CLOUD reverbs). **V10.7.63** is the beta, in the
-[emulator](https://juanjiant-bit.github.io/JIANT/emu/) first. What it brings (V10.7.59 to V10.7.63):
+The installer offers **V10.7.81**, the public version. What it brings since V10.7.58 (the betas V10.7.59 to V10.7.80):
 
-- **LIFE is back, light** (HOME › LIFE): the tracks move each other (FILTER, TIMBRE, PUMP, FX), about 1 % of the CPU.
-- **The song lives on HOME**: ECO, LIFE, BEING, ROUTES, then SONG (TIMELINE, ARRANGE, PARTS, CLIPS: parts with tracks
-  muted, taken from another part or varied), then GENE. **SAVE** only saves and loads (TOOLS, PART SLOTS, PROJECTS,
-  USER, PRESETS).
-- **GENE**: **DUBSTEP**, **SHOEGAZE** and **METALCORE**, and each genre its **FX style** (the distortion where it
-  belongs: GRIT, FUZZ, GROWL, METAL, LOFI, WARM).
-- **Chord sets** (SCL › CHORD): POP, JAZZ, SOUL, DREAM, QUART, each degree of the scale its own colour.
-- **SCENE** (SCL › SCENE): **LEADER** picks who plays the roles: the keys, or a track's sequence (T1–T6); each role
-  explained in words. GEN is no longer a SCENE role.
-- **DRUM-X in 8 pages** (was 13): KIT (MORPH ATTACK TONE DECAY), KIT 2 (NOISE **BODY** GLUE **GAIN**), SOUND
-  (PITCH DECAY LEVEL), SOUND 2 (NOISE COLOR PMOD; HANDS on the clap), SOUND 3 (WAVE FILTER P.ENV), SOUND 4 (SIDE SEND
-  KEY MAP), CROSS MOD, FILTER. **BODY**, a resonator tuned to each sound (the shell ringing after the hit), replaces
-  FOLD; **GAIN** up to +12 dB, clean. FEEDBACK (it squealed), the bus BP, LAYER and PLAY are gone from the panel; kits
-  that used FOLD, FEEDBACK or BP sound a little different.
-- **Performance**: FX + OCT+ **DICE** (a random punch-in each beat); punch-ins REVERSE, FREEZE, TAPE STOP, PITCH UP /
-  DOWN, STRETCH; the FX layer's knobs are four MACROS; step component **FILL** (LOCK's place); RAMP ends BACK, HOLD or
-  PING; OCT− on SEQ › STEP FX clears a track's step components.
-- **Clearer screens**: EDIT pages named by what they do, a knob's meaning in the header (MENU › HELP), FX › SENDS with
-  DIST, IMAGE on PLAY (a mono part spread), GLO › SYSTEM's oscilloscope, labels that fit their cards.
+- **DRUM-X with MATH**: SOUND 3's WAVE goes on past SINE FM METAL BELL to **F01–F48**, a MATH formula as each sound's
+  FM, used as a wavetable and drawn on screen, with **RATIO** (24 values) and **MOD AMT**. Two kits made of formulas,
+  **GLITCH FM** and **MATH LAB**; **DICE** gives half the sounds a formula of their own. DRUM-X in 8 pages, **BODY**
+  (the shell's resonance) and a clean **GAIN** up to +12 dB.
+- **MATH MORPH**: ALGO B and MORPH glide from one formula to another, light on the CPU.
+- **Performance**: the **FX layer is a map of named cells** again (the effects by name, M1–M4 on top, the mutes T1–T6
+  below); the **punch-in editor** (OCT+ on FX › PUNCH IN): each key an effect or a parameter, how it moves, how much,
+  for how long; REVERSE, FREEZE, TAPE STOP, PITCH UP / DOWN, STRETCH.
+- **Harmony**: **SCL › HARMONY** (its own tab) makes every melodic sequence follow a progression, shown in roman
+  numerals; the CHORD page and its sets (POP JAZZ SOUL DREAM QUART) stay. **EUCLID › ROLE** writes melodies, chords,
+  basses or arps over the harmony the other tracks play.
+- **GENE**: seeds fused (A+B, never the same twice), DUBSTEP (the wobble's rate moving, MATH basses), SHOEGAZE,
+  METALCORE, CUMBIA villera; MATH, WEST and STRING more often; it waits for the bar while playing.
+- **Clearer screens**: EDIT › FOCUS in heat colours, MORE before PLAY, the oscilloscope instead of decorative bars,
+  **MENU › DISPLAY › PRESETS** SCROLL / MENU, a knob's meaning in the header where it is not obvious (MENU › HELP).
+- **LIFE** (HOME › LIFE): the tracks move each other.
+
+**V10.8.1 is the beta** ([emulator](https://juanjiant-bit.github.io/JIANT/preview/emu/) ·
+[beta installer](https://juanjiant-bit.github.io/JIANT/preview/webapp/installer/)): the **song mode redesigned**. Each
+track has its own sequences A–D, switched live (SEQ › STEP's KNOB 1) when **CAMBIO** says (at once, 1/16 … a bar);
+**REC** records the jam a 16th exact and **LOCK** plays it round while you jam over it.
 
 What each version changed: [CHANGELOG.md](CHANGELOG.md) · en castellano: [CHANGELOG.es.md](CHANGELOG.es.md).
 
@@ -349,6 +349,10 @@ An 8-sound kit (BD SD CP CH OH TM RS CB) generated in real time, Microtonic styl
   and live recording keeps exactly what you played. MIDI drum notes outside 35–81 trigger the same variations.
 - **Group mutes** (KICK, SNARE, HAT, PERC) with GLO held and **per-sound mutes** with EDIT held.
 - **EDIT > X-MOD** (0.5.1): a tempo-synced LFO on MORPH and RAND, which gives every hit its own MORPH and tune.
+- **MATH formulas** (V10.7.74–V10.7.81): SOUND 3's WAVE past BELL is **F01–F48**, a MATH formula as the sound's FM,
+  used as a wavetable (smooth) and drawn on screen; **RATIO** on KNOB 4 (¼ … 16, 24 values) and **MOD AMT** in
+  COLOR's place. The kits **GLITCH FM** and **MATH LAB** are made of formulas; EDIT + SELECT (DICE) gives half the
+  sounds one.
 - Nine kits as the DRUM engine's presets (DRUM-X, 909 CLUB, 808 BOOM, LOFI DUST …); EDIT + SELECT rolls a new kit
 - **Keys** (V10.6r, EDIT › KIT 4 KEY MAP **EXTENDED**, the default): OCT+1 plays real **fills**, OCT−1 the kick and tom
   (or any one sound) **chromatically**, OCT−2 the FX kit; CLASSIC keeps the octaves above. The cowbell is a classic CMOS
@@ -378,6 +382,11 @@ An 8-sound kit (BD SD CP CH OH TM RS CB) generated in real time, Microtonic styl
   with the project.
 
 ### Punch-in FX: effects you play and record
+
+> **V10.7.81:** hold **FX** and the screen is a map of **named cells**: every effect by its name, the macros M1–M4 on top
+> and the mutes T1–T6 below. **OCT+ on FX › PUNCH IN** (or FX + OCT+) opens the **punch-in editor**: each key WHAT (an
+> effect, or a parameter: M1–M4, CUT, PITCH, TIMBRE, VOLUME, PAN, DIST, CHORUS, DELAY, REVERB, VIBRATO), HOW (HOLD,
+> LATCH, QUANT, RAMP, SINE, STUTTER, S&H), AMOUNT and TIME; two slots, A and B.
 
 > **Now (V10.7.44+):** each key's effect is yours: hold **FX**, hold a key and turn **SELECT** (any effect, MUTE T1–T6,
 > LOCK, DEC−/DEC+, LPF/HPF or nothing). Three layouts on **FX + OCT+**; the default has T1–T4 MUTE, FREEZE on G4,
@@ -524,6 +533,20 @@ same license.
 ## Changelog
 
 Every update is listed here, newest first. (Since 0.6.80 at the end of the page: what the synth does comes first.)
+
+### V10.8.0 – V10.8.1 — betas (2026-11-21)
+- **The song mode redesigned** (JAM): each track its sequences A–D, chosen on SEQ › STEP's KNOB 1 (the cursor moves
+  with PRESETS) and switched alone when **CAMBIO** says (AT ONCE, 1/16, 1/8, 1/4, 1/2, BAR; CLIPS' KNOB 3), the
+  playhead kept; **REC** records the take a 16th exact, **LOCK** (CLIPS' KNOB 4) plays it round. TIMELINE and PARTS
+  are gone.
+
+### V10.7.81 — public (2026-11-21)
+- Everything since V10.7.58: DRUM-X MATH formulas and kits, MATH MORPH, the punch-in editor and the FX layer's named
+  cells, SCL › HARMONY, EUCLID ROLE, GENE's fused seeds and genres, FOCUS in heat, MENU › PRESETS SCROLL / MENU.
+  Details: [CHANGELOG.md](CHANGELOG.md).
+
+### V10.7.64 – V10.7.80 — betas (2026-11-20 … 11-21)
+- See V10.7.81 above and [CHANGELOG.md](CHANGELOG.md).
 
 ### V10.7.63 — beta (2026-11-20)
 - **DRUM-X in 8 pages**: KIT (MORPH ATTACK TONE DECAY; ATTACK is FM ENV, TUNE off the panel), KIT 2 (NOISE BODY GLUE
