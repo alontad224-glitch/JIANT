@@ -5,6 +5,11 @@
 name: ports
 on:
   workflow_dispatch:
+  workflow_call:          # (ports-release.yml: the same builds, named for a release)
+    inputs:
+      release_version:
+        type: string
+        default: ""
   push:
     paths: ["ports/**", ".github/workflows/ports.yml"]
 permissions:
@@ -55,7 +60,8 @@ jobs:
       - name: the SD card zip
         run: |
           strip -o ports/mpc-sample/build/jiant.release ports/mpc-sample/build/jiant
-          python3 ports/mpc-sample/tools/make_release.py "v0.0-ci${GITHUB_RUN_NUMBER}" \
+          V="${{ inputs.release_version }}"; [ -n "$V" ] || V="v0.0-ci${GITHUB_RUN_NUMBER}"
+          python3 ports/mpc-sample/tools/make_release.py "$V" \
             --binary ports/mpc-sample/build/jiant.release
       - uses: actions/upload-artifact@v4
         with:
