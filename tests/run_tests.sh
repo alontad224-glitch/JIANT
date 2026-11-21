@@ -452,6 +452,12 @@ else
     run "browser emulator: boot, keys, MIDI, screen, LEDs, PLAY, a save kept across instances, = native, cost" \
         node web/emu/emu_test.mjs build/emu/felucca.wasm "$OUT/emu_native.f32"
         run "stems from the browser build (web/emu/stems.js): a backup in, each part alone, the song once round, WAV + ZIP" node web/emu/stems_test.mjs build/emu/felucca.wasm
+    if node -e "require('playwright')" >/dev/null 2>&1; then
+        run "devices.html in Chromium: the MPC on felucca_hp.wasm, a WAV into slot 1 through the SAMPLE BROWSER, SAMPLE / GRAIN sound, RESAMPLE recorded, FM-1 and SMK-37 still play" \
+            node web/emu/browser_mpc_test.mjs
+    else
+        echo "== skip devices.html in a browser (no Playwright for node)"
+    fi
 fi
 
 [ $fail -eq 0 ] && echo "ALL HOST TESTS PASSED" || { echo "HOST TESTS FAILED"; exit 1; }
