@@ -177,6 +177,33 @@ int main(void)
         jiant_service();
     }
 
+    {   /* the web editor's SysEx through the core (firmware/src/editor.c): INFO says the device and its big CPU ('D' 3,
+         * then the host's own number; 'H' 15 16), DESC names SAMPLE's TRIG on a SAMPLE track, another SysEx is not taken */
+        static const uint8_t info[] = {0xF0, 0x7D, 0x46, 0x4C, 1, 0xF7}, other[] = {0xF0, 0x7E, 0x7F, 0x06, 0x01, 0xF7};
+        static const uint8_t preset[] = {0xF0, 0x7D, 0x46, 0x4C, 8, 4, 0, 0xF7};            /* PRESET SAMPLE 0 */
+        static const uint8_t desc[] = {0xF0, 0x7D, 0x46, 0x4C, 5, 0, 83, 0xF7};             /* DESC track 83 (P_LN0) */
+        static uint8_t r[700];
+        size_t n = 0, m = 0;
+        int ok;
+        while (jiant_sysex_out(r, sizeof r))
+            ;
+        ok = !jiant_sysex(info, sizeof info) && (n = jiant_sysex_out(r, sizeof r)) > 20 && r[0] == 0xF0 && r[4] == 1 &&
+             r[n - 1] == 0xF7 && r[n - 4] == 0x59 && r[n - 8] == 0x48 && r[n - 7] == 2 && r[n - 6] == 15 && r[n - 5] == 16 &&
+             r[n - 11] == 0x44 && r[n - 10] == 1 && r[n - 9] == 3 && !jiant_sysex_out(r, sizeof r);
+        CHECK(ok, "editor: INFO through jiant_sysex: 'D' 1 3 (a computer), 'H' 2 15 16, 'Y' last");
+        jiant_editor_host(4);
+        jiant_sysex(info, sizeof info);
+        n = jiant_sysex_out(r, sizeof r);
+        CHECK(n > 20 && r[n - 9] == 4, "editor: jiant_editor_host(4): 'D' 1 4 (the MPC Sample)");
+        jiant_editor_host(3);
+        jiant_sysex(preset, sizeof preset);
+        n = jiant_sysex_out(r, sizeof r);
+        jiant_sysex(desc, sizeof desc);
+        m = jiant_sysex_out(r, sizeof r);
+        CHECK(n == 8 && m > 16 && !strcmp((const char *)r + 14, "TRIG"), "editor: PRESET SAMPLE, then DESC 83: TRIG (SAMPLE's page)");
+        CHECK(jiant_sysex(other, sizeof other) == 1 && !jiant_sysex_out(r, sizeof r), "editor: another SysEx is not the editor's (1)");
+        CHECK(jiant_sysex_out(0, 0) == 0, "editor: nothing more queued");
+    }
     printf(fails ? "core: %d FAILED\n" : "core: all passed\n", fails);
     return fails != 0;
 }
