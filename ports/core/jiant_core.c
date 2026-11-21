@@ -8,7 +8,9 @@
 #ifndef FELUCCA_HOST_POWER
 #define FELUCCA_HOST_POWER 1                  /* (0: ports/core/build.sh test's FM-1 personality only) */
 #endif
+#ifndef JIANT_NO_REAL_LOAD                   /* (web/emu/felucca_hp.c: the browser's clock is its audio's, as the emulator) */
 #define JIANT_REAL_LOAD 1
+#endif
 #include <stdint.h>
 #include <time.h>
 #if defined(_WIN32)
