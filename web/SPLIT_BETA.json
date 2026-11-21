@@ -1,8 +1,8 @@
 {
-  "source": "d6f7ce07b5ff7f5ba973dadcc97d772a23b8ed31",
-  "run_id": 44949075352,
-  "version": "V10.8.0-d6f7ce0-preview",
+  "source": "6dc7d8270443fb9f244926d9f0e54783602903b6",
+  "run_id": 44955761369,
+  "version": "V10.8.1-6dc7d82-preview",
   "publish_attempt": 1,
-  "sha256": "87154036b832b9e023baa1eb7d8ff66961721072e88902b66bbd58580abe3792",
-  "emulator_sha256": "c3c35b0a882de743b03af274a7034601c1eea0b12ca7ce0193dcc3b84eaec87a"
+  "sha256": "754b3c019f37f048e47e988a0728053008bddfa9833365bf7d23a660bd82976c",
+  "emulator_sha256": "a435a7a75c8623cd85370c9e4aff092cbfcb14e2c5e5a2e0ab0aab91b38065e0"
 }
