@@ -6,6 +6,8 @@ Custom firmware for the M-VAVE FM-1 by Juan Jiant. Newest version first.
 
 | Version | Date | Status |
 | --- | --- | --- |
+| **V10.7.81** | 2026-11-21 | **Public** |
+| V10.7.59 … V10.7.80 | 2026-11-19 … 11-21 | Beta |
 | **V10.7.58** | 2026-11-19 | **Public** |
 | V10.7.57 | 2026-11-19 | Beta |
 | **V10.7.56** | 2026-11-19 | **Public** |
@@ -37,6 +39,44 @@ The sections marked **Compatibility notes** are the ones to check before you ins
 > 31 October 2026 are much older builds with the same names; they are covered under "Older versions" at the end.
 
 ---
+
+## V10.7.81 — DRUM-X MATH, the punch-in editor, HARMONY and a clearer FX layer (2026-11-21)
+
+Includes the betas V10.7.59 to V10.7.80. If you come from V10.7.58, this is everything new.
+
+**Performance (FX)**
+- **The FX layer is a map of named cells again**: hold FX and every effect has its name (RPT 1/8 · 1/16 · 1/32, REVERSE, FREEZE, OCT− / OCT+, 1/2 TEMPO, DEC− / DEC+, LOOP 3, TAPE STOP, STUT 1/8 · 1/16, PITCH UP / DN, ATK+, ARP, RANDOM, STRETCH, CLR AUTO), the four macros M1–M4 on top and the mutes T1–T6 below.
+- **The punch-in editor** (OCT+ on FX › PUNCH IN, or FX + OCT+): each key WHAT (an effect, or a PARAM: M1–M4, CUT, PITCH, TIMBRE, VOLUME, PAN, DIST, CHORUS, DELAY, REVERB, VIBRATO on any track), HOW (HOLD, LATCH, QUANT; for a PARAM HOLD, RAMP UP / DN, SINE, STUTTER, S&H), AMOUNT and TIME (1/16 … 8 bars); two slots, A and B.
+- Punch-ins REVERSE, FREEZE, TAPE STOP, PITCH UP / DOWN and STRETCH; the FX layer's knobs are the four MACROS; FX › SENDS has DIST again.
+
+**DRUM-X**
+- **MATH formulas as a sound's FM**: SOUND 3's WAVE goes past SINE FM METAL BELL to **F01–F48**, a MATH formula used as a wavetable (smooth, not harsh), its shape drawn on screen; **RATIO** (24 values, ¼ … 16 and the inharmonic ones between) and **MOD AMT** (COLOR's place). Kept with the project.
+- **Two kits of formulas**: **GLITCH FM** (short, high ratios) and **MATH LAB** (DRUM-X's sounds, each one a table).
+- **DICE** gives half the sounds a formula and a ratio of their own.
+- DRUM-X in 8 pages (KIT, KIT 2, SOUND 1–4, CROSS MOD, FILTER); **BODY** (the shell's resonance) instead of FOLD; **GAIN** up to +12 dB, clean.
+
+**MATH**
+- **MORPH between two formulas**: ALGO B where CHIP was and MORPH from ALGO to ALGO B, cheap on the CPU. MATH's formulas compute faster.
+
+**Harmony and sequencing**
+- **SCL › HARMONY**, its own tab: PROG, LENGTH, EVOLVE, SKIP, every melodic sequence follows a progression; the chords shown in roman numerals, in colour, the one playing lit. The **CHORD** page stays (chord sets POP, JAZZ, SOUL, DREAM, QUART).
+- **EUCLID › ROLE** (MELODY, CHORDS, BASS, ARP) follows the harmony the other tracks play, else SCL's key; EUCLID's melody has CONTOUR, RANGE, MOTIF and CHORD.
+- **FILL** step component (LOCK's place); RAMP ends BACK, HOLD or PING.
+
+**GEN**
+- Seeds **fused** (A+B in the name), never one as it is: more variety between throws; GEN waits for the bar to end while it plays; GENE 4: KEY NEW / KEEP.
+- **DUBSTEP** (the wobble's rate moving every half bar, MATH basses, formula kits), **SHOEGAZE**, **METALCORE**, **CUMBIA villera**; each genre its FX style; MATH, WEST and STRING used more; eight more progressions.
+
+**Screens and settings**
+- **EDIT › FOCUS in heat** colours (the arc and E1–E8 the colour of their value); **MORE comes before PLAY**.
+- **GLO › GLOBAL** and **SYSTEM** show the oscilloscope instead of decorative bars.
+- **MENU › DISPLAY › PRESETS**: **SCROLL** (the knob loads the next sound, as before) or **MENU** (it opens the PRESETS list first).
+- A knob's meaning in the header (MENU › HELP) where it is not obvious; PRESETS moves a bar at a time on SEQ.
+- **LIFE** (HOME › LIFE): the tracks move each other, light on the CPU.
+
+**Compatibility notes**
+- New defaults, once: LARGE off, the click while recording (REC) and COUNT-IN 1 bar. Change them in MENU if you prefer.
+- Kits that used FOLD, FEEDBACK or the bus BP sound a little different (BODY, GAIN).
 
 ## V10.7.58 — more engines at half rate, lighter reverbs (2026-11-19)
 

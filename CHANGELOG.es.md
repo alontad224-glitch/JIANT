@@ -6,6 +6,8 @@ Firmware personalizado para el M-VAVE FM-1, de Juan Jiant. Primero la versión m
 
 | Versión | Fecha | Estado |
 | --- | --- | --- |
+| **V10.7.81** | 2026-11-21 | **Pública** |
+| V10.7.59 … V10.7.80 | 2026-11-19 … 11-21 | Beta |
 | **V10.7.58** | 2026-11-19 | **Pública** |
 | V10.7.57 | 2026-11-19 | Beta |
 | **V10.7.56** | 2026-11-19 | **Pública** |
@@ -38,6 +40,44 @@ Antes de instalar, revisá los apartados **Compatibilidad**.
 > al final.
 
 ---
+
+## V10.7.81 — DRUM-X MATH, el editor de punch-in, HARMONY y una capa FX más clara (2026-11-21)
+
+Incluye las betas V10.7.59 a V10.7.80. Si venís de la V10.7.58, esto es todo lo nuevo.
+
+**Performance (FX)**
+- **La capa FX vuelve a ser un mapa de celdas con nombre**: mantené FX y cada efecto tiene su nombre (RPT 1/8 · 1/16 · 1/32, REVERSE, FREEZE, OCT− / OCT+, 1/2 TEMPO, DEC− / DEC+, LOOP 3, TAPE STOP, STUT 1/8 · 1/16, PITCH UP / DN, ATK+, ARP, RANDOM, STRETCH, CLR AUTO), los cuatro macros M1–M4 arriba y los mutes T1–T6 abajo.
+- **El editor de punch-in** (OCT+ en FX › PUNCH IN, o FX + OCT+): cada tecla QUÉ (un efecto o un PARAM: M1–M4, CUT, PITCH, TIMBRE, VOLUME, PAN, DIST, CHORUS, DELAY, REVERB, VIBRATO en cualquier pista), CÓMO (HOLD, LATCH, QUANT; un PARAM HOLD, RAMP UP / DN, SINE, STUTTER, S&H), CANTIDAD y TIEMPO (1/16 … 8 compases); dos slots, A y B.
+- Punch-ins REVERSE, FREEZE, TAPE STOP, PITCH UP / DOWN y STRETCH; las perillas de la capa FX son los cuatro MACROS; FX › SENDS vuelve a tener DIST.
+
+**DRUM-X**
+- **Fórmulas MATH como FM de un sonido**: WAVE de SOUND 3 sigue después de SINE FM METAL BELL con **F01–F48**, una fórmula MATH usada como wavetable (suave, no áspera), con su forma dibujada en pantalla; **RATIO** (24 valores, ¼ … 16 y los inarmónicos entre medio) y **MOD AMT** (en lugar de COLOR). Se guarda con el proyecto.
+- **Dos kits de fórmulas**: **GLITCH FM** (cortos, ratios altos) y **MATH LAB** (los sonidos de DRUM-X, cada uno una tabla).
+- **DICE** le da a la mitad de los sonidos una fórmula y un ratio propios.
+- DRUM-X en 8 páginas (KIT, KIT 2, SOUND 1–4, CROSS MOD, FILTER); **BODY** (la resonancia del parche) en lugar de FOLD; **GAIN** hasta +12 dB, limpio.
+
+**MATH**
+- **MORPH entre dos fórmulas**: ALGO B donde estaba CHIP y MORPH de ALGO a ALGO B, liviano para la CPU. Las fórmulas de MATH se calculan más rápido.
+
+**Armonía y secuencias**
+- **SCL › HARMONY**, con pestaña propia: PROG, LENGTH, EVOLVE, SKIP; cada secuencia melódica sigue una progresión. Los acordes en números romanos, en color, el que suena encendido. La página **CHORD** se queda (sets POP, JAZZ, SOUL, DREAM, QUART).
+- **EUCLID › ROLE** (MELODY, CHORDS, BASS, ARP) sigue la armonía de las otras pistas, si no la escala de SCL; la melodía de EUCLID tiene CONTOUR, RANGE, MOTIF y CHORD.
+- Step component **FILL** (en lugar de LOCK); RAMP termina en BACK, HOLD o PING.
+
+**GEN**
+- Semillas **fusionadas** (A+B en el nombre), nunca una sola tal cual: más variedad entre tiradas; GEN espera al final del compás mientras suena; GENE 4: KEY NEW / KEEP.
+- **DUBSTEP** (el rate del wobble cambia cada medio compás, bajos MATH, kits con fórmulas), **SHOEGAZE**, **METALCORE**, **CUMBIA villera**; cada género su estilo de FX; MATH, WEST y STRING más seguido; ocho progresiones más.
+
+**Pantallas y ajustes**
+- **EDIT › FOCUS con colores térmicos** (el arco y E1–E8 del color de su valor); **MORE va antes de PLAY**.
+- **GLO › GLOBAL** y **SYSTEM** muestran el osciloscopio en lugar de barras decorativas.
+- **MENU › DISPLAY › PRESETS**: **SCROLL** (la perilla carga el sonido siguiente, como siempre) o **MENU** (primero abre la lista de PRESETS).
+- El significado de una perilla en la cabecera (MENU › HELP) donde no es obvio; PRESETS avanza de a un compás en SEQ.
+- **LIFE** (HOME › LIFE): las pistas se mueven entre sí, liviano para la CPU.
+
+**Compatibilidad**
+- Nuevos valores por defecto, una vez: LARGE apagado, el click al grabar (REC) y COUNT-IN de 1 compás. Se cambian en MENU.
+- Los kits que usaban FOLD, FEEDBACK o el BP del bus suenan un poco distinto (BODY, GAIN).
 
 ## V10.7.58 — más motores a media frecuencia, reverbs más livianas (2026-11-19)
 

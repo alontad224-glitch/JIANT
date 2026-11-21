@@ -1,6 +1,6 @@
 # JIANT FM — Manual de usuario
 
-**JIANT FM V10.7.16 para el M-VAVE FM-1**
+**JIANT FM V10.7.81 para el M-VAVE FM-1**
 
 > *English version: [MANUAL.md](MANUAL.md).*
 
@@ -35,6 +35,59 @@ versión pública) o de antes: [Qué hay de nuevo en esta versión](#qué-hay-de
 ---
 
 ## Qué hay de nuevo en esta versión
+
+### Lo nuevo en V10.7.81 (desde V10.7.16)
+
+Las betas V10.7.17 a V10.7.80 en una lista. Donde un capítulo de abajo todavía describe la pantalla vieja, vale esta lista.
+
+**Baterías**
+- **DRUM-X en 8 páginas**: KIT (MORPH SNAP TONE DECAY), KIT 2 (NOISE BODY GLUE GAIN), SOUND (PITCH DECAY LEVEL),
+  SOUND 2 (NOISE COLOR PMOD), SOUND 3 (WAVE FILTER P.ENV), SOUND 4 (SIDE SEND KEY MAP), CROSS MOD, FILTER. **BODY** es
+  la resonancia del cuerpo; **GAIN** es limpia, de 0 a +12 dB.
+- **Fórmulas MATH**: el WAVE de SOUND 3 sigue después de SINE FM METAL BELL con **F01–F48**, una fórmula de MATH como
+  moduladora FM del sonido, tocada como wavetable y dibujada en pantalla (cuatro momentos, de frío a caliente).
+  **RATIO** (¼ … 16, 24 valores) en la KNOB 4, **MOD AMT** en lugar de COLOR. Dos kits están hechos de fórmulas,
+  **GLITCH FM** y **MATH LAB**; EDIT + SELECT (DICE) le da una fórmula propia a más o menos la mitad de los sonidos.
+
+**Motores**
+- **MATH MORPH**: ALGO B (donde estaba CHIP) y MORPH A → B (donde estaba BEND) pasan de una fórmula a otra.
+- Todos los motores como el kit: FILTER (TYPE CUT RES IMAGE), PLAY (POLY GLIDE UNISON VEL), **GAIN** 0 … +12 dB limpia.
+- Las páginas de EDIT con sus nombres, los extras en un solo **MORE**, ahora **antes de PLAY**; **FOCUS** en colores térmicos.
+
+**Armonía y secuencias**
+- **SCL › HARMONY**, su propia pestaña (KEY CHORD HARMONY SCENE): PROG LENGTH EVOLVE SKIP; cada secuencia melódica
+  sigue la progresión, mostrada en números romanos en la tonalidad, con el acorde que suena encendido. Los sets de
+  CHORD: POP JAZZ SOUL DREAM QUART.
+- **EUCLID › MODES › ROLE** (MELODY CHORDS BASS ARP) escribe sobre la armonía que tocan las otras pistas; CONTOUR
+  RANGE MOTIF le dan forma a la melodía.
+- Step components: **RAMP** (END: BACK HOLD PING), **FILL** (donde estaba LOCK); STUT y RATCH en la grilla del tempo.
+
+**Performance**
+- Mantené **FX**: un mapa de **celdas con nombre** (los efectos por su nombre, M1–M4 arriba, los mutes T1–T6 abajo).
+- **Editor de punch-in**: OCT+ en FX › PUNCH IN (o FX + OCT+). Cada tecla: WHAT (un efecto, o un parámetro: M1–M4,
+  CUT, PITCH, TIMBRE, VOLUME, PAN, DIST, CHORUS, DELAY, REVERB, VIBRATO), HOW (HOLD LATCH QUANT, o RAMP UP / DN, SINE,
+  STUTTER, S&H), AMOUNT (−100 … +100 %) y TIME (1/16 … 8 compases); dos slots, A y B. Efectos nuevos: REVERSE,
+  FREEZE, TAPE STOP, PITCH UP / DOWN, STRETCH. Las perillas de FX › PUNCH IN son los macros M1–M4.
+- **LIFE** (HOME › LIFE): las pistas se mueven entre sí (FILTER TIMBRE PUMP FX).
+- SCENE toca solo en las pistas vivas; su **LEADER** pueden ser las teclas o las notas de una pista.
+
+**Generador (GENE)**
+- Las semillas se fusionan (A+B en el nombre), nunca la misma tirada dos veces; mientras suena espera al compás;
+  GENE 4: KEY NEW / KEEP.
+- DUBSTEP (el wobble, con su rate moviéndose; bajos MATH), SHOEGAZE, METALCORE, CUMBIA villera, ocho progresiones
+  más (neo-soul, jazz, IDM, progresivo); cada género su FX STYLE; MATH, WEST y STRING más seguido.
+
+**Pantallas y ajustes**
+- Las páginas de la canción viven en HOME › SONG: TIMELINE ARRANGE PARTS CLIPS (SAVE guarda y carga).
+- **MENU › DISPLAY › PRESETS**: SCROLL (la perilla recorre los sonidos) o MENU (la lista se abre al girar).
+- **MENU › HELP**: el significado de una perilla en el encabezado cuando no es obvio. Osciloscopios en vez de barras decorativas.
+- Valores de fábrica: LARGE apagado, CLICK en REC, COUNT-IN 1 BAR.
+- **GLO mantenido + G4: UNDO.**
+
+La **beta V10.8.1** rediseña el modo canción (cada pista con sus secuencias A–D, CAMBIO, una toma JAM con LOCK); no
+está en esta versión. Ver el README.
+
+### Desde V10.6c
 
 Todo lo que cambió desde la V10.6c, la última versión pública, en una lista; cada punto lleva a su lugar en el manual.
 
