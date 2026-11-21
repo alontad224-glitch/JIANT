@@ -6,7 +6,8 @@
 // with "Add samples" goes into slot 1 through the SAMPLE BROWSER (SAMPLE, pad 1, LOAD), the browser is drawn over the
 // screen, a SAMPLE track and a GRAIN track play it from a pad (the worklet's output is not silent; before the slot was
 // loaded the same pad was), RESAMPLE records into slot 2 and comes back as slot02.wav, a slot downloads as a WAV, the
-// slots and files are there again after a reload, MIC / LINE from a (fake) input; the FM-1 and SMK-37 panels still play.
+// slots and files are there again after a reload, MIC / LINE from a (fake) input; the FM-1 (its own panel: a key plays,
+// the screen draws, a button lights) and SMK-37 panels still play.
 import fs from "fs";
 import http from "http";
 import os from "os";
@@ -60,6 +61,7 @@ page.on("console", (m) => { if (m.type() === "error") console.log("console:", m.
 
 const ctl = (name) => page.locator(`.device g.ctl[aria-label="${name.replace(/\n/g, "\\a ")}"]`);
 const tap = async (name, ms = 120) => {                // a press held ms, as a finger would
+  await ctl(name).scrollIntoViewIfNeeded();          // (the panel is taller than the window: the mouse does not scroll)
   const box = await ctl(name).boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down(); await sleep(ms); await page.mouse.up(); await sleep(80);
@@ -201,13 +203,20 @@ check("SMK-37: a pad plays", smk.rms > 1e-3, `rms ${smk.rms.toFixed(4)}`);
 check("SMK-37: no samples panel", await page.locator(".samples").count() === 0);
 
 await page.locator('.picker button[data-dev="fm1"]').click();
-const frame = await (await page.waitForSelector("iframe.fm1")).contentFrame();
-await frame.waitForSelector("#go");
-await frame.click("#go");
-await frame.waitForFunction(() => document.getElementById("start")?.hidden || !document.getElementById("status")?.hidden, null, { timeout: 20000 });
-const fm1 = await frame.evaluate(() => ({ on: document.getElementById("start").hidden, status: document.getElementById("status").textContent }));
-if (!fm1.on && /ADDITIVE/.test(fm1.status)) console.log("devices: FM-1: skipped (the ADDITIVE shell with another edition's felucca.wasm: the site's pin is not here)");
-else check("FM-1: the emulator (index.html) switches on in the page", fm1.on, fm1.status);
+await page.waitForSelector(".device.fm1 svg");
+check("FM-1: its own panel in the page (not the emulator's page in a frame)", await page.locator("iframe").count() === 0);
+await switchOn();
+check("FM-1: felucca.wasm (not the big-CPU build)", !(await page.evaluate(() => window.__devices.emu.hostPower)));
+await meter();
+await tap("C4", 400); await sleep(200);
+const fm1 = await meter();
+check("FM-1: a key plays", fm1.rms > 1e-3, `rms ${fm1.rms.toFixed(4)}`);
+const lit = await page.evaluate(() => { const d = document.querySelector(".device.fm1 canvas").getContext("2d").getImageData(0, 0, 240, 240).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 120) n++; return n; });
+check("FM-1: its screen shows the firmware's frame", lit > 500, `${lit} lit pixels`);
+await tap("HOME"); await sleep(300);
+check("FM-1: a button reaches the firmware (HOME lit)", await ctl("HOME").evaluate((g) => g.classList.contains("lit")));
+check("FM-1: FM-1 ⇄ emulator is there", await page.locator("#xfer summary").count() === 1);
+check("FM-1: the links row", await page.locator(".stage .devlinks a").count() >= 3);
 check("no page errors", errors.length === 0, errors.join("; "));
 
 await browser.close();
