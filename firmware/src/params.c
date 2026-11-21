@@ -259,6 +259,13 @@ static const param_desc_t *track_desc(const track_t *t, uint32_t id)
 {
     if (id == MOT_DJF)                                /* (0.9.1) a DJ FILTER record (motion.c): the global's */
         return &GP[G_DJF];
+#if FELUCCA_HOST_POWER
+    {   /* (ports/) SAMPLE GRAIN: their extra values in other engines' slots; DRUM-X's sample layer (engines.c) */
+        const param_desc_t *x = hp_xdesc(t, id);
+        if (x)
+            return x;
+    }
+#endif
     if ((id == P_VLANG || id == P_VLYR) && ENGINES[eng_idx(t->eng_req)] == &ENG_FORMANT)
         return id == P_VLANG ? &VLANG_DESC : &VLYR_DESC;
     if (id >= P_E0 && id <= P_E7) {                   /* the engine asked for (t->engine follows after a fade) */

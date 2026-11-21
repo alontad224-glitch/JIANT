@@ -25,4 +25,8 @@ echo "core: $OUT/libjiant_core.a"
 if [ "${1:-}" = test ]; then
     $CC -O2 -Wall -Iports/core ports/core/core_test.c "$OUT/libjiant_core.a" -lm -o "$OUT/core_test"
     "$OUT/core_test"
+    # the sample engines (SAMPLE, GRAIN, DRUM-X's samples) with the firmware's internals at hand
+    $CC -O2 -ffp-contract=off -std=gnu99 -w "-DFELUCCA_VERSION=\"$VERSION\"" -Ibuild/gen -Ifirmware/src -Iports/core \
+        ports/core/sample_test.c -lm -o "$OUT/sample_test"
+    "$OUT/sample_test"
 fi

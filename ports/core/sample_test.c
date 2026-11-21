@@ -1,0 +1,380 @@
+/* SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (C) 2026 Juan Ignacio Antonucci (Juan Jiant) */
+/* The sample engines of the big CPUs (ports/core/build.sh test): SAMPLE (eng_sample.c), GRAIN (eng_grain.c) and DRUM-X's
+ * sample layer (eng_drum.c dxs_*) against synthetic slots, through the whole core (the firmware's internals at hand:
+ * it includes jiant_core.c). Every mode and trigger makes the sound it should, feedback stays bounded at its top, DESTROY
+ * never touches the loaded original, REC records the bars asked for, the output always finite; the engines' cost at
+ * heavy settings printed. */
+#include "jiant_core.c"
+#include <stdio.h>
+
+static int fails;
+#define CHECK(c, ...) do { if (c) printf("  ok    " __VA_ARGS__); else { printf("  FAIL  " __VA_ARGS__); fails++; } \
+                           printf("\n"); } while (0)
+
+#define MAXR (10u * 44100u)
+static float ol[MAXR], or_[MAXR];
+static int nonfinite;
+static void ren(uint32_t n)                    /* n frames into ol / or_ (finite checked) */
+{
+    uint32_t i;
+    if (n > MAXR)
+        n = MAXR;
+    jiant_render(ol, or_, n);
+    for (i = 0; i < n; i++)
+        if (!(ol[i] == ol[i]) || !(or_[i] == or_[i]) || fabsf(ol[i]) > 4.0f || fabsf(or_[i]) > 4.0f)
+            nonfinite++;
+}
+static double wrms(const float *x, uint32_t a, uint32_t b)   /* rms of x[a, b) */
+{
+    double s = 0;
+    uint32_t i;
+    for (i = a; i < b; i++)
+        s += (double)x[i] * x[i];
+    return b > a ? sqrt(s / (b - a)) : 0.0;
+}
+static uint32_t zc(const float *x, uint32_t a, uint32_t b)   /* zero crossings, upwards */
+{
+    uint32_t i, n = 0;
+    for (i = a + 1u; i < b; i++)
+        n += x[i - 1u] <= 0.0f && x[i] > 0.0f;
+    return n;
+}
+static void note(uint32_t k, uint32_t vel) { jiant_midi(0x90, (uint8_t)k, (uint8_t)vel); }
+static void off(uint32_t k) { jiant_midi(0x80, (uint8_t)k, 0); }
+static uint32_t sounding(const track_t *t)
+{
+    uint32_t i, n = 0;
+    for (i = 0; i < NVOICE; i++)
+        n += t->v[i].active && t->v[i].stage != 4u;
+    return n;
+}
+
+/* track 1 on engine e, preset pr, dry (no sends), flat envelope */
+static void use(uint32_t e, uint32_t pr)
+{
+    track_t *t = &trk[0];
+    set_engine_of(t, e);
+    ren(2048);
+    apply_preset_to(t, pr);
+    ren(2048);
+    t->p[P_CHOR] = t->p[P_DLY] = t->p[P_REV] = t->p[P_DIST] = 0;
+    t->p[P_ATK] = 0;
+    t->p[P_SUS] = 127;
+    t->p[P_REL] = 4;
+    t->p[P_LEVEL] = 100;
+}
+
+/* the cost: every part on engine e (preset pr, its values set by fn), 8 notes each held; seconds of audio a second */
+static double cost(uint32_t e, uint32_t pr, void (*fn)(track_t *), uint32_t *voices)
+{
+    struct timespec t0, t1;
+    uint32_t k, j;
+    double secs;
+    ui_rec_prefs |= PREF_SIX >> 8;             /* (MENU > TRACKS 6) */
+    trk_live = NTRK;
+    for (k = 0; k < 6u; k++) {
+        trk[k].p[P_MUTE] = 0;
+        set_engine_of(&trk[k], e);
+    }
+    ren(4096);
+    for (k = 0; k < 6u; k++) {
+        apply_preset_to(&trk[k], pr);
+        trk[k].p[P_VOICE] = V_POLY;
+        if (fn)
+            fn(&trk[k]);
+    }
+    ren(4096);
+    for (k = 0; k < 6u; k++)
+        for (j = 0; j < 8u; j++)
+            trk_note_on(&trk[k], 48 + j * 3u, 100);
+    ren(4410);
+    *voices = jiant_voices_sounding();
+    clock_gettime(CLOCK_MONOTONIC, &t0);
+    for (k = 0; k < 10u; k++)
+        ren(44100);
+    clock_gettime(CLOCK_MONOTONIC, &t1);
+    secs = (double)(t1.tv_sec - t0.tv_sec) + (double)(t1.tv_nsec - t0.tv_nsec) * 1e-9;
+    for (k = 0; k < 6u; k++) {
+        for (j = 0; j < 8u; j++)
+            trk_note_off(&trk[k], 48 + j * 3u);
+        trk[k].p[P_MUTE] = k != 0u;
+    }
+    ren(44100);
+    return 10.0 / secs;
+}
+static void heavy_sample(track_t *t)
+{
+    t->p[P_E0] = 6;
+    t->p[P_E3] = SM_LOOP;
+    t->p[P_E5] = 110;                          /* the comb on */
+    t->p[P_E7] = 40;                           /* DESTROY on */
+}
+
+static float S1[44100], S2[44100];
+int main(void)
+{
+    track_t *t = &trk[0];
+    uint32_t i;
+    printf("JIANT sample engines %s\n", jiant_version());
+    jiant_boot(7, 1);
+    for (i = 0; i < 6u; i++)                   /* the other parts quiet */
+        trk[i].p[P_MUTE] = i != 0u;
+    /* slot 1: 1 s of 441 Hz, its level rising 0 -> 1 (a ramp to tell forward from backward); slot 2: four quarters
+     * of 220, 440, 880, 1760 Hz (slices); slot 3: a 30 ms burst (ratchets) */
+    for (i = 0; i < 44100u; i++) {
+        S1[i] = 0.8f * (float)i / 44100.0f * (float)sin(2.0 * M_PI * 441.0 * i / 44100.0);
+        S2[i] = 0.5f * (float)sin(2.0 * M_PI * 220.0 * (1u << (i / 11025u)) * i / 44100.0);
+    }
+    jiant_slot_load(0, S1, 0, 44100, 44100, "RAMP");
+    jiant_slot_load(1, S2, 0, 44100, 44100, "QUARTERS");
+    for (i = 0; i < 44100u; i++)
+        S1[i] = i < 1323u ? 0.8f * (float)sin(2.0 * M_PI * 300.0 * i / 44100.0) : 0.0f;
+    jiant_slot_load(2, S1, 0, 4410, 44100, "BURST");
+    for (i = 0; i < 44100u; i++) {             /* slot 7: stereo, two tones */
+        S1[i] = 0.4f * (float)sin(2.0 * M_PI * 330.0 * i / 44100.0);
+        S2[i] = 0.4f * (float)sin(2.0 * M_PI * 495.0 * i / 44100.0);
+    }
+    jiant_slot_load(6, S1, S2, 44100, 44100, "STEREO");
+    jiant_service();
+
+    printf("SAMPLE\n");
+    use(ENGI_SAMPLE, 0);                       /* ONE SHOT */
+    CHECK(t->engine == ENGI_SAMPLE && !strcmp(ENGINES[t->engine]->name, "SAMPLE"), "track 1 plays SAMPLE");
+    note(60, 110);
+    ren(2205);
+    off(60);
+    ren(2u * 44100u);
+    {
+        double a = wrms(ol, 4410, 13230), b = wrms(ol, 26460, 35280), c = wrms(ol, 50000, 60000);
+        CHECK(b > 1.8 * a && b > 0.01 && c < 0.001, "ONE: the ramp plays on after the note-off, rising (%.3f -> %.3f), then ends (%.5f)",
+              a, b, c);
+        CHECK(zc(ol, 22050, 33075) > 105 && zc(ol, 22050, 33075) < 116, "C4 the original speed (%u cycles in 0.25 s)",
+              zc(ol, 22050, 33075));
+    }
+    note(72, 110);
+    ren(44100);
+    off(72);
+    CHECK(zc(ol, 4410, 15435) > 215 && zc(ol, 4410, 15435) < 226 && wrms(ol, 30000, 44100) < 0.0005,
+          "an octave up: twice the speed, over in half the time (%u cycles)", zc(ol, 4410, 15435));
+    t->p[P_E3] = SM_GATE;
+    ren(4096);
+    note(60, 110);
+    ren(13230);
+    off(60);
+    ren(22050);
+    CHECK(wrms(ol, 8820, 22050) < 0.0005, "GATE: stops on the release (%.5f)", wrms(ol, 8820, 22050));
+    t->p[P_E3] = SM_REV;
+    ren(4096);
+    note(60, 110);
+    ren(44100);
+    off(60);
+    CHECK(wrms(ol, 4410, 13230) > 1.8 * wrms(ol, 26460, 35280), "REV: backwards, falling (%.3f -> %.3f)",
+          wrms(ol, 4410, 13230), wrms(ol, 26460, 35280));
+    t->p[P_E3] = SM_LOOP;
+    ren(4096);
+    note(60, 110);
+    ren(3u * 44100u);
+    off(60);
+    CHECK(wrms(ol, 2u * 44100u + 22050u, 3u * 44100u - 2000u) > 0.02, "LOOP: still playing at 2.5 s (%.3f)",
+          wrms(ol, 2u * 44100u + 22050u, 3u * 44100u - 2000u));
+    ren(22050);
+    t->p[P_E3] = SM_PING;
+    ren(4096);
+    t->p[P_E2] = 64;
+    note(60, 110);
+    ren(2u * 44100u);
+    off(60);
+    CHECK(wrms(ol, 44100, 88200) > 0.01, "PING: forth and back while held (%.3f)", wrms(ol, 44100, 88200));
+    ren(22050);
+
+    use(ENGI_SAMPLE, 5);                       /* SLICE 16 */
+    t->p[P_E0] = 1;
+    t->p[P_SXSLC] = 4;
+    {
+        static const uint32_t HZ[4] = {220, 440, 880, 1760};
+        uint32_t k, good = 0;
+        for (k = 0; k < 4u; k++) {
+            uint32_t c;
+            note(60 + k, 110);
+            ren(8820);
+            off(60 + k);
+            c = zc(ol, 1000, 5410) * 10u;
+            ren(4410);
+            good += c > HZ[k] * 9u / 10u && c < HZ[k] * 11u / 10u;
+            printf("        slice %u: %u Hz (%u)\n", k + 1u, c, HZ[k]);
+        }
+        CHECK(good == 4u, "SLICE: C4 + n plays slice n + 1, at its own speed");
+    }
+    t->p[P_SXTRIG] = ST_CHOKE;
+    note(60, 110);
+    ren(1000);
+    note(61, 110);
+    ren(1000);
+    note(62, 110);
+    ren(2000);
+    CHECK(sounding(t) == 1u, "CHOKE: one voice (%u)", sounding(t));
+    off(60); off(61); off(62);
+    ren(22050);
+    t->p[P_SXTRIG] = ST_VEL;
+    t->p[P_SXAMT] = 127;
+    note(60, 127);
+    ren(8820);
+    off(60);
+    CHECK(zc(ol, 1000, 5410) * 10u > 1500u, "VEL: velocity 127 picks the last slice (%u Hz)", zc(ol, 1000, 5410) * 10u);
+    ren(22050);
+
+    use(ENGI_SAMPLE, 11);                      /* RATCHET */
+    t->p[P_E0] = 2;
+    t->p[P_SXAMT] = 19;                        /* 4 hits */
+    t->p[P_SXRATE] = 3;                        /* 1/16 */
+    note(60, 110);
+    ren(44100);
+    off(60);
+    {
+        uint32_t q = beat_samples() / 4u, k, on = 0;
+        for (k = 0; k < 6u; k++)
+            on += wrms(ol, k * q, k * q + 1000u) > 0.003;
+        CHECK(on == 4u, "RATCH: 4 hits a 1/16 apart (%u of 6 sixteenths sound)", on);
+    }
+    use(ENGI_SAMPLE, 15);                      /* CHANCE */
+    t->p[P_E0] = 2;
+    t->p[P_SXAMT] = 64;
+    {
+        uint32_t k, hit = 0;
+        for (k = 0; k < 40u; k++) {
+            note(60, 110);
+            ren(1500);
+            off(60);
+            hit += wrms(ol, 0, 1500) > 0.003;
+            ren(3000);
+        }
+        CHECK(hit > 8u && hit < 32u, "CHANCE 50 %%: %u of 40 hits play", hit);
+    }
+    use(ENGI_SAMPLE, 13);                      /* ROUND ROBIN */
+    t->p[P_E0] = 0;
+    t->p[P_SXAMT] = 127 * 2 / 15 + 1;          /* slots 1..3 */
+    {
+        uint32_t k, sl[3];
+        for (k = 0; k < 3u; k++) {
+            note(60, 110);
+            ren(200);
+            sl[k] = smp_v[0][t->m_vi].slot;
+            off(60);
+            ren(4000);
+        }
+        CHECK(sl[0] != sl[1] && sl[1] != sl[2] && sl[0] != sl[2], "ROUND: slots %u %u %u", sl[0] + 1u, sl[1] + 1u,
+              sl[2] + 1u);
+    }
+    use(ENGI_SAMPLE, 14);                      /* LEGATO */
+    t->p[P_E3] = SM_GATE;
+    ren(4096);
+    t->p[P_VOICE] = V_POLY;
+    note(60, 110);
+    ren(22050);
+    note(62, 110);
+    ren(100);
+    {
+        double at = smp_v[0][t->m_vi].pos;
+        CHECK(at > 20000.0, "LEGATO: the new note goes on from where the last was (frame %.0f)", at);
+    }
+    off(60); off(62);
+    ren(22050);
+    use(ENGI_SAMPLE, 9);                       /* SCRUB */
+    note(60, 30);
+    ren(22050);
+    {
+        double p1 = smp_v[0][t->m_vi].pos;
+        off(60);
+        ren(4410);
+        note(60, 120);
+        ren(22050);
+        CHECK(p1 < 15000.0 && smp_v[0][t->m_vi].pos > 30000.0 && wrms(ol, 11025, 22050) > 0.003,
+              "SCRUB: the velocity sends the playhead (frame %.0f, then %.0f)", p1, smp_v[0][t->m_vi].pos);
+        off(60);
+        ren(22050);
+    }
+    use(ENGI_SAMPLE, 10);                      /* TAPE STOP */
+    note(60, 110);
+    ren(22050);
+    off(60);
+    ren(3u * 44100u);
+    CHECK(wrms(ol, 0, 4410) > 0.005 && wrms(ol, 2u * 44100u, 3u * 44100u) < 0.0005 && zc(ol, 0, 4410) > zc(ol, 13230, 17640),
+          "TAPE: slows to a stop after the release (%u -> %u cycles a 0.1 s)", zc(ol, 0, 4410), zc(ol, 13230, 17640));
+    jiant_slot_clear(3);
+    use(ENGI_SAMPLE, 0);
+    t->p[P_E0] = 3;
+    note(60, 110);
+    ren(4410);
+    off(60);
+    CHECK(wrms(ol, 0, 4410) == 0.0 && ENGINES[t->engine]->desc(t, 0) == &SMP_EMPTY, "an empty slot: silent, EDIT says EMPTY");
+
+    use(ENGI_SAMPLE, 17);                      /* METAL COMB, FEEDBK at its top */
+    t->p[P_E5] = 127;
+    t->p[P_E6] = 127;
+    {
+        float pk = 0;
+        uint32_t k;
+        nonfinite = 0;
+        for (k = 0; k < 8u; k++)
+            note(36 + 7 * k, 127);
+        ren(3u * 44100u);
+        for (i = 0; i < 3u * 44100u; i++)
+            pk = fabsf(ol[i]) > pk ? fabsf(ol[i]) : pk;
+        CHECK(!nonfinite && pk < 1.5f && wrms(ol, 2u * 44100u, 3u * 44100u) > 0.01,
+              "FEEDBK 127, 8 voices: rings on by itself, bounded (peak %.2f), finite", pk);
+        for (k = 0; k < 8u; k++)
+            off(36 + 7 * k);
+        ren(44100);
+    }
+    {                                          /* DESTROY */
+        const smp_obj_t *o = smp_get(0);
+        static int16_t keep[44100];
+        uint32_t diff = 0, k;
+        jiant_slot_info_t in;
+        memcpy(keep, o->orig[0], sizeof keep);
+        use(ENGI_SAMPLE, 18);
+        t->p[P_E7] = 127;
+        for (k = 0; k < 4u; k++) {
+            note(60 + k, 120);
+            ren(30000);
+            off(60 + k);
+            ren(2000);
+        }
+        for (k = 0; k < 44100u; k++)
+            diff += o->work[0][k] != keep[k];
+        jiant_slot_info(0, &in);
+        CHECK(!memcmp(keep, o->orig[0], sizeof keep) && diff > 10000u && in.changed,
+              "DESTROY: the working copy worn (%u frames), the original untouched, the slot changed", diff);
+        jiant_slot_load(0, S1, 0, 100, 44100, "X");   /* (a reload brings it back: a new object) */
+    }
+    {                                          /* REC from inside: MST 1 into slot 5 */
+        jiant_slot_info_t in;
+        uint32_t want = beat_samples() * 4u, k;
+        use(ENGI_SAMPLE, 19);
+        t->p[P_E0] = 4;
+        ren(256);
+        t->p[P_SXREC] = 6;                     /* MST 1 */
+        ren(256);
+        CHECK(smp_rec.st == SR_REC && smp_rec.owner == 0 && !strcmp(track_desc(t, P_SXREC)->names[6], "REC"),
+              "REC MST 1 armed from the engine: recording (stopped: at once), the screen says REC");
+        note(67, 110);
+        for (k = 0; k < 30u && smp_rec.st != SR_IDLE; k++)
+            ren(8192);
+        off(67);
+        ren(512);
+        jiant_slot_info(4, &in);
+        CHECK(in.frames == want && t->p[P_SXREC] == 0 && in.changed, "a bar recorded (%u frames, %u wanted), REC back to OFF",
+              in.frames, want);
+        jiant_service();
+    }
+    {
+        uint32_t nv;
+        double x = cost(ENGI_SAMPLE, 2, heavy_sample, &nv);
+        printf("  cost  SAMPLE LOOP + FEEDBK + DESTROY, stereo slot: %u voices at %.1fx real time (%.2f %% of a core a voice)\n",
+               nv, x, 100.0 / x / (nv ? nv : 1u));
+        CHECK(nv == 48u && x > 2.0, "48 SAMPLE voices at once, faster than real time");
+    }
+    CHECK(!nonfinite, "the output always finite");
+    return fails != 0;
+}
