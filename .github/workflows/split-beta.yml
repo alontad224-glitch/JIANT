@@ -106,7 +106,7 @@ jobs:
           policy=Path('web/PUBLIC_CHANNEL.json')
           if policy.exists() and json.loads(policy.read_text()).get('mode')=='stable-only':
               allowed=[v['version'] for v in json.loads(policy.read_text())['versions']]
-              assert set(allowed)<=set(v['version'] for v in json.loads((pages/'firmware/versions.json').read_text())),'the stable public references missing'   # (V10.7.56: a public release on top of them)
+              assert {make_site.base_of(x) for x in allowed}<={make_site.base_of(v['version']) for v in json.loads((pages/'firmware/versions.json').read_text())},'the stable public references missing'   # (V10.8.4: web/CLASSIC's rebuilds carry -sha7)   # (V10.7.56: a public release on top of them)
           def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
           assert digest(Path('build/candidate/build/felucca.fwsc'))==m['sha256'],'candidate package SHA256 mismatch'
           def protected():
