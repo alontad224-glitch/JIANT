@@ -78,7 +78,10 @@ The target build cannot be claimed successful until the JieLi toolchain and AC79
 
 ## Current status
 
-- Source audit: started; key engine, UI, sequencer, display and build files inspected.
-- Code changes: none yet.
+- Source audit: key engine, UI, sequencer, display and build files inspected.
+- Stage 0: audit/plan committed.
+- Stage 1: an ACID palette has been added to `tools/gen_ui_palettes.py` and selected as the first-boot default in `firmware/src/panel.c`. Existing saved palette choices are not forcibly overwritten.
+- The palette uses cream / parchment surfaces, charcoal text, violet identity, ochre active state, and contrasting ochre / violet / mint / rose knob colors. Contrast values were checked against the generator's palette thresholds; the generator and full firmware test suite have not yet been run.
+- No DSP, sequencer data, engine storage index or project format has been changed.
 - Firmware build: not run in this environment.
 - Hardware installation: not attempted.
