@@ -55,6 +55,8 @@ PALETTES = [
     # white). The default since JIANT 0.1 (src/panel.c); 0.5: violet selection (was cyan), the heat everywhere
     ("JIANT",  (0, 0, 0),       (10, 9, 14),     (244, 241, 234), (184, 112, 255), (255, 122, 0)),   # (0.6.60: SURF black, no boxes;
     # 0.8.9, the skins' mock-up: the 0.6 colours, a near-black panel and near-black cards: RAISE_OF below)
+    # ACID HOUSE: cream paper, charcoal ink, violet identity and a high-contrast ochre active state.
+    ("ACID",   (244, 239, 228), (226, 218, 202), (30, 28, 25),    (92, 45, 174),    (128, 82, 0)),
 ]
 # (0.8.9) MENU > DISPLAY > SKIN (the approved mock-up opciones_skin.html, "0.6 COLORS"): each knob its colour, as the 0.6
 # firmware had them, on its card's value and gauge (and the EDIT chips, the knob row of BOTTOM and HUD): KNOB 1..4. The
@@ -71,6 +73,7 @@ KNOBS = {
     "NIGHT":  [(56, 220, 100), (200, 255, 120), (120, 240, 210), (150, 230, 170)],
     "MONO":   [(255, 255, 255)] * 4,
     "JIANT":  [(138, 108, 255), (255, 210, 60), (88, 116, 255), (255, 75, 75)],
+    "ACID":   [(139, 101, 0), (92, 45, 174), (38, 109, 85), (161, 62, 105)],
 }
 # RAISE = mix(SURF, TEXT, RAISE_PCT); JIANT (0.8.9): the mock-up's near-black card (#131218) on its panel, 4 %
 RAISE_OF = {"JIANT": 4}
@@ -218,7 +221,8 @@ def main():
         out += ["};", "static const uint8_t UI_RAISE_OF[] = {" + ", ".join(str(RAISE_OF.get(p[0], RAISE_PCT)) for p in PALETTES) + "};",
                 f"#define UI_NPALETTES {len(PALETTES)}u", "#define UI_GREY_INDEX 0u",
                 f"#define UI_BW_INDEX {names.index(BW)}u          /* MONO: black and white (src/gfx.c palette_set) */",
-                f"#define UI_JIANT_INDEX {names.index('JIANT')}u          /* JIANT FM: the default (src/panel.c) */",
+                f"#define UI_JIANT_INDEX {names.index('JIANT')}u          /* legacy JIANT thermal palette */",
+                f"#define UI_ACID_INDEX {names.index('ACID')}u          /* ACID HOUSE: cream / ochre / violet */",
                 f"#define UI_BW_GREY 0x{to565(BW_GREY):04x}u          /* MONO's one grey: DIM LINE RAISE LANE */",
                 f"#define UI_PAL_TAG {PAL_TAG}u          /* stored id = UI_PAL_TAG + index; below 20: an old id */"]
         out += [f"#define UI_{k}_PCT {v}" for k, v in PCT.items()] + [f"#define UI_RAISE_PCT {RAISE_PCT}   /* SURF -> TEXT */"]
